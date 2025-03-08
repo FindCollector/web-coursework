@@ -12,13 +12,13 @@ import java.util.Date;
 import java.util.UUID;
 
 /**
- * JWT工具类
+ * JWT tools
  */
 public class JwtUtil {
 
-    //有效期为
-    public static final Long JWT_TTL = 60 * 60 *1000L;// 60 * 60 *1000  一个小时
-    //设置秘钥明文
+    //Validity period
+    public static final Long JWT_TTL = 60 * 60 *1000L;// 60 * 60 *1000  one hour
+    //Setting the secret key plaintext
     public static final String JWT_KEY = "hjg2+6IvkaspMPC5ffNGyAssXiUt0rmZcj3VOKU6hro=";
 
     public static String getUUID(){

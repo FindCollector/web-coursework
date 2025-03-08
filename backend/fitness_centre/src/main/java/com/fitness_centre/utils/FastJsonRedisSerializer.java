@@ -11,7 +11,7 @@ import org.springframework.data.redis.serializer.SerializationException;
 import java.nio.charset.Charset;
 
 /**
- * Redis使用FastJson序列化
+ * Redis Serialization with FastJson
  *
  * @author sg
  */
