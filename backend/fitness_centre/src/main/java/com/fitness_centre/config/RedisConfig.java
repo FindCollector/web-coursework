@@ -1,6 +1,7 @@
 package com.fitness_centre.config;
 
-import com.example.demo.utils.FastJsonRedisSerializer;
+import com.fitness_centre.utils.FastJsonRedisSerializer;
+import com.fitness_centre.utils.FastJsonRedisSerializer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;

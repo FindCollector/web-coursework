@@ -37,7 +37,10 @@ public class User implements Serializable {
 
     private String address;
 
-    private String register_time;
+    private String registerTime;
 
     private Integer status;
+
+    private String userName;
+
 }

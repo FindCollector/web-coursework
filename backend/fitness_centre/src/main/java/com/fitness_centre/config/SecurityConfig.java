@@ -1,6 +1,7 @@
 package com.fitness_centre.config;
 
-import com.example.demo.filter.JwtAuthenticationTokenFilter;
+import com.fitness_centre.filter.JwtAuthenticationTokenFilter;
+import com.fitness_centre.filter.JwtAuthenticationTokenFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
