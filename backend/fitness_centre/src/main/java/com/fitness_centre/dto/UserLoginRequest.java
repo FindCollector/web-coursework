@@ -12,4 +12,8 @@ import lombok.Data;
 public class UserLoginRequest {
     private String email;
     private String password;
+
+    private String action;
+
+    private String recaptchaToken;
 }

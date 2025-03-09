@@ -5,8 +5,10 @@ import com.fitness_centre.dto.GeneralResponseResult;
 import com.fitness_centre.dto.UserLoginRequest;
 import com.fitness_centre.service.LoginService;
 import com.fitness_centre.utils.JwtUtil;
+import com.fitness_centre.utils.RecaptchaValidator;
 import com.fitness_centre.utils.RedisCache;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -34,10 +36,31 @@ public class LoginServiceImpl implements LoginService {
     private RedisCache redisCache;
 
     //expire time minutes
-    @Autowired private final static int expireTime = 1441;
+    private final static int expireTime = 1441;
+
+    @Autowired
+    private RecaptchaValidator recaptchaValidator;
+
+    @Value("${recaptcha.threshold}")
+    private double threshold;
+
 
     @Override
     public GeneralResponseResult login(UserLoginRequest loginRequest) {
+
+
+        // bot check
+        boolean recaptchaPassed = recaptchaValidator.verify(
+                loginRequest.getRecaptchaToken(),
+                threshold,
+                "login"
+        );
+
+        if(!recaptchaPassed){
+            throw new BadCredentialsException("疑似机器人");
+        }
+
+        //login check
         UsernamePasswordAuthenticationToken authenticationToken =
                 new UsernamePasswordAuthenticationToken(
                         loginRequest.getEmail(),

@@ -18,3 +18,8 @@ mybatis-plus:
 
 server:
   port: 8080
+
+recaptcha:
+  secretKey: "6Lcq_e4qAAAAAEJYKkGw-zQ6CN74yjbiWByLBo6Y"
+  threshold: 0.5
+  API_KEY: "AIzaSyDkGZwzeqoVwtFNHfvKfSnEktdg16oqK3E"

@@ -60,6 +60,8 @@ public class SecurityConfig{
                 .authorizeHttpRequests(auth -> auth
                         // 对 /user/login 接口允许匿名访问
                         .requestMatchers("/auth/login").anonymous()
+                        //todo 删除测试页面的放行
+                        .requestMatchers("/test_recaptcha.html").anonymous()
                         // 其余所有请求均需要认证
                         .anyRequest().authenticated())
 
