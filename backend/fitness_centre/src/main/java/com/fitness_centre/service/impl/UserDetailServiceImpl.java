@@ -16,7 +16,7 @@ import java.util.Objects;
 /**
  * @author
  * @Classname UserDetailServiceImpl
- * @Description TODO
+ * @Description DONE
  * @date 08/03/2025
  */
 @Service
@@ -26,9 +26,9 @@ public class UserDetailServiceImpl implements UserDetailsService {
 
 
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(User::getUserName,username);
+        queryWrapper.eq(User::getEmail,email);
         User user = userMapper.selectOne(queryWrapper);
 
         if(Objects.isNull(user)){

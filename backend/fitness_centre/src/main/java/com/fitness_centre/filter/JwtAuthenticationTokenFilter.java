@@ -21,7 +21,7 @@ import java.util.Objects;
 /**
  * @author
  * @Classname JwtAuthenticationTokenFilter
- * @Description TODO
+ * @Description DONE
  * @date 04/03/2025
  */
 @Component
@@ -40,27 +40,25 @@ public class JwtAuthenticationTokenFilter extends OncePerRequestFilter {
             return;
         }
         //解析token
-        String userid;
+        String email;
+        //TODO 修改响应格式
         try {
             Claims claims = JwtUtil.parseJWT(token);
-            userid = claims.getSubject();
+            email = claims.getSubject();
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException("token非法");
         }
         //从redis中获取用户信息
-        String redisKey = "login:" + userid;
+        String redisKey = "login:" + email;
         LoginUser loginUser =  redisCache.getCacheObject(redisKey);
         if(Objects.isNull(loginUser)){
             throw new RuntimeException("用户未登录");
         }
 
         //区别于LoginServiceImpl，这里要用三个参数的构造函数，它会设置成员变量为已认证的状态
-        // TODO 获取权限信息封装到Authentication中
         UsernamePasswordAuthenticationToken authenticationToken =
                 new UsernamePasswordAuthenticationToken(loginUser,null,loginUser.getAuthorities());
-        // 本质是ThreadLocal
-        // 存入SecurityContextHolder
         SecurityContextHolder.getContext().setAuthentication(authenticationToken);
         //放行
         filterChain.doFilter(request,response);

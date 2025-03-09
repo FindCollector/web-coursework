@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
 /**
  * @author
  * @Classname LoginUser
- * @Description TODO
+ * @Description DONE
  * @date 03/03/2025
  */
 @Data
@@ -52,7 +52,7 @@ public class LoginUser implements UserDetails {
 
     @Override
     public String getUsername() {
-        return user.getUserName();
+        return user.getEmail();
     }
 
     @Override

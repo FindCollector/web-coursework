@@ -16,6 +16,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
+import org.springframework.security.web.access.AccessDeniedHandlerImpl;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 /**
@@ -40,6 +41,12 @@ public class SecurityConfig{
     @Autowired
     private JwtAuthenticationTokenFilter jwtAuthenticationTokenFilter;
 
+    @Autowired
+    private AuthenticationEntryPoint authenticationEntryPoint;
+
+    @Autowired
+    private AccessDeniedHandler accessDeniedHandler;
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
@@ -52,16 +59,16 @@ public class SecurityConfig{
                 // 3. 配置请求的权限规则
                 .authorizeHttpRequests(auth -> auth
                         // 对 /user/login 接口允许匿名访问
-                        .requestMatchers("/user/login").anonymous()
+                        .requestMatchers("/auth/login").anonymous()
                         // 其余所有请求均需要认证
-                        .anyRequest().authenticated());
+                        .anyRequest().authenticated())
 
-                // 配置异常处理器（Lambda DSL）
-//                .exceptionHandling(exceptionHandling ->
-//                        exceptionHandling
-//                                .authenticationEntryPoint(authenticationEntryPoint)
-//                                .accessDeniedHandler(accessDeniedHandler)
-//                );
+                 //配置异常处理器（Lambda DSL）
+                .exceptionHandling(exceptionHandling ->
+                        exceptionHandling
+                                .authenticationEntryPoint(authenticationEntryPoint)
+                                .accessDeniedHandler(accessDeniedHandler)
+                );
 
 
 

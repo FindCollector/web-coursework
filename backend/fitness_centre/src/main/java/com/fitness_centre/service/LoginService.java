@@ -1,7 +1,8 @@
 package com.fitness_centre.service;
 
-import com.fitness_centre.domain.ResponseResult;
-import com.fitness_centre.domain.User;
+import com.fitness_centre.dto.GeneralResponseResult;
+import com.fitness_centre.dto.GeneralResponseResult;
+import com.fitness_centre.dto.UserLoginRequest;
 
 /**
  * @author
@@ -10,5 +11,7 @@ import com.fitness_centre.domain.User;
  * @date 08/03/2025
  */
 public interface LoginService {
-    ResponseResult login(User user);
+    GeneralResponseResult login(UserLoginRequest loginDTO);
+
+    GeneralResponseResult logout();
 }
