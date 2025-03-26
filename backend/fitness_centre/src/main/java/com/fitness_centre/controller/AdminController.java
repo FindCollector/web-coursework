@@ -2,6 +2,7 @@ package com.fitness_centre.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fitness_centre.domain.User;
+import com.fitness_centre.dto.GeneralResponseResult;
 import com.fitness_centre.service.impl.UserServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -36,4 +37,11 @@ public class AdminController {
         Page<User> pageResult = userService.pageQueryUser(role,status,userName,email,sortField,sortOrder,pageNo,pageSize);
         return pageResult;
     }
+
+    @DeleteMapping("/{emial}")
+    public GeneralResponseResult deleteUser(@PathVariable String email){
+
+    }
+
+
 }
