@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>reCAPTCHA Enterprise 测试页面</title>
+  <!-- 引入 reCAPTCHA Enterprise 脚本 -->
+  <script src="https://www.google.com/recaptcha/enterprise.js?render=6Lcq_e4qAAAAAEJYKkGw-zQ6CN74yjbiWByLBo6Y"></script>
+</head>
+<body>
+  <h1>reCAPTCHA Enterprise + 登录测试</h1>
+  <div>
+    <label for="email">Email：</label>
+    <input type="text" id="email" value="1" />
+  </div>
+  <div>
+    <label for="password">Password：</label>
+    <input type="password" id="password" value="123" />
+  </div>
+
+  <button onclick="handleLogin()">登录</button>
+  <hr/>
+  <pre id="responseArea" style="border:1px solid #ccc; padding:10px; width:100%; max-width:600px; height:300px; overflow:auto;"></pre>
+
+  <script>
+    /**
+     * 点击登录按钮时触发：
+     * 1. 调用 reCAPTCHA Enterprise 拿到 token
+     * 2. 带上 email、password、action、recaptchaToken 一并 POST 给后端
+     * 3. 将后端返回的 JSON 显示在页面上
+     */
+    function handleLogin() {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+
+      // 关键改动：使用 reCAPTCHA Enterprise 的 ready + execute
+      grecaptcha.enterprise.ready(() => {
+        grecaptcha.enterprise.execute("6Lcq_e4qAAAAAEJYKkGw-zQ6CN74yjbiWByLBo6Y", { action: "login" })
+          .then((token) => {
+            // 前端拿到 token 后，构造后端请求体
+            const payload = {
+              email: email,
+              password: password,
+              action: "login",
+              recaptchaToken: token
+            };
+
+            // 向后端发起请求
+            fetch("http://localhost:8080/auth/login", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify(payload)
+            })
+            .then(resp => resp.json())
+            .then(data => {
+              // 将后端返回的数据在页面中显示
+              const responseArea = document.getElementById("responseArea");
+              responseArea.textContent = JSON.stringify(data, null, 2);
+            })
+            .catch(err => {
+              console.error(err);
+              document.getElementById("responseArea").textContent = "请求出错: " + err;
+            });
+          })
+          .catch(err => {
+            console.error("reCAPTCHA执行失败:", err);
+            document.getElementById("responseArea").textContent = "reCAPTCHA执行失败: " + err;
+          });
+      });
+    }
+  </script>
+</body>
+</html>
