@@ -38,10 +38,10 @@ public class AdminController {
         return pageResult;
     }
 
-    @DeleteMapping("/{emial}")
-    public GeneralResponseResult deleteUser(@PathVariable String email){
-
-    }
+//    @DeleteMapping("/{emial}")
+//    public GeneralResponseResult deleteUser(@PathVariable String email){
+//
+//    }
 
 
 }
