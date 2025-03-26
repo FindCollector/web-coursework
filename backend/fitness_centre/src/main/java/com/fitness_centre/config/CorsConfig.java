@@ -5,7 +5,7 @@ import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 // Spring Security会自动遵循Spring Boot的跨域的设置
-
+//todo  修改跨域
 @Configuration
 public class CorsConfig implements WebMvcConfigurer {
 

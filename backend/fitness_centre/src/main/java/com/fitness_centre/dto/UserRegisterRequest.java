@@ -33,7 +33,7 @@ public class UserRegisterRequest {
     private String email;
 
     @NotBlank(message = "The password cannot be empty.")
-    @Size(min = 8, message = "The password length is at least 8 digits")
+    @Size(min = 6, message = "The password length is at least 6 digits")
     //todo 密码包含的特殊字符拓展
     @Pattern(
             regexp = "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]+$",
