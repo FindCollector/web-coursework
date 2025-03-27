@@ -83,8 +83,29 @@ const RegisterPage = () => {
       return;
     }
 
-    setIsVerificationVisible(false);
-    setIsModalVisible(true);
+    try {
+      const values = form.getFieldsValue();
+      const res = await axios.post('http://localhost:8080/auth/verifyRegister', {
+        userName: values.name,
+        gender: values.gender === 'male' ? 0 : 1,
+        birthday: values.birthday.format('YYYY-MM-DD'),
+        address: values.address,
+        email: values.email,
+        password: values.password,
+        confirmPassword: values.confirmPassword,
+        code: emailCode
+      });
+
+      if (res.data.code === 200) {
+        setIsVerificationVisible(false);
+        setIsModalVisible(true);
+      } else {
+        message.error(res.data.msg || 'Verification failed.');
+      }
+    } catch (err) {
+      console.error('Verification error:', err);
+      message.error('Verification request failed.');
+    }
   };
 
   const handleReturn = () => {
@@ -118,9 +139,7 @@ const RegisterPage = () => {
     }
   ];
 
-  const disabledFutureDate = (current) => {
-    return current && current > dayjs().endOf('day');
-  };
+  const disabledFutureDate = (current) => current && current > dayjs().endOf('day');
 
   return (
     <div style={styles.wrapper}>
@@ -279,3 +298,4 @@ const styles = {
 };
 
 export default RegisterPage;
+
