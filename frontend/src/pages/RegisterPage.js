@@ -54,7 +54,7 @@ const RegisterPage = () => {
       );
 
       const payload = {
-        name: values.name,
+        userName: values.name,
         gender: values.gender === 'male' ? 0 : 1,
         birthday: values.birthday.format('YYYY-MM-DD'),
         address: values.address,
@@ -64,7 +64,7 @@ const RegisterPage = () => {
         recaptchaToken
       };
 
-      const res = await axios.post('http://localhost:8080/auth/senCode', payload);
+      const res = await axios.post('http://localhost:8080/auth/sendCode', payload);
 
       if (res.data.code === 200) {
         message.success("Verification code sent successfully!");
