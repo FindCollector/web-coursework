@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Form, Input, Button, Typography, Select, DatePicker, Modal, message } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import confetti from 'canvas-confetti';
+import axios from 'axios';
+import dayjs from 'dayjs';
 
 const { Title, Paragraph } = Typography;
 const { Option } = Select;
@@ -24,48 +26,60 @@ const RegisterPage = () => {
   useEffect(() => {
     let interval;
     if (timer > 0) {
-      interval = setInterval(() => {
-        setTimer(t => t - 1);
-      }, 1000);
-    } else if (timer === 0) {
+      interval = setInterval(() => setTimer(t => t - 1), 1000);
+    } else {
       clearInterval(interval);
     }
     return () => clearInterval(interval);
   }, [timer]);
 
-  const handleRegister = () => {
-    form.validateFields().then(() => {
+  const handleRegister = async () => {
+    try {
+      await form.validateFields();
       setIsVerificationVisible(true);
-    });
+    } catch (err) {
+      message.warning("Please complete all required fields before proceeding.");
+    }
   };
 
-  const sendCode = () => {
-    const email = form.getFieldValue('email');
-    if (!email) return message.error("Email is required");
-    message.success(`Verification code sent to ${email}`);
-    setTimer(60);
+  const sendCode = async () => {
+    try {
+      const values = await form.validateFields([
+        'name', 'gender', 'birthday', 'address', 'email', 'password', 'confirmPassword'
+      ]);
+
+      const recaptchaToken = await window.grecaptcha.enterprise.execute(
+        '6Lcq_e4qAAAAAEJYKkGw-zQ6CN74yjbiWByLBo6Y',
+        { action: 'register' }
+      );
+
+      const payload = {
+        name: values.name,
+        gender: values.gender === 'male' ? 0 : 1,
+        birthday: values.birthday.format('YYYY-MM-DD'),
+        address: values.address,
+        email: values.email,
+        password: values.password,
+        confirmPassword: values.confirmPassword,
+        recaptchaToken
+      };
+
+      const res = await axios.post('http://localhost:8080/auth/senCode', payload);
+
+      if (res.data.code === 200) {
+        message.success("Verification code sent successfully!");
+        setTimer(60);
+      } else {
+        message.error(res.data.msg || "Failed to send code.");
+      }
+    } catch (err) {
+      message.error("Please fill in all required fields correctly.");
+    }
   };
 
   const handleVerifyAndSubmit = async () => {
     if (emailCode !== '123456') {
       message.error('Invalid verification code');
-      return;
-    }
-
-    if (!window.grecaptcha?.enterprise) {
-      message.error("reCAPTCHA not ready, please wait...");
-      return;
-    }
-
-    let recaptchaToken = '';
-    try {
-      recaptchaToken = await window.grecaptcha.enterprise.execute(
-        '6Lcq_e4qAAAAAEJYKkGw-zQ6CN74yjbiWByLBo6Y',
-        { action: 'register' }
-      );
-    } catch (err) {
-      console.error("reCAPTCHA error:", err);
-      message.error("reCAPTCHA failed. Please try again.");
       return;
     }
 
@@ -85,34 +99,28 @@ const RegisterPage = () => {
   };
 
   const passwordRules = [
-    { required: true, message: 'Please enter your password' },
     {
       validator(_, value) {
         if (!value) return Promise.reject('Please enter your password');
-
         const hasUpper = /[A-Z]/.test(value);
         const hasLower = /[a-z]/.test(value);
         const hasNumber = /[0-9]/.test(value);
         const hasSpecial = /[^A-Za-z0-9]/.test(value);
         const isLongEnough = value.length >= 6;
 
-        if (!isLongEnough) {
-          return Promise.reject('Password must be at least 6 characters long');
-        }
-        if (!hasUpper || !hasLower) {
-          return Promise.reject('Password must include both uppercase and lowercase letters');
-        }
-        if (!hasNumber) {
-          return Promise.reject('Password must include at least one number');
-        }
-        if (!hasSpecial) {
-          return Promise.reject('Password must include at least one special character');
-        }
+        if (!isLongEnough) return Promise.reject('Password must be at least 6 characters long');
+        if (!hasUpper || !hasLower) return Promise.reject('Password must include both uppercase and lowercase letters');
+        if (!hasNumber) return Promise.reject('Password must include at least one number');
+        if (!hasSpecial) return Promise.reject('Password must include at least one special character');
 
         return Promise.resolve();
       }
     }
   ];
+
+  const disabledFutureDate = (current) => {
+    return current && current > dayjs().endOf('day');
+  };
 
   return (
     <div style={styles.wrapper}>
@@ -120,7 +128,7 @@ const RegisterPage = () => {
         <div style={styles.leftPane}>
           <Title level={2} style={{ color: 'white' }}>Join the Fitness Revolution</Title>
           <Paragraph style={{ color: 'white', fontSize: '16px' }}>
-            Create your free account and start your journey toward a healthier, stronger you! With our app, you’ll gain the tools and motivation to crush your fitness goals.
+            Create your free account and start your journey toward a healthier, stronger you!
           </Paragraph>
           <ul style={{ color: 'white', fontSize: '16px' }}>
             <li>Track your workouts and progress</li>
@@ -131,27 +139,33 @@ const RegisterPage = () => {
         </div>
 
         <div style={styles.rightPane}>
-          <Form layout="vertical" form={form} style={styles.form}>
-            <Form.Item label="Name" name="name" rules={[{ required: true, message: 'Please enter your name' }]}> 
+          <Form layout="vertical" form={form} style={styles.form} requiredMark="optional">
+            <Form.Item label="Name" name="name" rules={[{ required: true, message: 'Please enter your name' }]}>
               <Input placeholder="Enter your name" />
             </Form.Item>
-            <Form.Item label="Gender" name="gender" rules={[{ required: true, message: 'Please select your gender' }]}> 
+            <Form.Item label="Gender" name="gender" rules={[{ required: true, message: 'Please select your gender' }]}>
               <Select placeholder="Select gender">
                 <Option value="male">Male</Option>
                 <Option value="female">Female</Option>
-                <Option value="other">Other</Option>
               </Select>
             </Form.Item>
-            <Form.Item label="Birthday" name="birthday" rules={[{ required: true, message: 'Please select your birthday' }]}> 
-              <DatePicker style={{ width: '100%' }} />
+            <Form.Item label="Birthday" name="birthday" rules={[{ required: true, message: 'Please select your birthday' }]}>
+              <DatePicker style={{ width: '100%' }} disabledDate={disabledFutureDate} />
             </Form.Item>
-            <Form.Item label="Address" name="address" rules={[{ required: true, message: 'Please enter your address' }]}> 
+            <Form.Item label="Address" name="address" rules={[{ required: true, message: 'Please enter your address' }]}>
               <Input placeholder="Enter your address" />
             </Form.Item>
-            <Form.Item label="Email" name="email" rules={[{ required: true, message: 'Please enter your email' }]}> 
+            <Form.Item
+              label="Email"
+              name="email"
+              rules={[
+                { required: true, message: 'Please enter your email' },
+                { type: 'email', message: 'Invalid email format' }
+              ]}
+            >
               <Input placeholder="Enter your email" />
             </Form.Item>
-            <Form.Item label="Password" name="password" rules={passwordRules}> 
+            <Form.Item label="Password" name="password" rules={passwordRules}>
               <Input.Password placeholder="Enter your password" />
             </Form.Item>
             <Form.Item
@@ -162,9 +176,7 @@ const RegisterPage = () => {
                 { required: true, message: 'Please confirm your password' },
                 ({ getFieldValue }) => ({
                   validator(_, value) {
-                    if (!value || getFieldValue('password') === value) {
-                      return Promise.resolve();
-                    }
+                    if (!value || getFieldValue('password') === value) return Promise.resolve();
                     return Promise.reject(new Error('Passwords do not match'));
                   },
                 }),
@@ -172,7 +184,7 @@ const RegisterPage = () => {
             >
               <Input.Password placeholder="Confirm your password" />
             </Form.Item>
-            <Form.Item style={{ marginBottom: '20px' }}>
+            <Form.Item>
               <Button type="primary" block style={styles.nextButton} onClick={handleRegister}>Next</Button>
             </Form.Item>
           </Form>
