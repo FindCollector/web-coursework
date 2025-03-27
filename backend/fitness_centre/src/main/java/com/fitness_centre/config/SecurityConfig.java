@@ -58,6 +58,8 @@ public class SecurityConfig{
         http
                 // 1. 关闭 CSRF
                 .csrf(csrf -> csrf.disable())
+                //配置Spring Security允许跨域
+                .cors(cors ->{})
 
                 // 2. 设置 Session 策略为无状态
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
