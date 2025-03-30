@@ -16,6 +16,6 @@ public interface UserMapper extends BaseMapper<User> {
     /**
      * Delete users that have remained inactive for more than a specified period of time
      */
-    @Delete("DELETE FROM users WHERE status = 0 AND register_time < DATE_SUB(NOW(), INTERVAL 48 HOUR)")
+    @Delete("DELETE FROM sys_user WHERE status = 0 AND register_time < DATE_SUB(NOW(), INTERVAL 48 HOUR)")
     int deleteInactiveUsers();
 }

@@ -1,4 +1,4 @@
-package com.fitness_centre.config;
+package com.fitness_centre.security;
 
 import com.fitness_centre.filter.JwtAuthenticationTokenFilter;
 import com.fitness_centre.filter.JwtAuthenticationTokenFilter;
@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -37,7 +38,9 @@ public class SecurityConfig{
     public static final String[] WHILELIST = {
             "/auth/login",
             "/test_recaptcha.html",
-            "/auth/sendCode"
+            "auth/resendCode",
+            "/auth/sendCode",
+            "/auth/verifyCode"
     };
 
     //放行
@@ -52,6 +55,8 @@ public class SecurityConfig{
 
     @Autowired
     private AccessDeniedHandler accessDeniedHandler;
+
+
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -94,9 +99,29 @@ public class SecurityConfig{
 
 
     //获取AuthenticationManager对象，去调用其中的方法
+//    @Bean
+//    public AuthenticationManager authenticationManagerBean(AuthenticationConfiguration configuration) throws Exception {
+//        return configuration.getAuthenticationManager();
+//    }
+
     @Bean
-    public AuthenticationManager authenticationManagerBean(AuthenticationConfiguration configuration) throws Exception {
-        return configuration.getAuthenticationManager();
+    public AuthenticationManager authenticationManager(
+            HttpSecurity http,
+            AuthenticationProviderImpl authenticationProvider
+    ) throws Exception {
+        // 1. 从 HttpSecurity 中拿到 AuthenticationManagerBuilder
+        AuthenticationManagerBuilder builder =
+                http.getSharedObject(AuthenticationManagerBuilder.class);
+
+        // 2. 加入自定义的 Provider
+        builder.authenticationProvider(authenticationProvider);
+
+        // 3. 其他如 builder.userDetailsService(...) 或 builder.inMemoryAuthentication() 等都可以在这里配置
+        //    省略...
+
+        // 4. 最后构建一个 AuthenticationManager 返回
+        return builder.build();
     }
+
 
 }

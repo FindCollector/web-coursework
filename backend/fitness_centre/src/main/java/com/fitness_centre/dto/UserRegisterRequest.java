@@ -43,9 +43,7 @@ public class UserRegisterRequest {
 
     private String confirmPassword;
 
-    private String verifyCode;
 
-    private String recaptchaToken;
 
     public boolean confirmPasswordValid(){
         if(password.equals(confirmPassword)){

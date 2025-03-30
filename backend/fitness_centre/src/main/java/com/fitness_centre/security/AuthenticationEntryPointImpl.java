@@ -1,6 +1,7 @@
-package com.fitness_centre.exception;
+package com.fitness_centre.security;
 
 import com.alibaba.fastjson.JSON;
+import com.fitness_centre.constant.ErrorCode;
 import com.fitness_centre.dto.GeneralResponseResult;
 import com.fitness_centre.utils.WebUtils;
 import com.nimbusds.jose.shaded.gson.Gson;
@@ -27,7 +28,7 @@ public class AuthenticationEntryPointImpl implements AuthenticationEntryPoint {
     public void commence(HttpServletRequest request,
                          HttpServletResponse response,
                          AuthenticationException authException) throws IOException, ServletException {
-        GeneralResponseResult<?> GeneralResponseResult = new GeneralResponseResult<>(HttpStatus.UNAUTHORIZED.value(),authException.getMessage());
+        GeneralResponseResult<?> GeneralResponseResult = new GeneralResponseResult<>(ErrorCode.UNAUTHORIZED,authException.getMessage());
         String json = JSON.toJSONString(GeneralResponseResult);
         WebUtils.renderString(response,json);
     }

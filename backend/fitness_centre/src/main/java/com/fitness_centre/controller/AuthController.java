@@ -1,5 +1,6 @@
 package com.fitness_centre.controller;
 
+import com.fitness_centre.annotation.RequireRecaptcha;
 import com.fitness_centre.dto.GeneralResponseResult;
 import com.fitness_centre.dto.UserLoginRequest;
 import com.fitness_centre.dto.UserRegisterRequest;
@@ -25,6 +26,7 @@ public class AuthController {
     private UserService userService;
 
     @PostMapping("/auth/login")
+    @RequireRecaptcha
     public GeneralResponseResult login(@RequestBody UserLoginRequest loginDTO){
         return userService.login(loginDTO);
     }
@@ -35,14 +37,23 @@ public class AuthController {
     }
 
     @PostMapping("/auth/sendCode")
+    @RequireRecaptcha
     public GeneralResponseResult sendCode(@Valid @RequestBody UserRegisterRequest requestDTO){
-        return userService.sendCode(requestDTO);
+        return userService.basicInfoStore(requestDTO);
     }
 
-    @PostMapping("/auth/verifyRegister")
+    @PostMapping("/auth/resendCode")
+    @RequireRecaptcha
+    public GeneralResponseResult resendCode(@RequestBody Map<String,String> request){
+        String email = request.get("email");
+        return userService.sendCode(email);
+    }
+
+    @PostMapping("/auth/verifyCode")
+    @RequireRecaptcha
     public GeneralResponseResult verifyRegister(@RequestBody Map<String,String> request){
         String email = request.get("email");
-        String verifyCode = request.get("verifyCode");
+        String verifyCode = request.get("code");
         return userService.verifyRegister(email,verifyCode);
     }
 }

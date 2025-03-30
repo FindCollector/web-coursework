@@ -1,6 +1,8 @@
 package com.fitness_centre.filter;
 
-import com.fitness_centre.domain.LoginUser;
+import com.fitness_centre.constant.ErrorCode;
+import com.fitness_centre.security.LoginUser;
+import com.fitness_centre.exception.AuthException;
 import com.fitness_centre.utils.JwtUtil;
 import com.fitness_centre.utils.RedisCache;
 import io.jsonwebtoken.Claims;
@@ -47,13 +49,13 @@ public class JwtAuthenticationTokenFilter extends OncePerRequestFilter {
             email = claims.getSubject();
         } catch (Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("token非法");
+            throw new AuthException(ErrorCode.TOKEN_INVALID);
         }
         //从redis中获取用户信息
         String redisKey = "login:" + email;
         LoginUser loginUser =  redisCache.getCacheObject(redisKey);
         if(Objects.isNull(loginUser)){
-            throw new RuntimeException("用户未登录");
+            throw new AuthException(ErrorCode.UNAUTHORIZED);
         }
 
         //区别于LoginServiceImpl，这里要用三个参数的构造函数，它会设置成员变量为已认证的状态

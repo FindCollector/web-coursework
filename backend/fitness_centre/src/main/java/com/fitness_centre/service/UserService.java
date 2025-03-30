@@ -22,7 +22,9 @@ public interface UserService extends IService<User> {
 
     GeneralResponseResult logout();
 
-    GeneralResponseResult sendCode(UserRegisterRequest requestDTO);
+    GeneralResponseResult basicInfoStore(UserRegisterRequest requestDTO);
+
+    GeneralResponseResult sendCode(String email);
 
     GeneralResponseResult verifyRegister(String email,String verifyCode);
 

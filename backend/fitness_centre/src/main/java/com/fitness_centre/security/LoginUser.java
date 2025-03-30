@@ -1,6 +1,8 @@
-package com.fitness_centre.domain;
+package com.fitness_centre.security;
 
 import com.alibaba.fastjson.annotation.JSONField;
+import com.fitness_centre.constant.UserStatus;
+import com.fitness_centre.domain.User;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
@@ -63,6 +65,10 @@ public class LoginUser implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
+        Integer status = user.getStatus();
+        if(status.equals(UserStatus.BLOCKED.getStatus())){
+            return false;
+        }
         return true;
     }
 
@@ -73,6 +79,12 @@ public class LoginUser implements UserDetails {
 
     @Override
     public boolean isEnabled() {
+        Integer status = user.getStatus();
+
+        if(status.equals(UserStatus.WAITING_APPROVAL.getStatus())){
+            //todo 改提示语
+            return false;
+        }
         return true;
     }
 }

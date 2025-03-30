@@ -1,5 +1,6 @@
 package com.fitness_centre.domain;
 
+import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.AllArgsConstructor;
@@ -24,7 +25,7 @@ import java.util.Date;
 public class User implements Serializable {
     private static final long serialVersionUID = -40356785423868312L;
 
-    @TableId
+    @TableId(type = IdType.ASSIGN_ID)
     private Integer id;
 
     private String email;

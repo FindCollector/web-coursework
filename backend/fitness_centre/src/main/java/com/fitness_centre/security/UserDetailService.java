@@ -1,7 +1,6 @@
-package com.fitness_centre.service.impl;
+package com.fitness_centre.security;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.fitness_centre.domain.LoginUser;
 import com.fitness_centre.domain.User;
 import com.fitness_centre.mapper.UserMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,14 +28,9 @@ public class UserDetailService implements UserDetailsService {
         LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(User::getEmail,email);
         User user = userMapper.selectOne(queryWrapper);
+        //这里面只能抛Spring Security定义的异常
         if(Objects.isNull(user)){
-            throw new UsernameNotFoundException("Wrong username or password");
-        }
-        if(user.getStatus() == 1){
-            throw new BadCredentialsException("Please wait for administrator review");
-        }
-        if(user.getStatus() == 2){
-            throw new BadCredentialsException("The account is being blocked.");
+            throw new BadCredentialsException("Wrong email or password");
         }
         return new LoginUser(user);
     }

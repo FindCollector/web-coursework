@@ -1,6 +1,7 @@
-package com.fitness_centre.exception;
+package com.fitness_centre.security;
 
 import com.alibaba.fastjson.JSON;
+import com.fitness_centre.constant.ErrorCode;
 import com.fitness_centre.dto.GeneralResponseResult;
 import com.fitness_centre.utils.WebUtils;
 import jakarta.servlet.ServletException;
@@ -27,7 +28,7 @@ public class AccessDeniedHandlerImpl implements AccessDeniedHandler {
                        HttpServletResponse response,
                        AccessDeniedException accessDeniedException)
             throws IOException, ServletException {
-        GeneralResponseResult result = new GeneralResponseResult(HttpStatus.FORBIDDEN.value(), "Insufficient authority");
+        GeneralResponseResult result = new GeneralResponseResult(ErrorCode.FORBIDDEN, "Insufficient authority");
         String json = JSON.toJSONString(result);
         WebUtils.renderString(response,json);
 

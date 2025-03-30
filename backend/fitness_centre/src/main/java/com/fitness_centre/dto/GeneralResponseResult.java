@@ -1,5 +1,6 @@
 package com.fitness_centre.dto;
 
+import com.fitness_centre.constant.ErrorCode;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
@@ -12,6 +13,7 @@ import lombok.Data;
 @Data
 @AllArgsConstructor
 public class GeneralResponseResult<T> {
+
     /**
      * 状态码
      */
@@ -30,8 +32,14 @@ public class GeneralResponseResult<T> {
         this.msg = msg;
     }
 
-    public GeneralResponseResult(Integer code, T data) {
-        this.code = code;
+
+    public GeneralResponseResult(ErrorCode errorCode){
+        this.code = errorCode.getCode();
+        this.msg = errorCode.getMessage();
+    }
+    public GeneralResponseResult(ErrorCode errorCode,T data){
+        this.code = errorCode.getCode();
+        this.msg = errorCode.getMessage();
         this.data = data;
     }
 }
