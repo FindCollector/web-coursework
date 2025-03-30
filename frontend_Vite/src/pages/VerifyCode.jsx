@@ -173,7 +173,7 @@ const VerifyCode = () => {
       console.log(`Token received, sending direct fetch request to resend code for: ${userEmail}`);
       
       // 使用原生fetch直接发送请求，不再使用React Query
-      const response = await fetch(`${process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080'}/auth/resendCode`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}/auth/resendCode`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
