@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useMutation } from '@tanstack/react-query';
+import { useSendVerificationCodeMutation } from '../store/api/authApi';
 import { Form, Input, Button, Card, Typography, Select, DatePicker, Modal } from 'antd';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import dayjs from 'dayjs'; // 导入dayjs，Ant Design v5使用的日期库
 
-import { sendVerificationCode } from '../api/authApi';
 import PageTransition from '../components/PageTransition';
 
 const { Title, Text } = Typography;
@@ -66,6 +65,12 @@ const Register = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const navigate = useNavigate();
 
+  // 使用RTK Query hooks
+  const [sendVerificationCode, sendCodeResult] = useSendVerificationCodeMutation();
+  
+  // 添加按钮加载状态
+  const [isLoading, setIsLoading] = useState(false);
+
   // Load reCAPTCHA Enterprise script
   useEffect(() => {
     const script = document.createElement('script');
@@ -94,35 +99,6 @@ const Register = () => {
     }
   });
 
-  // Send verification code request
-  const sendCodeMutation = useMutation({
-    mutationFn: sendVerificationCode,
-    onSuccess: (data) => {
-      console.log('API Response:', data);
-      if (data.code === 0) {
-        navigate('/verify-code', { 
-          state: { 
-            email: data.data?.email || control._formValues.email,
-            userName: control._formValues.userName,
-            role: control._formValues.role
-          } 
-        });
-      } else {
-        setErrorMessage(data.msg);
-        setIsModalVisible(true);
-      }
-    },
-    onError: (error) => {
-      console.error('API Error:', error); // 调试日志
-      let errorMessage = 'Registration failed';
-      if (error.response && error.response.data) {
-        errorMessage = error.response.data.msg || errorMessage;
-      }
-      setErrorMessage(errorMessage);
-      setIsModalVisible(true);
-    }
-  });
-
   // Handle form submission
   const onSubmit = async (formData) => {
     console.log('Form submitted', formData);
@@ -135,6 +111,9 @@ const Register = () => {
     }
     
     try {
+      // 设置加载状态
+      setIsLoading(true);
+      
       console.log('Getting reCAPTCHA token...');
       
       const recaptchaToken = await window.grecaptcha.enterprise.execute(
@@ -186,12 +165,52 @@ const Register = () => {
       };
       
       console.log('Sending data to API...', submitData);
-      sendCodeMutation.mutate(submitData);
+      
+      // 使用RTK Query mutation
+      sendVerificationCode(submitData)
+        .unwrap()
+        .then((data) => {
+          console.log('API Response:', data);
+          if (data.code === 0) {
+            navigate('/verify-code', { 
+              state: { 
+                email: data.data?.email || control._formValues.email,
+                userName: control._formValues.userName,
+                role: control._formValues.role
+              } 
+            });
+          } else {
+            setErrorMessage(data.msg);
+            setIsModalVisible(true);
+            setIsLoading(false); // 重置加载状态
+          }
+        })
+        .catch((error) => {
+          console.error('API Error:', error);
+          let errorMessage = 'Registration failed';
+          if (error.data) {
+            errorMessage = error.data.msg || errorMessage;
+          } else if (error.response && error.response.data) {
+            errorMessage = error.response.data.msg || errorMessage;
+          } else if (error.message) {
+            errorMessage = error.message;
+          }
+          setErrorMessage(errorMessage);
+          setIsModalVisible(true);
+          setIsLoading(false); // 重置加载状态
+        });
     } catch (error) {
       console.error('reCAPTCHA error:', error);
       setErrorMessage('Human verification failed, please refresh the page and try again');
       setIsModalVisible(true);
+      setIsLoading(false); // 重置加载状态
     }
+  };
+  
+  // 在Modal关闭时重置加载状态
+  const handleModalClose = () => {
+    setIsModalVisible(false);
+    setIsLoading(false);
   };
 
   return (
@@ -343,7 +362,8 @@ const Register = () => {
                   type="primary"
                   htmlType="submit"
                   style={styles.registerButton}
-                  loading={sendCodeMutation.isPending}
+                  loading={isLoading || sendCodeResult.isPending}
+                  disabled={isLoading || sendCodeResult.isPending}
                 >
                   Register
                 </Button>
@@ -356,6 +376,7 @@ const Register = () => {
                 type="link" 
                 onClick={() => navigate('/login')} 
                 style={styles.loginLink}
+                disabled={isLoading || sendCodeResult.isPending}
               >
                 Login
               </Button>
@@ -366,8 +387,8 @@ const Register = () => {
         <Modal
           title="Registration Failed"
           open={isModalVisible}
-          onOk={() => setIsModalVisible(false)}
-          onCancel={() => setIsModalVisible(false)}
+          onOk={handleModalClose}
+          onCancel={handleModalClose}
           cancelButtonProps={{ style: { display: 'none' } }}
           okText="Retry"
         >

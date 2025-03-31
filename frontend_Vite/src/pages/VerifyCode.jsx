@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useMutation } from '@tanstack/react-query';
 import { Form, Input, Button, Card, Typography, Modal, message } from 'antd';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import confetti from 'canvas-confetti';
 
-import { verifyCode, sendVerificationCode, resendVerificationCode } from '../api/authApi';
+import { 
+  useVerifyCodeMutation, 
+  useResendVerificationCodeMutation 
+} from '../store/api/authApi';
 import PageTransition from '../components/PageTransition';
 
 const { Title } = Typography;
@@ -28,6 +30,13 @@ const VerifyCode = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
+  
+  // 使用RTK Query hooks
+  const [verifyCode, verifyCodeResult] = useVerifyCodeMutation();
+  const [resendCode, resendCodeResult] = useResendVerificationCodeMutation();
+  
+  // 添加按钮加载状态
+  const [isVerifying, setIsVerifying] = useState(false);
   
   // 获取从注册页面传递的邮箱和用户名
   const userEmail = location.state?.email;
@@ -94,37 +103,6 @@ const VerifyCode = () => {
     return () => clearTimeout(timerId);
   }, [countdown]);
 
-  // 验证码验证请求
-  const verifyCodeMutation = useMutation({
-    mutationFn: verifyCode,
-    onSuccess: (data) => {
-      console.log('Verify code response:', data);
-      if (data.code === 0) {
-        // 显示成功弹窗
-        setIsSuccessModalVisible(true);
-        
-        // 触发彩带动画
-        confetti({
-          particleCount: 100,
-          spread: 70,
-          origin: { y: 0.6 }
-        });
-      } else {
-        setErrorMessage(data.msg);
-        setIsModalVisible(true);
-      }
-    },
-    onError: (error) => {
-      console.error('Verify code error:', error);
-      let errorMessage = 'Verification failed';
-      if (error.response && error.response.data) {
-        errorMessage = error.response.data.msg || errorMessage;
-      }
-      setErrorMessage(errorMessage);
-      setIsModalVisible(true);
-    }
-  });
-
   // 处理表单提交
   const onSubmit = async (formData) => {
     console.log('Submitting verification code:', formData.code);
@@ -137,23 +115,61 @@ const VerifyCode = () => {
     }
     
     try {
+      // 设置加载状态
+      setIsVerifying(true);
+      
       const recaptchaToken = await window.grecaptcha.enterprise.execute(
         '6Lcq_e4qAAAAAEJYKkGw-zQ6CN74yjbiWByLBo6Y',
         { action: 'verifyCode' }
       );
       
-      verifyCodeMutation.mutate({
+      // 使用RTK Query验证验证码
+      verifyCode({
         email: userEmail,
         code: formData.code,
         headers: {
           'X-Recaptcha-Token': recaptchaToken,
           'X-Action': 'verifyCode'
         }
-      });
+      })
+        .unwrap()
+        .then((data) => {
+          console.log('Verify code response:', data);
+          if (data.code === 0) {
+            // 显示成功弹窗
+            setIsSuccessModalVisible(true);
+            
+            // 触发彩带动画
+            confetti({
+              particleCount: 100,
+              spread: 70,
+              origin: { y: 0.6 }
+            });
+          } else {
+            setErrorMessage(data.msg);
+            setIsModalVisible(true);
+            setIsVerifying(false); // 重置加载状态
+          }
+        })
+        .catch((error) => {
+          console.error('Verify code error:', error);
+          let errorMessage = 'Verification failed';
+          if (error.data) {
+            errorMessage = error.data.msg || errorMessage;
+          } else if (error.response && error.response.data) {
+            errorMessage = error.response.data.msg || errorMessage;
+          } else if (error.message) {
+            errorMessage = error.message;
+          }
+          setErrorMessage(errorMessage);
+          setIsModalVisible(true);
+          setIsVerifying(false); // 重置加载状态
+        });
     } catch (error) {
       console.error('reCAPTCHA error:', error);
       setErrorMessage('Human verification failed, please refresh the page and try again');
       setIsModalVisible(true);
+      setIsVerifying(false); // 重置加载状态
     }
   };
 
@@ -180,37 +196,49 @@ const VerifyCode = () => {
         { action: 'resendCode' }
       );
       
-      console.log(`Token received, sending direct fetch request to resend code for: ${userEmail}`);
+      console.log(`Token received, sending request to resend code for: ${userEmail}`);
       
-      // 使用原生fetch直接发送请求，不再使用React Query
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}/auth/resendCode`, {
-        method: 'POST',
+      // 使用RTK Query重新发送验证码
+      resendCode({
+        email: userEmail,
         headers: {
-          'Content-Type': 'application/json',
           'X-Recaptcha-Token': recaptchaToken,
           'X-Action': 'resendCode'
-        },
-        body: JSON.stringify({ email: userEmail }),
-        credentials: 'include'
-      });
-      
-      const data = await response.json();
-      console.log('Resend code response:', data);
-      
-      // 无论成功与否，都重置倒计时
-      setCountdown(60);
-      
-      // 处理响应
-      if (data.code !== 0) {
-        setErrorMessage(data.msg || 'Failed to resend verification code');
-        setIsModalVisible(true);
-      }
+        }
+      })
+        .unwrap()
+        .then((data) => {
+          console.log('Resend code response:', data);
+          
+          // 无论成功与否，都重置倒计时
+          setCountdown(60);
+          
+          // 显示成功消息
+          if (data.code === 0) {
+            message.success('A new verification code has been sent to your email!');
+          } else {
+            // 显示API返回的错误
+            message.error(data.msg || 'Failed to resend code, please try again');
+          }
+        })
+        .catch((error) => {
+          console.error('Resend code error:', error);
+          let errorMsg = 'Failed to resend code';
+          
+          if (error.data) {
+            errorMsg = error.data.msg || errorMsg;
+          } else if (error.message) {
+            errorMsg = error.message;
+          }
+          
+          message.error(errorMsg);
+        })
+        .finally(() => {
+          setIsResending(false);
+        });
     } catch (error) {
-      console.error('Error sending verification code:', error);
-      setErrorMessage(error.message || 'Failed to resend verification code');
-      setIsModalVisible(true);
-    } finally {
-      // 总是确保状态被重置
+      console.error('Error in resend code:', error);
+      message.error('Failed to get verification, please refresh the page and try again');
       setIsResending(false);
     }
   };
@@ -221,9 +249,9 @@ const VerifyCode = () => {
     navigate('/register');
   };
 
-  // 处理返回登录
+  // 返回登录
   const handleBackToLogin = () => {
-    navigate('/login', { state: { registrationSuccess: true } });
+    navigate('/login');
   };
 
   // 添加调试函数以检查 URL 参数
@@ -254,6 +282,13 @@ const VerifyCode = () => {
   }, []);
 
   const isRegisterPage = location.pathname === '/register';
+
+  // 处理Modal关闭
+  const handleModalClose = () => {
+    setIsModalVisible(false);
+    setIsVerifying(false);
+    setIsResending(false);
+  };
 
   return (
     <PageTransition isVisible={isRegisterPage} direction="vertical">
@@ -294,7 +329,8 @@ const VerifyCode = () => {
                   width: '80%',
                   margin: '0 auto',
                 }}
-                loading={verifyCodeMutation.isPending}
+                loading={isVerifying || verifyCodeResult.isPending}
+                disabled={isVerifying || verifyCodeResult.isPending}
               >
                 Verify
               </Button>
@@ -306,10 +342,10 @@ const VerifyCode = () => {
             <Button
               type="link"
               onClick={handleResendCode}
-              disabled={countdown > 0 || isResending}
+              disabled={countdown > 0 || isResending || isVerifying || verifyCodeResult.isPending || resendCodeResult.isPending}
               style={{
                 ...styles.resendLink,
-                color: countdown > 0 || isResending ? '#aaa' : '#1976D2',
+                color: countdown > 0 || isResending || isVerifying ? '#aaa' : '#1976D2',
               }}
             >
               {isResending ? 'Sending...' : countdown > 0 ? `Resend (${countdown}s)` : 'Resend'}
@@ -317,7 +353,12 @@ const VerifyCode = () => {
           </div>
           
           <div style={styles.footerText}>
-            <Button type="link" onClick={() => navigate('/register')} style={styles.backLink}>
+            <Button 
+              type="link" 
+              onClick={() => navigate('/register')} 
+              style={styles.backLink}
+              disabled={isVerifying || verifyCodeResult.isPending}
+            >
               Back to Registration
             </Button>
           </div>
@@ -327,14 +368,8 @@ const VerifyCode = () => {
         <Modal
           title="Verification Failed"
           open={isModalVisible}
-          onOk={() => {
-            setIsModalVisible(false);
-            setIsResending(false); // 确保重置重发送状态
-          }}
-          onCancel={() => {
-            setIsModalVisible(false);
-            setIsResending(false); // 确保重置重发送状态
-          }}
+          onOk={handleModalClose}
+          onCancel={handleModalClose}
           cancelButtonProps={{ style: { display: 'none' } }}
           okText="OK"
         >

@@ -10,6 +10,8 @@ import './App.css'
 
 // 导入管理员页面组件
 import AdminDashboard from './pages/admin/Dashboard';
+// 导入调试页面组件
+import DebugPage from './pages/Debug';
 
 // 受保护路由组件
 const ProtectedRoute = ({ children, requiredUserType = null }) => {
@@ -52,6 +54,11 @@ function App() {
       <Route path="/register" element={<Register />} />
       <Route path="/verify-code" element={<VerifyCode />} />
       <Route path="/" element={<Home />} />
+      
+      {/* 调试页面 - 仅在开发环境中显示 */}
+      {process.env.NODE_ENV !== 'production' && (
+        <Route path="/debug" element={<DebugPage />} />
+      )}
 
       {/* 管理员路由 */}
       <Route

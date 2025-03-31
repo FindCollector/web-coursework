@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useMutation } from '@tanstack/react-query';
+import { useLoginMutation } from '../store/api/authApi';
 import { Form, Input, Button, Card, Typography, Modal } from 'antd';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 
-import { login } from '../api/authApi';
 import { loginStart, loginSuccess, loginFailure } from '../store/authSlice';
 import { getRedirectPath, getUserTypeFromData } from '../utils/routeUtils';
 import PageTransition from '../components/PageTransition';
@@ -29,6 +28,12 @@ const Login = () => {
   const navigate = useNavigate();
   const { loading, error } = useSelector((state) => state.auth);
   
+  // 使用RTK Query的hook
+  const [login, loginResult] = useLoginMutation();
+  
+  // 添加按钮加载状态
+  const [isLoading, setIsLoading] = useState(false);
+
   // Load reCAPTCHA Enterprise script
   useEffect(() => {
     const script = document.createElement('script');
@@ -51,56 +56,6 @@ const Login = () => {
     }
   });
 
-  // Login request
-  const loginMutation = useMutation({
-    mutationFn: login,
-    onMutate: () => {
-      dispatch(loginStart());
-    },
-    onSuccess: (data) => {
-      if (data.code === 0) {
-        // 获取用户信息，适应新的数据结构
-        const userInfo = data.data.userInfo || {};
-        console.log('Login successful, received user info:', userInfo);
-        
-        // 从userInfo中获取token和角色
-        const token = userInfo.token;
-        const userType = userInfo.role || 'admin';
-        const userName = userInfo.userName || 'Admin';
-        
-        // 分发登录成功action
-        dispatch(loginSuccess({
-          token: token,
-          userType: userType,
-          userName: userName
-        }));
-        
-        // 额外确认token已保存到localStorage
-        console.log('Token saved to localStorage:', localStorage.getItem('token') ? 'Yes' : 'No');
-        console.log('User name saved:', userName);
-        
-        // Redirect based on user type
-        const redirectPath = getRedirectPath(userType);
-        navigate(redirectPath);
-      } else {
-        // 确保使用后端返回的错误消息
-        const errorMessage = data.msg || 'Login failed, please try again later';
-        dispatch(loginFailure(errorMessage));
-        setIsModalVisible(true);
-      }
-    },
-    onError: (error) => {
-      let errorMessage = 'Login failed';
-      if (error.response && error.response.data) {
-        errorMessage = error.response.data.msg || errorMessage;
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      dispatch(loginFailure(errorMessage));
-      setIsModalVisible(true);
-    }
-  });
-
   // Handle form submission
   const onSubmit = async (formData) => {
     if (!window.grecaptcha?.enterprise) {
@@ -109,23 +64,102 @@ const Login = () => {
     }
     
     try {
+      // 设置按钮加载状态
+      setIsLoading(true);
+      
       // Get reCAPTCHA token
       const recaptchaToken = await window.grecaptcha.enterprise.execute(
         '6Lcq_e4qAAAAAEJYKkGw-zQ6CN74yjbiWByLBo6Y',
         { action: 'login' }
       );
       
-      loginMutation.mutate({
+      console.log('登录开始，表单数据:', formData);
+      console.log('reCAPTCHA token 获取成功');
+      
+      // 调用RTK Query的login mutation
+      dispatch(loginStart());
+      
+      login({
         ...formData,
         headers: {
           'X-Recaptcha-Token': recaptchaToken,
           'X-Action': 'login'
         }
-      });
+      })
+        .unwrap()
+        .then((data) => {
+          console.log('登录API响应完整数据:', data);
+          
+          if (data.code === 0) {
+            // 获取用户信息，适应新的数据结构
+            const userInfo = data.data?.userInfo || {};
+            console.log('Login successful, received user info:', userInfo);
+            
+            // 从userInfo中获取token和角色
+            const token = userInfo.token;
+            const userType = userInfo.role || 'admin';
+            const userName = userInfo.userName || 'Admin';
+            
+            if (!token) {
+              console.error('登录成功但未获取到token:', data);
+              dispatch(loginFailure('登录成功但未获取到凭证，请联系管理员'));
+              setIsModalVisible(true);
+              setIsLoading(false); // 结束加载状态
+              return;
+            }
+            
+            // 分发登录成功action
+            dispatch(loginSuccess({
+              token: token,
+              userType: userType,
+              userName: userName
+            }));
+            
+            // 额外确认token已保存到localStorage
+            console.log('Token saved to localStorage:', localStorage.getItem('token') ? 'Yes' : 'No');
+            console.log('User name saved:', userName);
+            
+            // Redirect based on user type
+            const redirectPath = getRedirectPath(userType);
+            navigate(redirectPath);
+          } else {
+            // 确保使用后端返回的错误消息
+            const errorMessage = data.msg || 'Login failed, please try again later';
+            console.error('登录失败，后端返回错误:', errorMessage);
+            dispatch(loginFailure(errorMessage));
+            setIsModalVisible(true);
+            setIsLoading(false); // 结束加载状态
+          }
+        })
+        .catch((error) => {
+          console.error('登录失败完整错误:', error);
+          let errorMessage = 'Login failed';
+          
+          if (error.data) {
+            console.error('API错误响应数据:', error.data);
+            errorMessage = error.data.msg || errorMessage;
+          } else if (error.response && error.response.data) {
+            errorMessage = error.response.data.msg || errorMessage;
+          } else if (error.message) {
+            errorMessage = error.message;
+          }
+          
+          console.error('最终错误消息:', errorMessage);
+          dispatch(loginFailure(errorMessage));
+          setIsModalVisible(true);
+          setIsLoading(false); // 结束加载状态
+        });
     } catch (error) {
       console.error('reCAPTCHA error:', error);
       dispatch(loginFailure('Human verification failed, please refresh the page and try again'));
+      setIsLoading(false); // 结束加载状态
     }
+  };
+
+  // 在Modal关闭时重置加载状态
+  const handleModalClose = () => {
+    setIsModalVisible(false);
+    setIsLoading(false);
   };
 
   return (
@@ -171,7 +205,8 @@ const Login = () => {
                   width: '80%',
                   margin: '0 auto',
                 }}
-                loading={loading}
+                loading={isLoading || loginResult.isLoading}
+                disabled={isLoading || loginResult.isLoading}
               >
                 Sign In
               </Button>
@@ -180,7 +215,12 @@ const Login = () => {
           
           <div style={styles.footerText}>
             <span>Don't have an account? </span>
-            <Button type="link" onClick={() => navigate('/register')} style={styles.signUpLink}>
+            <Button 
+              type="link" 
+              onClick={() => navigate('/register')} 
+              style={styles.signUpLink}
+              disabled={isLoading || loginResult.isLoading}
+            >
               Sign Up
             </Button>
           </div>
@@ -190,8 +230,8 @@ const Login = () => {
         <Modal
           title="Login Failed"
           open={isModalVisible}
-          onOk={() => setIsModalVisible(false)}
-          onCancel={() => setIsModalVisible(false)}
+          onOk={handleModalClose}
+          onCancel={handleModalClose}
           cancelButtonProps={{ style: { display: 'none' } }}
           okText="Retry"
         >

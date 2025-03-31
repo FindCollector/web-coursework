@@ -16,7 +16,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @TableName("coach_info")
 public class CoachInfo {
-    private Integer user_id;
+    private Integer userId;
 
     private String intro;
 
