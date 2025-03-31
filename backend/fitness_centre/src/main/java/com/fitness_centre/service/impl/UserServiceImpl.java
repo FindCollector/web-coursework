@@ -86,6 +86,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         ALLOW_SORT_MAP.put("registerTime",User::getRegisterTime);
         ALLOW_SORT_MAP.put("birthday",User::getBirthday);
     }
+
     //登录
     @Override
     public GeneralResponseResult login(UserLoginRequest loginRequest) {
@@ -172,6 +173,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
         redisCache.setCacheObject(sendFreq,LocalDateTime.now(),resendTime,TimeUnit.MINUTES);
 
+
         //验证码密文
         String code;
         try{
@@ -189,7 +191,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     //验证后注册用户
     @Override
-    public GeneralResponseResult verifyRegister(String email,String verifyCode) {
+    public GeneralResponseResult verifyRegister(String email,String verifyCode,String role) {
 
         UserRegisterRequest request= redisCache.getCacheObject("register:" + email);
         if(Objects.isNull(request)){
@@ -202,7 +204,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
         if(!code.equals(verifyCode)){
             System.out.println(code);
-            throw new AuthException(ErrorCode.EMAIL_VERIFICATION_FAILED);
+            throw new AuthException(ErrorCode.EMAIL_VERIFICATION_FAILED.getCode(),"Verification code error");
         }
 
         //让验证码失效
@@ -211,9 +213,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         User user = new User();
         //大型项目用Mapstruct
         BeanUtils.copyProperties(request,user);
-        user.setRole("member");
+        user.setRole(user.getRole());
         user.setRegisterTime(LocalDateTime.now());
-        //激活用户
+        //暂时不激活激活用户
         user.setStatus(1);
         //并发控制：数据库中的email是unique
         try{
@@ -271,12 +273,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
     @Override
     public GeneralResponseResult deleteById(Serializable id){
-        if(removeById(id)){
+        if(!removeById(id)){
             throw new BusinessException(ErrorCode.DB_OPERATION_ERROR);
         }
         return new GeneralResponseResult(ErrorCode.SUCCESS);
     }
 
+    //审批或者封禁用户
     @Override
     public GeneralResponseResult updateStatus(Serializable id,Integer status) {
         LambdaUpdateWrapper<User> updateWrapper = new LambdaUpdateWrapper<>();

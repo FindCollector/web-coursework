@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { Form, Input, Button, Card, Typography, Modal } from 'antd';
 import { useForm, Controller } from 'react-hook-form';
@@ -10,6 +10,7 @@ import * as yup from 'yup';
 import { login } from '../api/authApi';
 import { loginStart, loginSuccess, loginFailure } from '../store/authSlice';
 import { getRedirectPath, getUserTypeFromData } from '../utils/routeUtils';
+import PageTransition from '../components/PageTransition';
 
 const { Title } = Typography;
 
@@ -20,6 +21,8 @@ const schema = yup.object({
 }).required();
 
 const Login = () => {
+  const location = useLocation();
+  const isRegisterPage = location.pathname === '/register';
   console.log("Login component rendering");
   const [isModalVisible, setIsModalVisible] = useState(false);
   const dispatch = useDispatch();
@@ -126,74 +129,76 @@ const Login = () => {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen" style={styles.container}>
-      {console.log("Rendering login form")}
-      <Card className="w-full max-w-md shadow-md" style={{...styles.box, border: '1px solid red'}}>
-        <div className="text-center mb-6">
-          <Title level={2} style={styles.title}>Sign In</Title>
-        </div>
-        
-        <Form layout="vertical" onFinish={handleSubmit(onSubmit)}>
-          <Form.Item
-            label="Email"
-            validateStatus={errors.email ? 'error' : ''}
-            help={errors.email?.message}
-          >
-            <Controller
-              name="email"
-              control={control}
-              render={({ field }) => <Input {...field} placeholder="Enter your email address" />}
-            />
-          </Form.Item>
+    <PageTransition isVisible={isRegisterPage}>
+      <div className="flex justify-center items-center min-h-screen" style={styles.container}>
+        {console.log("Rendering login form")}
+        <Card className="w-full max-w-md shadow-md" style={{...styles.box, border: '1px solid red'}}>
+          <div className="text-center mb-6">
+            <Title level={2} style={styles.title}>Sign In</Title>
+          </div>
           
-          <Form.Item
-            label="Password"
-            validateStatus={errors.password ? 'error' : ''}
-            help={errors.password?.message}
-          >
-            <Controller
-              name="password"
-              control={control}
-              render={({ field }) => <Input.Password {...field} placeholder="Enter your password" />}
-            />
-          </Form.Item>
-          
-          <Form.Item style={{ textAlign: 'center' }}>
-            <Button
-              type="primary"
-              htmlType="submit"
-              style={{
-                ...styles.signInButton,
-                width: '80%',
-                margin: '0 auto',
-              }}
-              loading={loading}
+          <Form layout="vertical" onFinish={handleSubmit(onSubmit)}>
+            <Form.Item
+              label="Email"
+              validateStatus={errors.email ? 'error' : ''}
+              help={errors.email?.message}
             >
-              Sign In
+              <Controller
+                name="email"
+                control={control}
+                render={({ field }) => <Input {...field} placeholder="Enter your email address" />}
+              />
+            </Form.Item>
+            
+            <Form.Item
+              label="Password"
+              validateStatus={errors.password ? 'error' : ''}
+              help={errors.password?.message}
+            >
+              <Controller
+                name="password"
+                control={control}
+                render={({ field }) => <Input.Password {...field} placeholder="Enter your password" />}
+              />
+            </Form.Item>
+            
+            <Form.Item style={{ textAlign: 'center' }}>
+              <Button
+                type="primary"
+                htmlType="submit"
+                style={{
+                  ...styles.signInButton,
+                  width: '80%',
+                  margin: '0 auto',
+                }}
+                loading={loading}
+              >
+                Sign In
+              </Button>
+            </Form.Item>
+          </Form>
+          
+          <div style={styles.footerText}>
+            <span>Don't have an account? </span>
+            <Button type="link" onClick={() => navigate('/register')} style={styles.signUpLink}>
+              Sign Up
             </Button>
-          </Form.Item>
-        </Form>
+          </div>
+        </Card>
         
-        <div style={styles.footerText}>
-          <span>Don't have an account? </span>
-          <Button type="link" onClick={() => navigate('/register')} style={styles.signUpLink}>
-            Sign Up
-          </Button>
-        </div>
-      </Card>
-      
-      {/* Login failure modal */}
-      <Modal
-        title="Login Failed"
-        open={isModalVisible}
-        onOk={() => setIsModalVisible(false)}
-        onCancel={() => setIsModalVisible(false)}
-        cancelButtonProps={{ style: { display: 'none' } }}
-        okText="Retry"
-      >
-        <p style={{ fontSize: '16px' }}>{error || 'Wrong email or password, please try again.'}</p>
-      </Modal>
-    </div>
+        {/* Login failure modal */}
+        <Modal
+          title="Login Failed"
+          open={isModalVisible}
+          onOk={() => setIsModalVisible(false)}
+          onCancel={() => setIsModalVisible(false)}
+          cancelButtonProps={{ style: { display: 'none' } }}
+          okText="Retry"
+        >
+          <p style={{ fontSize: '16px' }}>{error || 'Wrong email or password, please try again.'}</p>
+        </Modal>
+      </div>
+    </PageTransition>
   );
 };
 

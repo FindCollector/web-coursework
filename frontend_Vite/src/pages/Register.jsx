@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { Form, Input, Button, Card, Typography, Select, DatePicker, Modal } from 'antd';
 import { useForm, Controller } from 'react-hook-form';
@@ -8,6 +8,7 @@ import * as yup from 'yup';
 import dayjs from 'dayjs'; // 导入dayjs，Ant Design v5使用的日期库
 
 import { sendVerificationCode } from '../api/authApi';
+import PageTransition from '../components/PageTransition';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -53,9 +54,14 @@ const schema = yup.object({
   confirmPassword: yup.string()
     .required('Please confirm password')
     .oneOf([yup.ref('password')], 'Passwords do not match'),
+  role: yup.string()
+    .required('Please select your role')
+    .oneOf(['member', 'coach'], 'Invalid role selected'),
 }).required();
 
 const Register = () => {
+  const location = useLocation();
+  const isLoginPage = location.pathname === '/login';
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const navigate = useNavigate();
@@ -84,6 +90,7 @@ const Register = () => {
       email: '',
       password: '',
       confirmPassword: '',
+      role: undefined,
     }
   });
 
@@ -91,12 +98,13 @@ const Register = () => {
   const sendCodeMutation = useMutation({
     mutationFn: sendVerificationCode,
     onSuccess: (data) => {
-      console.log('API Response:', data); // 调试日志
+      console.log('API Response:', data);
       if (data.code === 0) {
         navigate('/verify-code', { 
           state: { 
             email: data.data?.email || control._formValues.email,
-            userName: control._formValues.userName
+            userName: control._formValues.userName,
+            role: control._formValues.role
           } 
         });
       } else {
@@ -117,74 +125,67 @@ const Register = () => {
 
   // Handle form submission
   const onSubmit = async (formData) => {
-    // 调试日志
     console.log('Form submitted', formData);
     
     if (!window.grecaptcha?.enterprise) {
-      console.error('reCAPTCHA not loaded'); // 调试日志
+      console.error('reCAPTCHA not loaded');
       setErrorMessage('reCAPTCHA is not ready, please wait...');
       setIsModalVisible(true);
       return;
     }
     
     try {
-      console.log('Getting reCAPTCHA token...'); // 调试日志
+      console.log('Getting reCAPTCHA token...');
       
-      // Get reCAPTCHA token
       const recaptchaToken = await window.grecaptcha.enterprise.execute(
         '6Lcq_e4qAAAAAEJYKkGw-zQ6CN74yjbiWByLBo6Y',
         { action: 'sendCode' }
       );
       
-      console.log('Token received', recaptchaToken.substring(0, 10) + '...'); // 调试日志，只显示token的前10个字符
+      console.log('Token received', recaptchaToken.substring(0, 10) + '...');
       
-      // 处理生日数据，确保在提交前正确转换格式
       let formattedBirthday = '';
       if (formData.birthday) {
-        // 检查是否是dayjs对象
         if (dayjs.isDayjs(formData.birthday)) {
           formattedBirthday = formData.birthday.format('YYYY-MM-DD');
         } 
-        // 检查是否是Moment对象
         else if (formData.birthday._isAMomentObject) {
           formattedBirthday = formData.birthday.format('YYYY-MM-DD');
         } 
-        // 检查是否是JavaScript Date对象
         else if (formData.birthday instanceof Date) {
           formattedBirthday = dayjs(formData.birthday).format('YYYY-MM-DD');
         } 
-        // 检查是否是字符串
         else if (typeof formData.birthday === 'string') {
           formattedBirthday = formData.birthday;
         } 
-        // 如果是其他未知类型，则尝试转换
         else {
           console.warn('Unknown birthday format:', formData.birthday);
           try {
             formattedBirthday = dayjs(formData.birthday).format('YYYY-MM-DD');
           } catch (e) {
             console.error('Failed to format birthday:', e);
-            formattedBirthday = dayjs().format('YYYY-MM-DD'); // 使用当前日期作为备选
+            formattedBirthday = dayjs().format('YYYY-MM-DD');
           }
         }
       } else {
         console.warn('No birthday provided');
-        formattedBirthday = dayjs().format('YYYY-MM-DD'); // 使用当前日期作为备选
+        formattedBirthday = dayjs().format('YYYY-MM-DD');
       }
       
-      console.log('Formatted birthday:', formattedBirthday); // 调试日志
+      console.log('Formatted birthday:', formattedBirthday);
       
       const submitData = {
         ...formData,
         gender: Number(formData.gender),
-        birthday: formattedBirthday, // 使用处理后的生日格式
+        birthday: formattedBirthday,
+        role: formData.role,
         headers: {
           'X-Recaptcha-Token': recaptchaToken,
           'X-Action': 'sendCode'
         }
       };
       
-      console.log('Sending data to API...', submitData); // 调试日志
+      console.log('Sending data to API...', submitData);
       sendCodeMutation.mutate(submitData);
     } catch (error) {
       console.error('reCAPTCHA error:', error);
@@ -194,163 +195,186 @@ const Register = () => {
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.leftPanel}>
-        <Title level={2} style={styles.title}>Join the Fitness Revolution</Title>
-        <Text style={styles.subtitle}>Create your free account and start your journey toward a healthier, stronger you!</Text>
-        <ul style={styles.benefitsList}>
-          <li>Track your workouts and progress</li>
-          <li>Connect with personal coaches</li>
-          <li>Earn badges and rewards</li>
-          <li>Stay motivated every day</li>
-        </ul>
-      </div>
-      <div style={styles.rightPanel}>
-        <div style={styles.formContainer}>
-          <Form layout="vertical" onFinish={handleSubmit(onSubmit)}>
-            <Form.Item
-              label="Name"
-              validateStatus={errors.userName ? 'error' : ''}
-              help={errors.userName?.message}
-            >
-              <Controller
-                name="userName"
-                control={control}
-                render={({ field }) => <Input {...field} placeholder="Enter your name" />}
-              />
-            </Form.Item>
-
-            <Form.Item
-              label="Gender"
-              validateStatus={errors.gender ? 'error' : ''}
-              help={errors.gender?.message}
-            >
-              <Controller
-                name="gender"
-                control={control}
-                render={({ field }) => (
-                  <Select
-                    placeholder="Select gender"
-                    {...field}
-                  >
-                    <Option value={0}>Male</Option>
-                    <Option value={1}>Female</Option>
-                  </Select>
-                )}
-              />
-            </Form.Item>
-
-            <Form.Item
-              label="Birthday"
-              validateStatus={errors.birthday ? 'error' : ''}
-              help={errors.birthday?.message}
-            >
-              <Controller
-                name="birthday"
-                control={control}
-                render={({ field }) => (
-                  <DatePicker
-                    value={field.value}
-                    onChange={(date) => {
-                      // 确保传递一个有效的日期对象给表单
-                      field.onChange(date);
-                      console.log("Selected date:", date); // 调试日志
-                    }}
-                    onBlur={field.onBlur}
-                    placeholder="Select birthday"
-                    style={{ width: '100%' }}
-                    disabledDate={(current) => current && current > new Date()}
-                  />
-                )}
-              />
-            </Form.Item>
-
-            <Form.Item
-              label="Address"
-              validateStatus={errors.address ? 'error' : ''}
-              help={errors.address?.message}
-            >
-              <Controller
-                name="address"
-                control={control}
-                render={({ field }) => <Input {...field} placeholder="Enter your address" />}
-              />
-            </Form.Item>
-
-            <Form.Item
-              label="Email"
-              validateStatus={errors.email ? 'error' : ''}
-              help={errors.email?.message}
-            >
-              <Controller
-                name="email"
-                control={control}
-                render={({ field }) => <Input {...field} placeholder="Enter your email address" />}
-              />
-            </Form.Item>
-
-            <Form.Item
-              label="Password"
-              validateStatus={errors.password ? 'error' : ''}
-              help={errors.password?.message}
-            >
-              <Controller
-                name="password"
-                control={control}
-                render={({ field }) => (
-                  <Input.Password {...field} placeholder="Enter password" />
-                )}
-              />
-            </Form.Item>
-
-            <Form.Item
-              label="Confirm Password"
-              validateStatus={errors.confirmPassword ? 'error' : ''}
-              help={errors.confirmPassword?.message}
-            >
-              <Controller
-                name="confirmPassword"
-                control={control}
-                render={({ field }) => <Input.Password {...field} placeholder="Confirm password" />}
-              />
-            </Form.Item>
-
-            <Form.Item>
-              <Button
-                type="primary"
-                htmlType="submit"
-                style={styles.registerButton}
-                loading={sendCodeMutation.isPending}
+    <PageTransition isVisible={isLoginPage}>
+      <div style={styles.container}>
+        <div style={styles.leftPanel}>
+          <Title level={2} style={styles.title}>Join the Fitness Revolution</Title>
+          <Text style={styles.subtitle}>Create your free account and start your journey toward a healthier, stronger you!</Text>
+          <ul style={styles.benefitsList}>
+            <li>Track your workouts and progress</li>
+            <li>Connect with personal coaches</li>
+            <li>Earn badges and rewards</li>
+            <li>Stay motivated every day</li>
+          </ul>
+        </div>
+        <div style={styles.rightPanel}>
+          <div style={styles.formContainer}>
+            <Form layout="vertical" onFinish={handleSubmit(onSubmit)}>
+              <Form.Item
+                label="I want to register as"
+                validateStatus={errors.role ? 'error' : ''}
+                help={errors.role?.message}
               >
-                Register
+                <Controller
+                  name="role"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      placeholder="Select your role"
+                      {...field}
+                      style={{ width: '100%' }}
+                    >
+                      <Option value="member">Member</Option>
+                      <Option value="coach">Coach</Option>
+                    </Select>
+                  )}
+                />
+              </Form.Item>
+
+              <Form.Item
+                label="Name"
+                validateStatus={errors.userName ? 'error' : ''}
+                help={errors.userName?.message}
+              >
+                <Controller
+                  name="userName"
+                  control={control}
+                  render={({ field }) => <Input {...field} placeholder="Enter your name" />}
+                />
+              </Form.Item>
+
+              <Form.Item
+                label="Gender"
+                validateStatus={errors.gender ? 'error' : ''}
+                help={errors.gender?.message}
+              >
+                <Controller
+                  name="gender"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      placeholder="Select gender"
+                      {...field}
+                    >
+                      <Option value={0}>Male</Option>
+                      <Option value={1}>Female</Option>
+                    </Select>
+                  )}
+                />
+              </Form.Item>
+
+              <Form.Item
+                label="Birthday"
+                validateStatus={errors.birthday ? 'error' : ''}
+                help={errors.birthday?.message}
+              >
+                <Controller
+                  name="birthday"
+                  control={control}
+                  render={({ field }) => (
+                    <DatePicker
+                      value={field.value}
+                      onChange={(date) => {
+                        // 确保传递一个有效的日期对象给表单
+                        field.onChange(date);
+                        console.log("Selected date:", date); // 调试日志
+                      }}
+                      onBlur={field.onBlur}
+                      placeholder="Select birthday"
+                      style={{ width: '100%' }}
+                      disabledDate={(current) => current && current > new Date()}
+                    />
+                  )}
+                />
+              </Form.Item>
+
+              <Form.Item
+                label="Address"
+                validateStatus={errors.address ? 'error' : ''}
+                help={errors.address?.message}
+              >
+                <Controller
+                  name="address"
+                  control={control}
+                  render={({ field }) => <Input {...field} placeholder="Enter your address" />}
+                />
+              </Form.Item>
+
+              <Form.Item
+                label="Email"
+                validateStatus={errors.email ? 'error' : ''}
+                help={errors.email?.message}
+              >
+                <Controller
+                  name="email"
+                  control={control}
+                  render={({ field }) => <Input {...field} placeholder="Enter your email address" />}
+                />
+              </Form.Item>
+
+              <Form.Item
+                label="Password"
+                validateStatus={errors.password ? 'error' : ''}
+                help={errors.password?.message}
+              >
+                <Controller
+                  name="password"
+                  control={control}
+                  render={({ field }) => (
+                    <Input.Password {...field} placeholder="Enter password" />
+                  )}
+                />
+              </Form.Item>
+
+              <Form.Item
+                label="Confirm Password"
+                validateStatus={errors.confirmPassword ? 'error' : ''}
+                help={errors.confirmPassword?.message}
+              >
+                <Controller
+                  name="confirmPassword"
+                  control={control}
+                  render={({ field }) => <Input.Password {...field} placeholder="Confirm password" />}
+                />
+              </Form.Item>
+
+              <Form.Item>
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  style={styles.registerButton}
+                  loading={sendCodeMutation.isPending}
+                >
+                  Register
+                </Button>
+              </Form.Item>
+            </Form>
+            
+            <div style={styles.footerText}>
+              Already have an account? 
+              <Button 
+                type="link" 
+                onClick={() => navigate('/login')} 
+                style={styles.loginLink}
+              >
+                Login
               </Button>
-            </Form.Item>
-          </Form>
-          
-          <div style={styles.footerText}>
-            Already have an account? 
-            <Button 
-              type="link" 
-              onClick={() => navigate('/login')} 
-              style={styles.loginLink}
-            >
-              Login
-            </Button>
+            </div>
           </div>
         </div>
-      </div>
 
-      <Modal
-        title="Registration Failed"
-        open={isModalVisible}
-        onOk={() => setIsModalVisible(false)}
-        onCancel={() => setIsModalVisible(false)}
-        cancelButtonProps={{ style: { display: 'none' } }}
-        okText="Retry"
-      >
-        <p>{errorMessage || 'Registration failed, please try again.'}</p>
-      </Modal>
-    </div>
+        <Modal
+          title="Registration Failed"
+          open={isModalVisible}
+          onOk={() => setIsModalVisible(false)}
+          onCancel={() => setIsModalVisible(false)}
+          cancelButtonProps={{ style: { display: 'none' } }}
+          okText="Retry"
+        >
+          <p>{errorMessage || 'Registration failed, please try again.'}</p>
+        </Modal>
+      </div>
+    </PageTransition>
   );
 };
 

@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
-import { Form, Input, Button, Card, Typography, Modal } from 'antd';
+import { Form, Input, Button, Card, Typography, Modal, message } from 'antd';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
+import confetti from 'canvas-confetti';
 
 import { verifyCode, sendVerificationCode, resendVerificationCode } from '../api/authApi';
+import PageTransition from '../components/PageTransition';
 
 const { Title } = Typography;
 
@@ -22,6 +24,7 @@ const VerifyCode = () => {
   const [isResending, setIsResending] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isTimeoutModalVisible, setIsTimeoutModalVisible] = useState(false);
+  const [isSuccessModalVisible, setIsSuccessModalVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
@@ -29,13 +32,14 @@ const VerifyCode = () => {
   // 获取从注册页面传递的邮箱和用户名
   const userEmail = location.state?.email;
   const userName = location.state?.userName;
+  const userRole = location.state?.role;
   
   // 如果没有邮箱信息，重定向回注册页面
   useEffect(() => {
-    if (!userEmail) {
+    if (!userEmail || !userRole) {
       navigate('/register');
     }
-  }, [userEmail, navigate]);
+  }, [userEmail, userRole, navigate]);
   
   // 加载reCAPTCHA Enterprise脚本
   useEffect(() => {
@@ -94,17 +98,24 @@ const VerifyCode = () => {
   const verifyCodeMutation = useMutation({
     mutationFn: verifyCode,
     onSuccess: (data) => {
-      console.log('Verify code response:', data); // 调试日志
+      console.log('Verify code response:', data);
       if (data.code === 0) {
-        // 注册成功，跳转到登录页
-        navigate('/login', { state: { registrationSuccess: true } });
+        // 显示成功弹窗
+        setIsSuccessModalVisible(true);
+        
+        // 触发彩带动画
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
       } else {
         setErrorMessage(data.msg);
         setIsModalVisible(true);
       }
     },
     onError: (error) => {
-      console.error('Verify code error:', error); // 调试日志
+      console.error('Verify code error:', error);
       let errorMessage = 'Verification failed';
       if (error.response && error.response.data) {
         errorMessage = error.response.data.msg || errorMessage;
@@ -116,17 +127,16 @@ const VerifyCode = () => {
 
   // 处理表单提交
   const onSubmit = async (formData) => {
-    console.log('Submitting verification code:', formData.code); // 调试日志
+    console.log('Submitting verification code:', formData.code);
     
     if (!window.grecaptcha?.enterprise) {
-      console.error('reCAPTCHA not loaded'); // 调试日志
+      console.error('reCAPTCHA not loaded');
       setErrorMessage('reCAPTCHA is not ready, please wait...');
       setIsModalVisible(true);
       return;
     }
     
     try {
-      // 获取reCAPTCHA token
       const recaptchaToken = await window.grecaptcha.enterprise.execute(
         '6Lcq_e4qAAAAAEJYKkGw-zQ6CN74yjbiWByLBo6Y',
         { action: 'verifyCode' }
@@ -211,6 +221,11 @@ const VerifyCode = () => {
     navigate('/register');
   };
 
+  // 处理返回登录
+  const handleBackToLogin = () => {
+    navigate('/login', { state: { registrationSuccess: true } });
+  };
+
   // 添加调试函数以检查 URL 参数
   useEffect(() => {
     // 清理 URL 以移除可能的重复参数
@@ -238,103 +253,146 @@ const VerifyCode = () => {
     }
   }, []);
 
-  return (
-    <div className="flex justify-center items-center min-h-screen" style={styles.container}>
-      <Card className="w-full max-w-md shadow-md" style={styles.box}>
-        <div className="text-center mb-6">
-          <Title level={2} style={styles.title}>Verify Your Email</Title>
-          <p>We have sent a verification email containing a 6-digit code to <strong>{userEmail}</strong></p>
-        </div>
-        
-        <Form layout="vertical" onFinish={handleSubmit(onSubmit)}>
-          <Form.Item
-            label="Verification Code"
-            validateStatus={errors.code ? 'error' : ''}
-            help={errors.code?.message}
-          >
-            <Controller
-              name="code"
-              control={control}
-              render={({ field }) => (
-                <Input
-                  {...field}
-                  placeholder="Enter 6-digit code"
-                  maxLength={6}
-                  size="large"
-                  style={styles.codeInput}
-                />
-              )}
-            />
-          </Form.Item>
+  const isRegisterPage = location.pathname === '/register';
 
-          <Form.Item style={{ textAlign: 'center' }}>
-            <Button
-              type="primary"
-              htmlType="submit"
-              style={{
-                ...styles.verifyButton,
-                width: '80%',
-                margin: '0 auto',
-              }}
-              loading={verifyCodeMutation.isPending}
+  return (
+    <PageTransition isVisible={isRegisterPage} direction="vertical">
+      <div className="flex justify-center items-center min-h-screen" style={styles.container}>
+        <Card className="w-full max-w-md shadow-md" style={styles.box}>
+          <div className="text-center mb-6">
+            <Title level={2} style={styles.title}>Verify Your Email</Title>
+            <p>We have sent a verification email containing a 6-digit code to <strong>{userEmail}</strong></p>
+          </div>
+          
+          <Form layout="vertical" onFinish={handleSubmit(onSubmit)}>
+            <Form.Item
+              label="Verification Code"
+              validateStatus={errors.code ? 'error' : ''}
+              help={errors.code?.message}
             >
-              Verify
+              <Controller
+                name="code"
+                control={control}
+                render={({ field }) => (
+                  <Input
+                    {...field}
+                    placeholder="Enter 6-digit code"
+                    maxLength={6}
+                    size="large"
+                    style={styles.codeInput}
+                  />
+                )}
+              />
+            </Form.Item>
+
+            <Form.Item style={{ textAlign: 'center' }}>
+              <Button
+                type="primary"
+                htmlType="submit"
+                style={{
+                  ...styles.verifyButton,
+                  width: '80%',
+                  margin: '0 auto',
+                }}
+                loading={verifyCodeMutation.isPending}
+              >
+                Verify
+              </Button>
+            </Form.Item>
+          </Form>
+          
+          <div style={styles.resendContainer}>
+            <span>Didn't receive the code?</span>
+            <Button
+              type="link"
+              onClick={handleResendCode}
+              disabled={countdown > 0 || isResending}
+              style={{
+                ...styles.resendLink,
+                color: countdown > 0 || isResending ? '#aaa' : '#1976D2',
+              }}
+            >
+              {isResending ? 'Sending...' : countdown > 0 ? `Resend (${countdown}s)` : 'Resend'}
             </Button>
-          </Form.Item>
-        </Form>
+          </div>
+          
+          <div style={styles.footerText}>
+            <Button type="link" onClick={() => navigate('/register')} style={styles.backLink}>
+              Back to Registration
+            </Button>
+          </div>
+        </Card>
         
-        <div style={styles.resendContainer}>
-          <span>Didn't receive the code?</span>
-          <Button
-            type="link"
-            onClick={handleResendCode}
-            disabled={countdown > 0 || isResending}
-            style={{
-              ...styles.resendLink,
-              color: countdown > 0 || isResending ? '#aaa' : '#1976D2',
-            }}
-          >
-            {isResending ? 'Sending...' : countdown > 0 ? `Resend (${countdown}s)` : 'Resend'}
-          </Button>
-        </div>
+        {/* 错误提示弹窗 */}
+        <Modal
+          title="Verification Failed"
+          open={isModalVisible}
+          onOk={() => {
+            setIsModalVisible(false);
+            setIsResending(false); // 确保重置重发送状态
+          }}
+          onCancel={() => {
+            setIsModalVisible(false);
+            setIsResending(false); // 确保重置重发送状态
+          }}
+          cancelButtonProps={{ style: { display: 'none' } }}
+          okText="OK"
+        >
+          <p>{errorMessage || 'The verification code is incorrect or has expired, please try again.'}</p>
+        </Modal>
         
-        <div style={styles.footerText}>
-          <Button type="link" onClick={() => navigate('/register')} style={styles.backLink}>
-            Back to Registration
-          </Button>
-        </div>
-      </Card>
-      
-      {/* 错误提示弹窗 */}
-      <Modal
-        title="Verification Failed"
-        open={isModalVisible}
-        onOk={() => {
-          setIsModalVisible(false);
-          setIsResending(false); // 确保重置重发送状态
-        }}
-        onCancel={() => {
-          setIsModalVisible(false);
-          setIsResending(false); // 确保重置重发送状态
-        }}
-        cancelButtonProps={{ style: { display: 'none' } }}
-        okText="OK"
-      >
-        <p>{errorMessage || 'The verification code is incorrect or has expired, please try again.'}</p>
-      </Modal>
-      
-      {/* 超时提示弹窗 */}
-      <Modal
-        title="Session Timeout"
-        open={isTimeoutModalVisible}
-        onOk={handleTimeout}
-        onCancel={handleTimeout}
-        cancelButtonProps={{ style: { display: 'none' } }}
-        okText="Back to Registration"
-      >
-        <p>Your verification session has timed out. Please fill in your basic information again.</p>
-      </Modal>
-    </div>
+        {/* 超时提示弹窗 */}
+        <Modal
+          title="Session Timeout"
+          open={isTimeoutModalVisible}
+          onOk={handleTimeout}
+          onCancel={handleTimeout}
+          cancelButtonProps={{ style: { display: 'none' } }}
+          okText="Back to Registration"
+        >
+          <p>Your verification session has timed out. Please fill in your basic information again.</p>
+        </Modal>
+        
+        {/* 成功祝贺弹窗 */}
+        <Modal
+          title="Registration Successful!"
+          open={isSuccessModalVisible}
+          closable={false}
+          maskClosable={false}
+          footer={[
+            <Button 
+              key="backToLogin" 
+              type="primary" 
+              onClick={handleBackToLogin}
+              style={{
+                width: '100%',
+                height: '40px',
+                fontSize: '16px',
+                backgroundColor: '#1976D2',
+                border: 'none',
+              }}
+            >
+              Back to Login
+            </Button>
+          ]}
+          width={400}
+          centered
+          style={{ top: 20 }}
+        >
+          <div style={{ textAlign: 'center', padding: '20px 0' }}>
+            <Title level={3} style={{ color: '#1976D2', marginBottom: '20px' }}>
+              Congratulations!
+            </Title>
+            <p style={{ fontSize: '16px', color: '#666', marginBottom: '20px' }}>
+              Your account has been successfully created. Welcome to our fitness community!
+            </p>
+            <p style={{ fontSize: '14px', color: '#999' }}>
+              You can now log in and start your fitness journey.
+            </p>
+          </div>
+        </Modal>
+      </div>
+    </PageTransition>
   );
 };
 

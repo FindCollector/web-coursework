@@ -27,7 +27,7 @@ public interface UserService extends IService<User> {
 
     GeneralResponseResult sendCode(String email);
 
-    GeneralResponseResult verifyRegister(String email,String verifyCode);
+    GeneralResponseResult verifyRegister(String email,String verifyCode,String role);
 
     Page<User> pageQueryUser(String role, Integer status,String userName,String email,List<String> sortFields, List<String> sortOrders, int pageNow, int pageSize);
 

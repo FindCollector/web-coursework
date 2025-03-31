@@ -43,7 +43,8 @@ public class UserRegisterRequest {
 
     private String confirmPassword;
 
-
+    @Pattern(regexp = "^(member|coach)$", message = "Role must be either 'member' or 'coach'")
+    private String role;
 
     public boolean confirmPasswordValid(){
         if(password.equals(confirmPassword)){

@@ -103,32 +103,32 @@ export const updateUserStatus = async (userId, status) => {
  * @returns {Promise<Object>} 响应结果
  */
 export const deleteUser = async (numericUserId) => {
-  console.log(`[userApi.js] deleteUser函数开始执行，接收到的数字ID: ${numericUserId}`, typeof numericUserId);
+  console.log(`[userApi.js] deleteUser function started, received numeric ID: ${numericUserId}`, typeof numericUserId);
 
-  // 再次确认ID是数字
+  // Verify ID is a number
   if (typeof numericUserId !== 'number' || isNaN(numericUserId)) {
-    console.error('[userApi.js] 错误：传递给deleteUser的ID不是有效的数字!');
+    console.error('[userApi.js] Error: ID passed to deleteUser is not a valid number!');
     return {
       code: -1,
-      msg: '内部错误：用户ID无效',
+      msg: 'Internal error: Invalid user ID',
       data: null
     };
   }
 
   try {
-    // 确保有token
+    // Ensure token exists
     const token = localStorage.getItem('token');
     if (!token) {
-      console.error('[userApi.js] 无法删除用户: 未找到认证token');
+      console.error('[userApi.js] Cannot delete user: No authentication token found');
       return {
         code: -1,
-        msg: '需要认证，请重新登录',
+        msg: 'Authentication required, please login again',
         data: null
       };
     }
-    console.log('[userApi.js] 获取到token:', token ? '存在' : '不存在');
+    console.log('[userApi.js] Token found:', token ? 'exists' : 'does not exist');
 
-    // 设置请求选项
+    // Set request options
     const options = {
       headers: {
         'token': token
@@ -136,37 +136,37 @@ export const deleteUser = async (numericUserId) => {
     };
     
     const url = `/user/${numericUserId}`;
-    console.log(`[userApi.js] 准备发送 axios DELETE 请求到: ${url}`);
-    console.log('[userApi.js] 使用的请求选项(options):', options);
+    console.log(`[userApi.js] Preparing to send axios DELETE request to: ${url}`);
+    console.log('[userApi.js] Using request options:', options);
     
-    // 发送删除请求
+    // Send delete request
     const response = await client.delete(url, options);
     
-    console.log('[userApi.js] Axios删除响应:', response);
+    console.log('[userApi.js] Axios delete response:', response);
     return response.data;
 
   } catch (error) {
-    console.error(`[userApi.js] 删除用户时发生错误 (ID: ${numericUserId}):`, error);
+    console.error(`[userApi.js] Error occurred while deleting user (ID: ${numericUserId}):`, error);
     
-    // 详细记录错误信息
+    // Detailed error logging
     if (error.response) {
-      // 请求已发出，但服务器响应状态码不在 2xx 范围
-      console.error('[userApi.js] 错误响应数据:', error.response.data);
-      console.error('[userApi.js] 错误响应状态码:', error.response.status);
-      console.error('[userApi.js] 错误响应头:', error.response.headers);
+      // Request was made and server responded with status code outside of 2xx range
+      console.error('[userApi.js] Error response data:', error.response.data);
+      console.error('[userApi.js] Error response status:', error.response.status);
+      console.error('[userApi.js] Error response headers:', error.response.headers);
     } else if (error.request) {
-      // 请求已发出，但没有收到响应
-      console.error('[userApi.js] 未收到响应，请求对象:', error.request);
+      // Request was made but no response received
+      console.error('[userApi.js] No response received, request object:', error.request);
     } else {
-      // 在设置请求时触发了一个错误
-      console.error('[userApi.js] 请求设置错误:', error.message);
+      // Error occurred while setting up the request
+      console.error('[userApi.js] Request setup error:', error.message);
     }
-    console.error('[userApi.js] 错误配置:', error.config);
+    console.error('[userApi.js] Error config:', error.config);
 
-    // 返回一个规范的错误响应
+    // Return a standardized error response
     return {
       code: error.response?.status || -1,
-      msg: error.response?.data?.msg || error.message || '删除操作失败，请检查网络或联系管理员',
+      msg: error.response?.data?.msg || error.message || 'Delete operation failed, please check network or contact administrator',
       data: null
     };
   }

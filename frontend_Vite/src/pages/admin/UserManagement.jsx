@@ -142,27 +142,27 @@ const UserManagement = () => {
     },
     onSuccess: (data, variables, context) => {
       console.log('[UserManagement.jsx] deleteUserMutation - onSuccess', { data, variables });
-      // 关闭弹窗并重置状态
+      // Close modal and reset state
       setIsDeleteModalVisible(false);
       setUserToDelete(null);
       
       if (data.code === 0) {
-        message.success('用户删除成功');
+        message.success('User deleted successfully');
         refetch();
       } else {
-        message.error(data.msg || '删除用户失败 (Backend)');
+        message.error(data.msg || 'Failed to delete user (Backend)');
         console.error('[UserManagement.jsx] deleteUserMutation - onSuccess - Backend Failed:', data);
-        Modal.error({ title: '删除失败', content: data.msg || '未知后端错误' });
+        Modal.error({ title: 'Delete Failed', content: data.msg || 'Unknown backend error' });
       }
     },
     onError: (error, variables, context) => {
       console.error('[UserManagement.jsx] deleteUserMutation - onError', { error, variables });
-      // 关闭弹窗并重置状态
+      // Close modal and reset state
       setIsDeleteModalVisible(false);
       setUserToDelete(null);
       
-      message.error('删除用户失败: ' + (error.message || '未知错误'));
-      Modal.error({ title: '删除失败', content: error.message || '未知错误' });
+      message.error('Failed to delete user: ' + (error.message || 'Unknown error'));
+      Modal.error({ title: 'Delete Failed', content: error.message || 'Unknown error' });
     },
     onSettled: (data, error, variables, context) => {
       console.log('[UserManagement.jsx] deleteUserMutation - onSettled', { data, error, variables });
@@ -299,13 +299,13 @@ const UserManagement = () => {
   // --- Renamed function to show the modal ---
   const showDeleteConfirm = (userId) => {
     if (!userId) {
-      message.error('不能删除：缺少用户ID');
+      message.error('Cannot delete: Missing user ID');
       return;
     }
     const numericUserId = parseInt(userId, 10);
     if (isNaN(numericUserId)) {
-      console.error('无法将用户ID转换为数字:', userId);
-      message.error('无效的用户ID格式');
+      console.error('Cannot convert user ID to number:', userId);
+      message.error('Invalid user ID format');
       return;
     }
     console.log('[UserManagement.jsx] showDeleteConfirm - Opening modal, ID:', numericUserId);
@@ -409,14 +409,14 @@ const UserManagement = () => {
       fixed: 'right',
       width: 200,
       render: (_, record) => {
-        // 确定使用哪个ID字段（不同后端可能使用不同的字段名）
+        // Determine which ID field to use (different backends might use different field names)
         const userId = record.id || record.userId || record._id;
         
-        // 记录确定的userId
+        // Log the determined userId
         if (userId) {
-          console.log('使用userId:', userId);
+          console.log('Using userId:', userId);
         } else {
-          console.error('未找到用户的有效ID:', record);
+          console.error('Could not find valid user ID:', record);
         }
         
         return (
@@ -466,7 +466,7 @@ const UserManagement = () => {
                   icon={<DeleteOutlined />}
                   onClick={() => {
                     if (userId) {
-                      console.log('[UserManagement.jsx] onClick - 点击删除按钮，准备调用 showDeleteConfirm，用户ID:', userId);
+                      console.log('[UserManagement.jsx] onClick - Clicked delete button, preparing to call showDeleteConfirm, userId:', userId);
                       showDeleteConfirm(userId);
                     } else {
                       message.error('Cannot find user ID');
@@ -581,7 +581,17 @@ const UserManagement = () => {
         >
           <p>{`This action cannot be undone. Are you sure you want to delete user with ID: ${userToDelete}?`}</p>
         </Modal>
-        {/* --- End Custom Modal --- */}
+
+        {/* Error Modal */}
+        <Modal
+          title="Error"
+          open={!!deleteUserMutation.error}
+          onOk={() => deleteUserMutation.reset()}
+          okText="OK"
+          cancelButtonProps={{ style: { display: 'none' } }}
+        >
+          <p>{deleteUserMutation.error?.message || 'An error occurred'}</p>
+        </Modal>
 
       </div>
     </ConfigProvider>

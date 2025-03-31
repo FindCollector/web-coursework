@@ -54,6 +54,7 @@ public class AuthController {
     public GeneralResponseResult verifyRegister(@RequestBody Map<String,String> request){
         String email = request.get("email");
         String verifyCode = request.get("code");
-        return userService.verifyRegister(email,verifyCode);
+        String role = request.get("role");
+        return userService.verifyRegister(email,verifyCode,role);
     }
 }
