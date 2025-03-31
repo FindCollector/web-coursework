@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8" />
+  <title>Fitness platform registration verification code</title>
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+        crossorigin="anonymous">
+</head>
+<body style="margin:0; padding:0; background-color:#f8f9fa; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+<!-- 容器 -->
+<div style="
+        width:100%;
+        background-color:#f8f9fa;
+        padding:20px 0;
+    ">
+
+  <!-- 内层卡片（使用Bootstrap类） -->
+  <div class="container" style="
+            max-width:600px;
+            margin:0 auto;
+            background-color:#ffffff;
+            border-radius:6px;
+            box-shadow:0 2px 4px rgba(0,0,0,0.1);
+            overflow:hidden;
+        ">
+
+    <!-- 顶部Banner：可放健身图片 -->
+<!--    <div style="width: 100%; height: 265px; overflow: hidden;">-->
+<!--      <img src="https://img.picui.cn/free/2025/03/12/67d09f07195bb.png"-->
+<!--           alt="Banner"-->
+<!--           style="width:100%; object-fit:cover;">-->
+<!--    </div>-->
+
+    <!-- 标题和内容 -->
+    <div style="padding: 20px;">
+      <h2 style="margin-top:0; color:#343a40;">
+        Welcome！
+      </h2>
+      <p style="font-size:16px; color:#6c757d;">
+        Thank you for joining us! We’re dedicated to helping every fitness enthusiast achieve a healthier, stronger body.
+      </p>
+
+      <hr style="border:none; border-top:1px solid #dee2e6; margin:20px 0;" />
+
+      <!-- 验证码显示区域 -->
+      <p style="font-size:16px; color:#343a40;">
+        Your verification code is：
+      </p>
+      <div style="text-align:center; margin-bottom:20px;">
+                    <span style="
+                        display:inline-block;
+                        background-color:#28a745;
+                        color:#ffffff;
+                        font-size:24px;
+                        font-weight:bold;
+                        padding:10px 20px;
+                        border-radius:4px;
+                    " th:text="${code}">123456</span>
+      </div>
+
+      <p style="font-size:14px; color:#6c757d; line-height:1.6;">
+        Please complete the verification within <strong>5 minutes</strong>
+      </p>
+      <p style="font-size:14px; color:#6c757d; line-height:1.6;">
+        If this wasn't you, please disregard this email. Your email was entered by mistake.
+      </p>
+
+
+      <hr style="border:none; border-top:1px solid #dee2e6; margin:20px 0;" />
+
+      <!-- 额外信息/宣传 -->
+      <p style="font-size:14px; color:#6c757d; margin-bottom:0;">
+        On our platform, you can：
+      </p>
+      <ul style="font-size:14px; color:#6c757d; line-height:1.6;">
+        <li>Book a fitness trainer online for precise one-on-one guidance</li>
+        <li>Check the professional training courses</li>
+      </ul>
+
+      <p style="font-size:13px; color:#adb5bd;">
+        If you have any questions, please feel free to contact our customer service or leave a message on the platform.
+      </p>
+
+    </div>
+
+  </div> <!-- /卡片结束 -->
+
+  <!-- 底部版权 -->
+  <p style="text-align:center; font-size:12px; color:#adb5bd; margin-top:15px;">
+    ©2025 fitness_centre All Rights Reserved.
+  </p>
+
+</div> <!-- /容器结束 -->
+
+<!-- 可选的Bootstrap JS（多数邮箱不会执行JS，仅做演示） -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-Fy6S/0ZmG1Q+8IVB8R+FScCv7PHEn5Zp1Z5Q356IAI4mKIlk1N9nI6wRRGk3f7p"
+        crossorigin="anonymous"></script>
+</body>
+</html>
