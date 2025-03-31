@@ -125,7 +125,6 @@ public class RecapchaAspect {
             // token  invalidReason
             return false;
         }
-        System.out.println("2");
         if (rawScore instanceof Number) {
             Number numScore = (Number) rawScore;
             double score = numScore.doubleValue();
@@ -139,7 +138,6 @@ public class RecapchaAspect {
             System.out.println(expectedAction);
             return false;
         }
-        System.out.println("3");
         return true;
     }
 }

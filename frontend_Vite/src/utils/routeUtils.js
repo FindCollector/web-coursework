@@ -5,11 +5,11 @@
  */
 export const getRedirectPath = (userType) => {
   switch (userType) {
-    case 'Admin Login':
+    case 'admin':
       return '/admin/dashboard';
-    case 'Member Login':
+    case 'member':
       return '/member/dashboard';
-    case 'Coach Login':
+    case 'coach':
       return '/coach/dashboard';
     default:
       return '/';
@@ -17,10 +17,16 @@ export const getRedirectPath = (userType) => {
 };
 
 /**
- * Extract user type from login response message
- * @param {string} message - Login response message content
+ * Extract user type from login response data
+ * @param {object} data - Login response data
  * @returns {string} User type
  */
-export const getUserTypeFromMessage = (message) => {
-  return message;
+export const getUserTypeFromData = (data) => {
+  // 适应新的数据结构，从userInfo中获取role
+  if (data && data.userInfo && data.userInfo.role) {
+    return data.userInfo.role;
+  }
+  
+  // 兼容旧版数据结构
+  return data?.role || 'member';
 }; 

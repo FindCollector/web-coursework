@@ -9,7 +9,7 @@ import * as yup from 'yup';
 
 import { login } from '../api/authApi';
 import { loginStart, loginSuccess, loginFailure } from '../store/authSlice';
-import { getRedirectPath, getUserTypeFromMessage } from '../utils/routeUtils';
+import { getRedirectPath, getUserTypeFromData } from '../utils/routeUtils';
 
 const { Title } = Typography;
 
@@ -56,11 +56,25 @@ const Login = () => {
     },
     onSuccess: (data) => {
       if (data.code === 0) {
-        const userType = getUserTypeFromMessage(data.msg);
+        // 获取用户信息，适应新的数据结构
+        const userInfo = data.data.userInfo || {};
+        console.log('Login successful, received user info:', userInfo);
+        
+        // 从userInfo中获取token和角色
+        const token = userInfo.token;
+        const userType = userInfo.role || 'admin';
+        const userName = userInfo.userName || 'Admin';
+        
+        // 分发登录成功action
         dispatch(loginSuccess({
-          token: data.data.token,
-          userType: userType
+          token: token,
+          userType: userType,
+          userName: userName
         }));
+        
+        // 额外确认token已保存到localStorage
+        console.log('Token saved to localStorage:', localStorage.getItem('token') ? 'Yes' : 'No');
+        console.log('User name saved:', userName);
         
         // Redirect based on user type
         const redirectPath = getRedirectPath(userType);

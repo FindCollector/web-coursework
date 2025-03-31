@@ -9,7 +9,17 @@ export const login = async (data) => {
 
 // 退出登录API
 export const logout = async () => {
-  const response = await client.post('/auth/logout');
+  // 获取token
+  const token = localStorage.getItem('token');
+  
+  // 设置请求头
+  const config = {};
+  if (token) {
+    config.headers = { token };
+  }
+  
+  // 发送退出登录请求
+  const response = await client.post('/auth/logout', {}, config);
   return response.data;
 };
 

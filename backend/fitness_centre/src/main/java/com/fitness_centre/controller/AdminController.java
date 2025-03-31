@@ -10,6 +10,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author
@@ -18,12 +19,13 @@ import java.util.List;
  * @date 24/03/2025
  */
 @RestController
+@RequestMapping("/user")
 public class AdminController {
     @Autowired
     private UserServiceImpl userService;
 
     @PreAuthorize("hasRole('admin')")
-    @GetMapping("/admin/userList")
+    @GetMapping("/list")
     public Page<User> userList(
             @RequestParam(required = false) String role,
             @RequestParam(required = false) Integer status,
@@ -31,17 +33,23 @@ public class AdminController {
             @RequestParam(required = false) String email,
             @RequestParam(required = false) List<String> sortField,
             @RequestParam(required = false) List<String> sortOrder,
-            @RequestParam(defaultValue = "1") int pageNo,
+            @RequestParam(defaultValue = "1") int pageNow,
             @RequestParam(defaultValue = "10")int pageSize
     ){
-        Page<User> pageResult = userService.pageQueryUser(role,status,userName,email,sortField,sortOrder,pageNo,pageSize);
+        Page<User> pageResult = userService.pageQueryUser(role,status,userName,email,sortField,sortOrder,pageNow,pageSize);
         return pageResult;
     }
 
-//    @DeleteMapping("/{emial}")
-//    public GeneralResponseResult deleteUser(@PathVariable String email){
-//
-//    }
+    @DeleteMapping("/{id}")
+    public GeneralResponseResult deleteUser(@PathVariable Integer id){
+        return userService.deleteById(id);
+    }
+
+    @PatchMapping("/{id}")
+    public GeneralResponseResult updateStatus(@PathVariable Integer id,@RequestBody Map<String, Object> requestBody){
+        Integer status = (Integer) requestBody.get("status");
+        return userService.updateStatus(id,status);
+    }
 
 
 }

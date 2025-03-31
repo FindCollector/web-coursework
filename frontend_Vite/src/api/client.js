@@ -26,10 +26,43 @@ const generateRequestKey = (config) => {
 // 请求拦截器
 client.interceptors.request.use(
   (config) => {
-    // 从localStorage获取token并添加到请求头
+    // 检查是否是登录或注册相关的请求，如果是则不添加token
+    const isAuthRequest = 
+      config.url === '/auth/login' || 
+      config.url === '/auth/sendCode' || 
+      config.url === '/auth/verifyCode' || 
+      config.url === '/auth/register';
+    
+    // 从localStorage获取token并添加到请求头（非认证请求）
     const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    if (token && !isAuthRequest) {
+      // 使用token作为header字段名
+      config.headers.token = token;
+      
+      // DELETE请求特别处理 - 确保传递token和内容类型
+      if (config.method === 'delete') {
+        console.log('处理DELETE请求，添加特殊处理');
+        console.log('DELETE请求URL:', config.baseURL + config.url);
+        
+        // 确保DELETE请求有正确的Content-Type
+        config.headers['Content-Type'] = 'application/json';
+        
+        // 显式设置token (防止某些情况下token未正确添加)
+        config.headers.token = token;
+        
+        // 某些浏览器/服务器可能需要这些额外设置
+        if (!config.data) {
+          config.data = {}; // 确保有请求体，即使是空的
+        }
+        
+        // 确保携带凭证
+        config.withCredentials = true;
+      }
+      
+      // 添加额外的日志确认token已被添加
+      console.log(`将token添加到请求头 (${config.method} ${config.url}):`, token.substring(0, 10) + '...');
+    } else if (!isAuthRequest) {
+      console.warn('在localStorage中未找到token，请求URL:', config.url);
     }
     
     // 为请求添加唯一标识，确保不重复发送相同请求
@@ -65,7 +98,7 @@ client.interceptors.request.use(
     return config;
   },
   (error) => {
-    console.error('Request error:', error);
+    console.error('请求错误:', error);
     return Promise.reject(error);
   }
 );
@@ -91,6 +124,12 @@ client.interceptors.response.use(
     // 统一处理错误
     if (error.response) {
       console.error(`API Error ${error.response.status}: ${error.config.url}`, error.response.data);
+      
+      // 处理CORS错误
+      if (error.response.status === 0 || (error.message && error.message.includes('Network Error'))) {
+        console.error('CORS错误或网络错误:', error.message);
+        // 可以在这里添加特定的CORS错误处理逻辑
+      }
       
       // 处理401未授权错误，清除token并重定向到登录页
       if (error.response.status === 401) {

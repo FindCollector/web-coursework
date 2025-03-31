@@ -8,6 +8,9 @@ import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
 
+// 导入管理员页面组件
+import AdminDashboard from './pages/admin/Dashboard';
+
 // 受保护路由组件
 const ProtectedRoute = ({ children, requiredUserType = null }) => {
   const { isAuthenticated, userType } = useSelector((state) => state.auth);
@@ -20,11 +23,11 @@ const ProtectedRoute = ({ children, requiredUserType = null }) => {
   // 如果指定了所需的用户类型，但用户类型不匹配，则重定向到适当的页面
   if (requiredUserType && userType !== requiredUserType) {
     switch (userType) {
-      case 'Admin Login':
+      case 'admin':
         return <Navigate to="/admin/dashboard" replace />;
-      case 'Member Login':
+      case 'member':
         return <Navigate to="/member/dashboard" replace />;
-      case 'Coach Login':
+      case 'coach':
         return <Navigate to="/coach/dashboard" replace />;
       default:
         return <Navigate to="/" replace />;
@@ -35,7 +38,6 @@ const ProtectedRoute = ({ children, requiredUserType = null }) => {
 };
 
 // 占位页面组件
-const AdminDashboard = () => <div className="p-6">Admin Dashboard</div>;
 const MemberDashboard = () => <div className="p-6">Member Dashboard</div>;
 const CoachDashboard = () => <div className="p-6">Coach Dashboard</div>;
 const Home = () => <div className="p-6">Home</div>;
@@ -55,7 +57,7 @@ function App() {
       <Route
         path="/admin/dashboard"
         element={
-          <ProtectedRoute requiredUserType="Admin Login">
+          <ProtectedRoute requiredUserType="admin">
             <AdminDashboard />
           </ProtectedRoute>
         }
@@ -65,7 +67,7 @@ function App() {
       <Route
         path="/member/dashboard"
         element={
-          <ProtectedRoute requiredUserType="Member Login">
+          <ProtectedRoute requiredUserType="member">
             <MemberDashboard />
           </ProtectedRoute>
         }
@@ -75,7 +77,7 @@ function App() {
       <Route
         path="/coach/dashboard"
         element={
-          <ProtectedRoute requiredUserType="Coach Login">
+          <ProtectedRoute requiredUserType="coach">
             <CoachDashboard />
           </ProtectedRoute>
         }

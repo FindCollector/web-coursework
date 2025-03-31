@@ -1,10 +1,12 @@
 package com.fitness_centre.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fitness_centre.constant.ErrorCode;
+import com.fitness_centre.dto.UserLoginResponse;
 import com.fitness_centre.security.LoginUser;
 import com.fitness_centre.domain.User;
 import com.fitness_centre.dto.GeneralResponseResult;
@@ -35,6 +37,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -106,8 +109,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
         redisCache.setCacheObject("login:" + email, loginUser,loginExpireTime, TimeUnit.MINUTES);
 
-        Map<String, String> map = new HashMap<>();
-        map.put("token", jwt);
+        Map<String, UserLoginResponse> map = new HashMap<>();
+        UserLoginResponse userLoginResponse = new UserLoginResponse();
+        BeanUtils.copyProperties(loginUser.getUser(),userLoginResponse);
+        userLoginResponse.setToken(jwt);
+        map.put("userInfo",userLoginResponse);
 
         return new GeneralResponseResult(ErrorCode.SUCCESS, map);
     }
@@ -161,7 +167,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
         //控制发送的频率,一分钟发一次
         String sendFreq = "emailSendFreq:" + email;
-        System.out.println("5");
         if(!Objects.isNull(redisCache.getCacheObject(sendFreq))){
             throw new BusinessException(ErrorCode.TOO_MANY_REQUESTS);
         }
@@ -223,8 +228,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     //查询过滤用户
     @Override
-    public Page<User> pageQueryUser(String role, Integer status,String userName,String email,List<String> sortFields, List<String> sortOrders, int pageNo, int pageSize) {
-        Page<User> page = new Page<>(pageNo,pageSize);
+    public Page<User> pageQueryUser(String role, Integer status,String userName,String email,List<String> sortFields, List<String> sortOrders, int pageNow, int pageSize) {
+        Page<User> page = new Page<>(pageNow,pageSize);
         //查询对应的角色
         LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
         if(role != null && !role.isEmpty()){
@@ -264,6 +269,25 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         //调用this.page 内部会自动执行分页拦截
         return this.page(page,queryWrapper);
     }
+    @Override
+    public GeneralResponseResult deleteById(Serializable id){
+        if(removeById(id)){
+            throw new BusinessException(ErrorCode.DB_OPERATION_ERROR);
+        }
+        return new GeneralResponseResult(ErrorCode.SUCCESS);
+    }
+
+    @Override
+    public GeneralResponseResult updateStatus(Serializable id,Integer status) {
+        LambdaUpdateWrapper<User> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(User::getId,id).set(User::getStatus,status);
+        int rowsAffected = this.baseMapper.update(updateWrapper);
+        if(rowsAffected == 0){
+            throw new BusinessException(ErrorCode.DB_OPERATION_ERROR);
+        }
+        return new GeneralResponseResult(ErrorCode.SUCCESS);
+    }
+
 
     @Override
     public int cleanupInactiveUsers() {

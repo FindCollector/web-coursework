@@ -7,6 +7,7 @@ import com.fitness_centre.dto.GeneralResponseResult;
 import com.fitness_centre.dto.UserLoginRequest;
 import com.fitness_centre.dto.UserRegisterRequest;
 
+import java.io.Serializable;
 import java.util.List;
 
 /**
@@ -28,5 +29,9 @@ public interface UserService extends IService<User> {
 
     GeneralResponseResult verifyRegister(String email,String verifyCode);
 
-    public Page<User> pageQueryUser(String role, Integer status,String userName,String email,List<String> sortFields, List<String> sortOrders, int pageNo, int pageSize);
+    Page<User> pageQueryUser(String role, Integer status,String userName,String email,List<String> sortFields, List<String> sortOrders, int pageNow, int pageSize);
+
+    GeneralResponseResult deleteById(Serializable id);
+
+    GeneralResponseResult updateStatus(Serializable id,Integer status);
 }
