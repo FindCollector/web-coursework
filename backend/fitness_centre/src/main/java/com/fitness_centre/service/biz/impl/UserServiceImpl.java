@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fitness_centre.constant.ErrorCode;
+import com.fitness_centre.constant.UserStatus;
 import com.fitness_centre.dto.UserLoginResponse;
 import com.fitness_centre.security.LoginUser;
 import com.fitness_centre.domain.User;
@@ -17,7 +18,9 @@ import com.fitness_centre.exception.BusinessException;
 import com.fitness_centre.exception.SystemException;
 import com.fitness_centre.exception.ValidationException;
 import com.fitness_centre.mapper.UserMapper;
-import com.fitness_centre.service.MailService;
+import com.fitness_centre.service.CoachInfoService;
+import com.fitness_centre.service.infrastructure.FileService;
+import com.fitness_centre.service.infrastructure.MailService;
 import com.fitness_centre.service.UserService;
 import com.fitness_centre.utils.JwtUtil;
 import com.fitness_centre.utils.RecaptchaValidator;
@@ -35,6 +38,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.io.Serializable;
@@ -76,6 +80,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Autowired
     private MailService mailService;
+
+    @Autowired
+    private FileService fileService;
+
+    @Autowired
+    private CoachInfoService coachInfoService;
 
     @Value("${recaptcha.threshold}")
     private double threshold;
@@ -272,6 +282,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         return this.page(page,queryWrapper);
     }
     @Override
+    @Transactional
     public GeneralResponseResult deleteById(Serializable id){
         if(!removeById(id)){
             throw new BusinessException(ErrorCode.DB_OPERATION_ERROR);
@@ -287,6 +298,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         int rowsAffected = this.baseMapper.update(updateWrapper);
         if(rowsAffected == 0){
             throw new BusinessException(ErrorCode.DB_OPERATION_ERROR);
+        }
+
+        if(status.equals(UserStatus.BLOCKED)){
+            //封禁后马上下线
+            User user = this.baseMapper.selectById(id);
+            String loginUser = redisCache.getCacheObject("login:" + user.getEmail());
+            if(!Objects.isNull(loginUser)){
+                redisCache.deleteObject(user.getEmail());
+            }
         }
         return new GeneralResponseResult(ErrorCode.SUCCESS);
     }

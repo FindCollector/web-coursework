@@ -1,4 +1,4 @@
-package com.fitness_centre.service;
+package com.fitness_centre.service.biz;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;

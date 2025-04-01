@@ -1,4 +1,4 @@
-package com.fitness_centre.service;
+package com.fitness_centre.service.common;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
