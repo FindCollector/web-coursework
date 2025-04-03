@@ -26,7 +26,7 @@ public enum ErrorCode {
      */
     VALIDATION_ERROR(2000, "Request parameter validation failure"),
     MISSING_PARAMETER(2001, "Missing required parameters"),
-    INVALID_PARAMETER(2002, "无效的参数"),
+    INVALID_PARAMETER(2002, "Invalid parameter"),
 
     /**
      * ============= 3xxx：认证与权限相关错误 =============
@@ -54,6 +54,8 @@ public enum ErrorCode {
     REGISTRATION_INCOMPLETE(4110, "Registration process incomplete"),
     PROFILE_UPDATE_FAILED(4111, "Failed to update user profile"),
 
+    PROFILE_UNFINISHED(4112, "You have incomplete personal information"),
+
     /**
      * External service errors (50xx)
      */
@@ -61,7 +63,7 @@ public enum ErrorCode {
     EMAIL_SERVICE_ERROR(5001, "Email service error"),
     PAYMENT_SERVICE_ERROR(5002, "Payment service error"),
     NOTIFICATION_SERVICE_ERROR(5003, "Notification service error"),
-    SMS_SERVICE_ERROR(5004, "SMS service error"),
+    FILE_SERVICE_ERROR(5004, "File service error"),
     API_INTEGRATION_ERROR(5005, "Third-party API integration error"),
 
     BUSINESS_FAILED(9000, "Operation failed"),

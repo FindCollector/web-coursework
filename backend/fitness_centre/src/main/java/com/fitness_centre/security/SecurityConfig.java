@@ -38,9 +38,10 @@ public class SecurityConfig{
     public static final String[] WHILELIST = {
             "/auth/login",
             "/test_recaptcha.html",
-            "auth/resendCode",
+            "/auth/resendCode",
             "/auth/sendCode",
-            "/auth/verifyCode"
+            "/auth/verifyCode",
+            "/formal/default.jpg"
     };
 
     //放行
@@ -71,7 +72,7 @@ public class SecurityConfig{
 
                 // 3. 配置请求的权限规则
                 .authorizeHttpRequests(auth -> auth
-                        // 对 /user/login 接口允许匿名访问
+                        // 接口允许匿名访问
                         .requestMatchers(WHILELIST).anonymous()
                         //在全局异常类中捕获
                         .requestMatchers("/auth/sendCode","/auth/verifyRegister").permitAll()

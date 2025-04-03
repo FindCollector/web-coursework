@@ -1,11 +1,11 @@
-package com.fitness_centre.service.biz;
+package com.fitness_centre.service.biz.interfaces;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.fitness_centre.domain.User;
 import com.fitness_centre.dto.GeneralResponseResult;
-import com.fitness_centre.dto.UserLoginRequest;
-import com.fitness_centre.dto.UserRegisterRequest;
+import com.fitness_centre.dto.auth.UserLoginRequest;
+import com.fitness_centre.dto.auth.UserRegisterRequest;
 
 import java.io.Serializable;
 import java.util.List;

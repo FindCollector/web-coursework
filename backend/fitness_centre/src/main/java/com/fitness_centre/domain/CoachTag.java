@@ -13,24 +13,16 @@ import java.io.Serializable;
 
 /**
  * @author
- * @Classname Member
+ * @Classname CoachTag
  * @Description TODO
- * @date 31/03/2025
+ * @date 01/04/2025
  */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@TableName("coach_info")
-public class CoachInfo implements Serializable {
-    private static final long serialVersionUID = 8895813557172311955L;
-
-    @TableId(type = IdType.ASSIGN_ID)
-    @JsonSerialize(using = ToStringSerializer.class)
-    private Long id;
-
-    private String photo;
-
-    private String intro;
-    //todo 定时任务计算
-    private Double rating;
+@TableName("coach_tag")
+public class CoachTag implements Serializable {
+    private static final long serialVersionUID = -2000998187811391358L;
+    private Long coachId;
+    private Long tagId;
 }

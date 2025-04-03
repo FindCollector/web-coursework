@@ -7,7 +7,13 @@ export const baseApi = createApi({
     baseUrl: process.env.NODE_ENV === 'production' 
       ? '/' 
       : 'http://localhost:8080',
-    prepareHeaders: (headers) => {
+    prepareHeaders: (headers, { endpoint }) => {
+      // 检查是否是不需要token的接口
+      const noTokenEndpoints = ['login', 'sendVerificationCode', 'verifyCode', 'resendVerificationCode'];
+      if (noTokenEndpoints.includes(endpoint)) {
+        return headers;
+      }
+      
       // 从localStorage获取token
       const token = localStorage.getItem('token');
       if (token) {

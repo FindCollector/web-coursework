@@ -88,6 +88,10 @@ public class LoginUser implements UserDetails {
         return true;
     }
 
+    public Long getId(){
+        return user.getId();
+    }
+
     public String getRole(){
         return user.getRole();
     }

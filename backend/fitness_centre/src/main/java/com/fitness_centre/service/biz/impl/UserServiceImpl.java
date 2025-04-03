@@ -1,4 +1,4 @@
-package com.fitness_centre.service.impl;
+package com.fitness_centre.service.biz.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
@@ -7,21 +7,20 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fitness_centre.constant.ErrorCode;
 import com.fitness_centre.constant.UserStatus;
-import com.fitness_centre.dto.UserLoginResponse;
+import com.fitness_centre.dto.auth.UserLoginResponse;
 import com.fitness_centre.security.LoginUser;
 import com.fitness_centre.domain.User;
 import com.fitness_centre.dto.GeneralResponseResult;
-import com.fitness_centre.dto.UserLoginRequest;
-import com.fitness_centre.dto.UserRegisterRequest;
+import com.fitness_centre.dto.auth.UserLoginRequest;
+import com.fitness_centre.dto.auth.UserRegisterRequest;
 import com.fitness_centre.exception.AuthException;
 import com.fitness_centre.exception.BusinessException;
 import com.fitness_centre.exception.SystemException;
 import com.fitness_centre.exception.ValidationException;
 import com.fitness_centre.mapper.UserMapper;
-import com.fitness_centre.service.CoachInfoService;
 import com.fitness_centre.service.infrastructure.FileService;
 import com.fitness_centre.service.infrastructure.MailService;
-import com.fitness_centre.service.UserService;
+import com.fitness_centre.service.biz.interfaces.UserService;
 import com.fitness_centre.utils.JwtUtil;
 import com.fitness_centre.utils.RecaptchaValidator;
 import com.fitness_centre.utils.RedisCache;
@@ -84,8 +83,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Autowired
     private FileService fileService;
 
-    @Autowired
-    private CoachInfoService coachInfoService;
 
     @Value("${recaptcha.threshold}")
     private double threshold;
@@ -165,7 +162,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         sendCode(request.getEmail());
 
         //先对密码加密
-        request.setPassword(passwordEncoder.encode(request.getPassword()));
         request.setPassword(passwordEncoder.encode(request.getPassword()));
         //基本信息存入redis
         redisCache.setCacheObject("register:" + request.getEmail(),request,basicInfoExpireTime,TimeUnit.MINUTES);
@@ -281,10 +277,20 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         //调用this.page 内部会自动执行分页拦截
         return this.page(page,queryWrapper);
     }
+
+    //删除用户
     @Override
     @Transactional
     public GeneralResponseResult deleteById(Serializable id){
+        //删除个人照片
+        fileService.deleteFileByUseId((Long) id);
+        User user = this.baseMapper.selectById(id);
+        String loginUser = redisCache.getCacheObject("login:" + user.getEmail());
+        if(!Objects.isNull(loginUser)){
+            redisCache.deleteObject(user.getEmail());
+        }
         if(!removeById(id)){
+            System.out.println(id);
             throw new BusinessException(ErrorCode.DB_OPERATION_ERROR);
         }
         return new GeneralResponseResult(ErrorCode.SUCCESS);

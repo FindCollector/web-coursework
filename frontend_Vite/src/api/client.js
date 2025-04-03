@@ -31,7 +31,8 @@ client.interceptors.request.use(
       config.url === '/auth/login' || 
       config.url === '/auth/sendCode' || 
       config.url === '/auth/verifyCode' || 
-      config.url === '/auth/register';
+      config.url === '/auth/register' ||
+      config.url === '/auth/resendCode';
     
     // 从localStorage获取token并添加到请求头（非认证请求）
     const token = localStorage.getItem('token');

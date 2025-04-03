@@ -1,4 +1,4 @@
-package com.fitness_centre.dto;
+package com.fitness_centre.dto.auth;
 
 import lombok.Data;
 

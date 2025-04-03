@@ -83,17 +83,17 @@ export const userApi = baseApi.injectEndpoints({
 
     // 删除用户
     deleteUser: builder.mutation({
-      query: (numericUserId) => {
-        console.log(`[userApi.js] deleteUser function started, received numeric ID: ${numericUserId}`, typeof numericUserId);
+      query: (userId) => {
+        console.log(`[userApi.js] deleteUser function started, received ID: ${userId}`, typeof userId);
         
-        // Verify ID is a number
-        if (typeof numericUserId !== 'number' || isNaN(numericUserId)) {
-          console.error('[userApi.js] Error: ID passed to deleteUser is not a valid number!');
-          throw new Error('Internal error: Invalid user ID');
+        // Verify ID exists
+        if (!userId) {
+          console.error('[userApi.js] Error: No user ID provided to deleteUser!');
+          throw new Error('Internal error: Missing user ID');
         }
         
         return {
-          url: `/user/${numericUserId}`,
+          url: `/user/${userId}`,
           method: 'DELETE'
         };
       },

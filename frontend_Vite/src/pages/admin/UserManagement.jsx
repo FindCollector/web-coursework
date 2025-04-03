@@ -245,14 +245,8 @@ const UserManagement = () => {
       message.error('Cannot delete: Missing user ID');
       return;
     }
-    const numericUserId = parseInt(userId, 10);
-    if (isNaN(numericUserId)) {
-      console.error('Cannot convert user ID to number:', userId);
-      message.error('Invalid user ID format');
-      return;
-    }
-    console.log('[UserManagement.jsx] showDeleteConfirm - Opening modal, ID:', numericUserId);
-    setUserToDelete(numericUserId);
+    console.log('[UserManagement.jsx] showDeleteConfirm - Opening modal, ID:', userId);
+    setUserToDelete(userId);
     setIsDeleteModalVisible(true);
   };
 

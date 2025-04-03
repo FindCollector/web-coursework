@@ -10,8 +10,14 @@ import './App.css'
 
 // 导入管理员页面组件
 import AdminDashboard from './pages/admin/Dashboard';
+// 导入教练页面组件
+import CoachDashboard from './pages/coach/Dashboard';
+import CoachDetails from './pages/coach/Details';
 // 导入调试页面组件
 import DebugPage from './pages/Debug';
+// 导入DnD Provider
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 
 // 受保护路由组件
 const ProtectedRoute = ({ children, requiredUserType = null }) => {
@@ -41,58 +47,67 @@ const ProtectedRoute = ({ children, requiredUserType = null }) => {
 
 // 占位页面组件
 const MemberDashboard = () => <div className="p-6">Member Dashboard</div>;
-const CoachDashboard = () => <div className="p-6">Coach Dashboard</div>;
 const Home = () => <div className="p-6">Home</div>;
 
 function App() {
   const [count, setCount] = useState(0)
 
   return (
-    <Routes>
-      {/* 公共路由 */}
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/verify-code" element={<VerifyCode />} />
-      <Route path="/" element={<Home />} />
-      
-      {/* 调试页面 - 仅在开发环境中显示 */}
-      {process.env.NODE_ENV !== 'production' && (
-        <Route path="/debug" element={<DebugPage />} />
-      )}
+    <DndProvider backend={HTML5Backend}>
+      <Routes>
+        {/* 公共路由 */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/verify-code" element={<VerifyCode />} />
+        <Route path="/" element={<Home />} />
+        
+        {/* 调试页面 - 仅在开发环境中显示 */}
+        {process.env.NODE_ENV !== 'production' && (
+          <Route path="/debug" element={<DebugPage />} />
+        )}
 
-      {/* 管理员路由 */}
-      <Route
-        path="/admin/dashboard"
-        element={
-          <ProtectedRoute requiredUserType="admin">
-            <AdminDashboard />
-          </ProtectedRoute>
-        }
-      />
+        {/* 管理员路由 */}
+        <Route
+          path="/admin/dashboard"
+          element={
+            <ProtectedRoute requiredUserType="admin">
+              <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
 
-      {/* 会员路由 */}
-      <Route
-        path="/member/dashboard"
-        element={
-          <ProtectedRoute requiredUserType="member">
-            <MemberDashboard />
-          </ProtectedRoute>
-        }
-      />
+        {/* 会员路由 */}
+        <Route
+          path="/member/dashboard"
+          element={
+            <ProtectedRoute requiredUserType="member">
+              <MemberDashboard />
+            </ProtectedRoute>
+          }
+        />
 
-      {/* 教练路由 */}
-      <Route
-        path="/coach/dashboard"
-        element={
-          <ProtectedRoute requiredUserType="coach">
-            <CoachDashboard />
-          </ProtectedRoute>
-        }
-      />
+        {/* 教练路由 */}
+        <Route
+          path="/coach/dashboard"
+          element={
+            <ProtectedRoute requiredUserType="coach">
+              <CoachDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/coach/details"
+          element={
+            <ProtectedRoute requiredUserType="coach">
+              <CoachDetails />
+            </ProtectedRoute>
+          }
+        />
 
-      {/* 404页面 - 捕获所有未匹配的路由 */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        {/* 404页面 - 捕获所有未匹配的路由 */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </DndProvider>
   )
 }
 

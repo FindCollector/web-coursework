@@ -14,7 +14,7 @@ class FitnessCentreApplicationTests {
 
     @Test
     void PasswordEncode() {
-        System.out.println(passwordEncoder.encode("1234"));
+        System.out.println(passwordEncoder.encode("@Mayday21"));
     }
 
 }

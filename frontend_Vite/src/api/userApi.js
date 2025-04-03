@@ -56,7 +56,7 @@ export const getUserList = async (params) => {
 
 /**
  * 更新用户状态
- * @param {number|string} userId 用户ID
+ * @param {string} userId 用户ID (Long类型，在前端作为字符串处理)
  * @param {number} status 状态值 (0: 正常, 1: 待审核, 2: 禁用)
  * @returns {Promise<Object>} 响应结果
  */
@@ -99,18 +99,18 @@ export const updateUserStatus = async (userId, status) => {
 
 /**
  * 删除用户
- * @param {number} numericUserId 必须是数字类型的用户ID
+ * @param {string} userId 用户ID (现在是Long类型，在前端作为字符串处理)
  * @returns {Promise<Object>} 响应结果
  */
-export const deleteUser = async (numericUserId) => {
-  console.log(`[userApi.js] deleteUser function started, received numeric ID: ${numericUserId}`, typeof numericUserId);
+export const deleteUser = async (userId) => {
+  console.log(`[userApi.js] deleteUser function started, received ID: ${userId}`, typeof userId);
 
-  // Verify ID is a number
-  if (typeof numericUserId !== 'number' || isNaN(numericUserId)) {
-    console.error('[userApi.js] Error: ID passed to deleteUser is not a valid number!');
+  // Verify ID exists
+  if (!userId) {
+    console.error('[userApi.js] Error: No user ID provided to deleteUser!');
     return {
       code: -1,
-      msg: 'Internal error: Invalid user ID',
+      msg: 'Internal error: Missing user ID',
       data: null
     };
   }
@@ -135,7 +135,7 @@ export const deleteUser = async (numericUserId) => {
       }
     };
     
-    const url = `/user/${numericUserId}`;
+    const url = `/user/${userId}`;
     console.log(`[userApi.js] Preparing to send axios DELETE request to: ${url}`);
     console.log('[userApi.js] Using request options:', options);
     
@@ -146,7 +146,7 @@ export const deleteUser = async (numericUserId) => {
     return response.data;
 
   } catch (error) {
-    console.error(`[userApi.js] Error occurred while deleting user (ID: ${numericUserId}):`, error);
+    console.error(`[userApi.js] Error occurred while deleting user (ID: ${userId}):`, error);
     
     // Detailed error logging
     if (error.response) {

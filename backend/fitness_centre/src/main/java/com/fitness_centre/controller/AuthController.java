@@ -2,12 +2,11 @@ package com.fitness_centre.controller;
 
 import com.fitness_centre.annotation.RequireRecaptcha;
 import com.fitness_centre.dto.GeneralResponseResult;
-import com.fitness_centre.dto.UserLoginRequest;
-import com.fitness_centre.dto.UserRegisterRequest;
-import com.fitness_centre.service.UserService;
+import com.fitness_centre.dto.auth.UserLoginRequest;
+import com.fitness_centre.dto.auth.UserRegisterRequest;
+import com.fitness_centre.service.biz.interfaces.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
