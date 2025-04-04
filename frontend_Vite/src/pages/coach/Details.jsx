@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Card, 
@@ -13,37 +13,169 @@ import {
   Alert,
   Space,
   Layout,
-  Divider
+  Divider,
+  Checkbox,
+  DatePicker,
+  Form,
+  Modal,
+  Tooltip
 } from 'antd';
 import { 
   UploadOutlined, 
   SaveOutlined, 
   ArrowLeftOutlined,
-  UserOutlined
+  UserOutlined,
+  EnvironmentOutlined,
+  CalendarOutlined,
+  HomeOutlined,
+  QuestionCircleOutlined
 } from '@ant-design/icons';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { motion } from 'framer-motion';
 import { useSelector } from 'react-redux';
+import dayjs from 'dayjs';
 
 import { 
   useGetCoachDetailQuery,
   useUpdateCoachIntroMutation,
   useUploadCoachPhotoMutation,
-  useUpdateCoachTagsMutation
+  useUpdateCoachTagsMutation,
+  useUpdateCoachLocationsMutation
 } from '../../store/api/coachApi';
 import PageTransition from '../../components/PageTransition';
 import TagsContainer from '../../components/TagsContainer';
 import ImgWithToken from '../../components/ImgWithToken';
+import GoogleMap from '../../components/GoogleMap';
 import { getAuthHeaders, getFullImageUrl, createImageUrlWithToken } from '../../utils/imageUtils';
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
 const { Header, Content } = Layout;
 
+// 添加自定义滚动条样式
+const scrollbarStyles = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+  }
+`;
+
+// Add MapModal component before CoachDetails component
+const MapModal = ({ visible, onClose, locations }) => {
+  const [isMapLoaded, setIsMapLoaded] = useState(false);
+  const mapContainerRef = useRef(null);
+
+  useEffect(() => {
+    // Check if Google Maps API is loaded
+    const checkGoogleMapsLoaded = () => {
+      if (window.googleMapsLoaded && window.google) {
+        setIsMapLoaded(true);
+        return;
+      }
+      setTimeout(checkGoogleMapsLoaded, 100);
+    };
+
+    if (visible) {
+      checkGoogleMapsLoaded();
+    }
+  }, [visible]);
+
+  useEffect(() => {
+    if (visible && isMapLoaded && locations.length > 0 && mapContainerRef.current) {
+      // Clear previous content
+      mapContainerRef.current.innerHTML = '';
+
+      // Create map element
+      const mapElement = document.createElement('gmp-map');
+      mapElement.style.height = '500px';
+      mapElement.style.width = '100%';
+      mapElement.style.borderRadius = '8px';
+      mapElement.setAttribute('center', `${locations[0].latitude},${locations[0].longitude}`);
+      mapElement.setAttribute('zoom', '12');
+      mapElement.setAttribute('map-id', '8f348c95237d5e1a');
+
+      // Add markers for each location
+      locations.forEach(location => {
+        const marker = document.createElement('gmp-advanced-marker');
+        marker.setAttribute('position', `${location.latitude},${location.longitude}`);
+        marker.setAttribute('title', location.name);
+        
+        // Create info content
+        const content = document.createElement('div');
+        content.innerHTML = `
+          <div style="padding: 8px;">
+            <h3 style="margin: 0 0 8px 0;">${location.name}</h3>
+            <p style="margin: 0;">Lat: ${location.latitude.toFixed(4)}</p>
+            <p style="margin: 0;">Lng: ${location.longitude.toFixed(4)}</p>
+          </div>
+        `;
+        
+        // Add click event listener for info window
+        marker.addEventListener('click', () => {
+          const infoWindow = new google.maps.InfoWindow({
+            content: content
+          });
+          infoWindow.open(mapElement, marker);
+        });
+
+        mapElement.appendChild(marker);
+      });
+
+      // Add map to container
+      mapContainerRef.current.appendChild(mapElement);
+    }
+  }, [visible, isMapLoaded, locations]);
+
+  return (
+    <Modal
+      title="Training Locations Map"
+      open={visible}
+      onCancel={onClose}
+      footer={null}
+      width={800}
+    >
+      {!isMapLoaded ? (
+        <div style={{ 
+          height: '500px', 
+          width: '100%', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center' 
+        }}>
+          <Spin size="large" tip="Loading Google Maps..." />
+        </div>
+      ) : (
+        <div 
+          ref={mapContainerRef}
+          style={{ 
+            height: '500px', 
+            width: '100%',
+            borderRadius: '8px',
+            marginTop: '16px'
+          }}
+        />
+      )}
+    </Modal>
+  );
+};
+
 const CoachDetails = () => {
   const navigate = useNavigate();
   const { token } = useSelector(state => state.auth);
+  
+  // Add state for map modal
+  const [isMapModalVisible, setIsMapModalVisible] = useState(false);
   
   // 获取教练详情数据
   const { 
@@ -57,6 +189,7 @@ const CoachDetails = () => {
   const [updateIntro, { isLoading: isUpdatingIntro }] = useUpdateCoachIntroMutation();
   const [uploadPhoto, { isLoading: isUploadingPhoto }] = useUploadCoachPhotoMutation();
   const [updateTags, { isLoading: isUpdatingTags }] = useUpdateCoachTagsMutation();
+  const [updateLocations, { isLoading: isUpdatingLocations }] = useUpdateCoachLocationsMutation();
 
   // 状态管理
   const [intro, setIntro] = useState('');
@@ -64,6 +197,11 @@ const CoachDetails = () => {
   const [coachTags, setCoachTags] = useState([]);
   const [otherTags, setOtherTags] = useState([]);
   const [fileList, setFileList] = useState([]);
+  const [coachLocations, setCoachLocations] = useState([]);
+  const [otherLocations, setOtherLocations] = useState([]);
+  const [userName, setUserName] = useState('');
+  const [address, setAddress] = useState('');
+  const [birthday, setBirthday] = useState(null);
   
   // 加载教练数据
   useEffect(() => {
@@ -71,9 +209,15 @@ const CoachDetails = () => {
       const data = coachData.data;
       setIntro(data.intro || '');
       setPhotoUrl(data.photo || '');
+      setUserName(data.userName || '');
+      setAddress(data.address || '');
+      setBirthday(data.birthday ? dayjs(data.birthday) : null);
       
       setCoachTags(data.coachTags || []);
       setOtherTags(data.otherTags || []);
+      
+      setCoachLocations(data.coachLocations || []);
+      setOtherLocations(data.otherLocations || []);
       
       // 调试信息: 查看标签数据
       console.log('Coach Tags:', data.coachTags);
@@ -157,18 +301,50 @@ const CoachDetails = () => {
     }
   };
   
-  // 处理介绍保存
-  const handleSaveIntro = async () => {
+  // 统一处理所有保存操作
+  const handleSaveAll = async () => {
     try {
-      const response = await updateIntro(intro);
-      if (response.data?.code === 0) {
-        message.success('Introduction updated successfully');
+      // 显示加载中状态
+      message.loading('Saving changes...', 0);
+      
+      // 并行执行所有保存操作
+      const promises = [];
+      
+      // 保存介绍
+      if (intro !== coachData?.data?.intro) {
+        promises.push(updateIntro(intro));
+      }
+      
+      // 保存标签
+      const tagIds = coachTags.map(tag => tag.id);
+      if (JSON.stringify(tagIds) !== JSON.stringify(coachData?.data?.coachTags?.map(tag => tag.id))) {
+        promises.push(updateTags(tagIds));
+      }
+      
+      // 保存位置
+      const locationIds = coachLocations.map(location => location.id);
+      if (JSON.stringify(locationIds) !== JSON.stringify(coachData?.data?.coachLocations?.map(loc => loc.id))) {
+        promises.push(updateLocations(locationIds));
+      }
+      
+      // 等待所有保存操作完成
+      const results = await Promise.all(promises);
+      
+      // 检查所有操作是否成功
+      const isAllSuccess = results.every(res => res.data?.code === 0);
+      
+      // 隐藏加载中状态
+      message.destroy();
+      
+      if (isAllSuccess) {
+        message.success('All changes saved successfully');
       } else {
-        message.error(response.data?.message || 'Failed to update introduction');
+        message.error('Some changes failed to save');
       }
     } catch (error) {
-      message.error('Failed to update introduction');
-      console.error('Error updating intro:', error);
+      message.destroy();
+      message.error('Failed to save changes');
+      console.error('Error saving changes:', error);
     }
   };
   
@@ -197,22 +373,37 @@ const CoachDetails = () => {
     }
   };
   
-  // 处理保存标签
-  const handleSaveTags = async () => {
+  // 处理位置选择变化
+  const handleLocationChange = (locationId) => {
+    const location = [...coachLocations, ...otherLocations].find(loc => loc.id === locationId);
+    
+    if (!location) return;
+    
+    if (coachLocations.some(loc => loc.id === locationId)) {
+      // 如果已选中，则取消选中
+      setCoachLocations(coachLocations.filter(loc => loc.id !== locationId));
+      setOtherLocations([...otherLocations, location]);
+    } else {
+      // 如果未选中，则选中
+      setOtherLocations(otherLocations.filter(loc => loc.id !== locationId));
+      setCoachLocations([...coachLocations, location]);
+    }
+  };
+
+  // 处理位置保存
+  const handleSaveLocations = async () => {
     try {
-      // 提取教练标签ID
-      const tagIds = coachTags.map(tag => tag.id);
-      
-      const response = await updateTags(tagIds);
+      const locationIds = coachLocations.map(location => location.id);
+      const response = await updateLocations(locationIds);
       
       if (response.data?.code === 0) {
-        message.success('Tags updated successfully');
+        message.success('Locations updated successfully');
       } else {
-        message.error(response.data?.message || 'Failed to update tags');
+        message.error(response.data?.message || 'Failed to update locations');
       }
     } catch (error) {
-      message.error('Failed to update tags');
-      console.error('Error updating tags:', error);
+      message.error('Failed to update locations');
+      console.error('Error updating locations:', error);
     }
   };
   
@@ -242,6 +433,10 @@ const CoachDetails = () => {
     },
   };
   
+  // Add map modal visibility handlers
+  const showMapModal = () => setIsMapModalVisible(true);
+  const hideMapModal = () => setIsMapModalVisible(false);
+
   if (isLoadingDetails) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -272,55 +467,81 @@ const CoachDetails = () => {
   
   return (
     <PageTransition isVisible={true}>
-      <Layout style={{ minHeight: '100vh', background: 'linear-gradient(150deg, #e6f7ff 0%, #e3f2fd 50%, #bbdefb 100%)' }}>
-        <Header style={{ 
-          background: '#ffffff', 
-          padding: '0 30px', 
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          zIndex: 1,
-          height: '64px'
+      <style>{scrollbarStyles}</style>
+      <Layout style={{ 
+        minHeight: '100vh', 
+        background: 'linear-gradient(150deg, #e6f7ff 0%, #e3f2fd 50%, #bbdefb 100%)',
+        paddingTop: '56px'
+      }}>
+        <div style={{ 
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 100,
+          backgroundColor: '#fff',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
         }}>
-          <Space size={16} align="center">
+          <Header style={{ 
+            padding: '0 30px', 
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            maxWidth: '1600px',
+            margin: '0 auto',
+            background: 'transparent',
+            height: '56px'
+          }}>
+            <Space size={16} align="center">
+              <Button 
+                icon={<ArrowLeftOutlined />} 
+                onClick={handleGoBack}
+                type="default"
+                style={{ 
+                  border: 'none',
+                  boxShadow: 'none',
+                  background: 'transparent',
+                  padding: '4px 10px',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+              >
+                Back
+              </Button>
+              <Title level={3} style={{ margin: 0, lineHeight: '32px' }}>Coach Details</Title>
+            </Space>
             <Button 
-              icon={<ArrowLeftOutlined />} 
-              onClick={handleGoBack}
-              type="default"
-              style={{ 
-                border: 'none',
-                boxShadow: 'none',
-                background: 'transparent',
-                padding: '4px 10px',
-                display: 'flex',
-                alignItems: 'center'
-              }}
+              type="primary" 
+              icon={<SaveOutlined />}
+              onClick={handleSaveAll}
+              loading={isUpdatingIntro || isUpdatingTags || isUpdatingLocations}
             >
-              Back
+              Save All Changes
             </Button>
-            <Title level={3} style={{ margin: 0, lineHeight: '32px' }}>Coach Details</Title>
-          </Space>
-          <Button 
-            type="primary" 
-            onClick={handleSaveTags}
-            loading={isUpdatingTags}
-          >
-            Save All Changes
-          </Button>
-        </Header>
+          </Header>
+        </div>
 
-        <Content style={{ padding: '30px', maxWidth: '1600px', margin: '0 auto', width: '100%' }}>
-          <Row gutter={[30, 30]}>
-            {/* 左侧面板：个人资料 */}
+        <Content style={{ 
+          padding: '24px',
+          maxWidth: '1600px', 
+          margin: '0 auto', 
+          width: '100%',
+          minHeight: 'calc(100vh - 56px)',
+          marginTop: '56px',
+          position: 'relative',
+          zIndex: 1
+        }}>
+          <Row gutter={[24, 24]}>
+            {/* 左侧面板：个人资料和基本信息 */}
             <Col xs={24} lg={8}>
               <motion.div
                 initial={{ opacity: 0, y: 50 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
+                style={{ position: 'sticky', top: '80px' }}
               >
                 <Card 
-                  className="shadow-md hover:shadow-lg transition-shadow duration-300"
+                  className="shadow-md hover:shadow-lg transition-shadow duration-300 mb-6"
                   style={{ borderRadius: '12px', overflow: 'hidden' }}
                 >
                   <div className="flex flex-col items-center text-center">
@@ -328,8 +549,8 @@ const CoachDetails = () => {
                       <ImgWithToken 
                         src={photoUrl}
                         avatar
-                        size={180}
-                        className="mb-6"
+                        size={100}
+                        className="mb-4"
                         style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                         fallbackIcon={<UserOutlined />}
                         fallbackColor="#1890ff"
@@ -337,16 +558,16 @@ const CoachDetails = () => {
                     ) : (
                       <ImgWithToken 
                         avatar
-                        size={180}
-                        className="mb-6"
+                        size={100}
+                        className="mb-4"
                         fallbackIcon={<UserOutlined />}
                         fallbackColor="#1890ff"
                         style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                       />
                     )}
                     
-                    <Title level={4} className="mb-2">Profile Photo</Title>
-                    <Paragraph type="secondary" className="mb-6">
+                    <Title level={5} className="mb-2">Profile Photo</Title>
+                    <Paragraph type="secondary" className="mb-4">
                       A professional photo helps build trust with clients
                     </Paragraph>
                     
@@ -356,130 +577,269 @@ const CoachDetails = () => {
                         loading={isUploadingPhoto}
                         type="primary"
                         shape="round"
-                        size="large"
+                        size="middle"
                         block
                       >
                         {photoUrl ? 'Change Photo' : 'Upload Photo'}
                       </Button>
                     </Upload>
                   </div>
-                  
-                  <Divider />
-                  
-                  <div className="mt-6">
-                    <Title level={5} className="mb-4">Tips for a Great Profile</Title>
-                    <ul className="list-disc pl-5">
-                      <li className="mb-2">Use a clear, professional headshot</li>
-                      <li className="mb-2">Highlight your unique teaching approach</li>
-                      <li className="mb-2">Clearly state your areas of expertise</li>
-                      <li className="mb-2">Mention relevant certifications or qualifications</li>
-                    </ul>
-                  </div>
+                </Card>
+
+                {/* 基本信息卡片 */}
+                <Card
+                  title={
+                    <Space>
+                      <UserOutlined style={{ color: '#1890ff' }} />
+                      <span>Basic Information</span>
+                    </Space>
+                  }
+                  className="shadow-md hover:shadow-lg transition-shadow duration-300"
+                  style={{ borderRadius: '12px' }}
+                >
+                  <Form layout="vertical">
+                    <Form.Item
+                      label="Name"
+                      required
+                      style={{ marginBottom: '12px' }}
+                    >
+                      <Input
+                        value={userName}
+                        onChange={(e) => setUserName(e.target.value)}
+                        placeholder="Enter your name"
+                        prefix={<UserOutlined className="text-gray-400" />}
+                      />
+                    </Form.Item>
+
+                    <Form.Item
+                      label="Address"
+                      style={{ marginBottom: '12px' }}
+                    >
+                      <Input
+                        value={address}
+                        onChange={(e) => setAddress(e.target.value)}
+                        placeholder="Enter your address"
+                        prefix={<HomeOutlined className="text-gray-400" />}
+                      />
+                    </Form.Item>
+
+                    <Form.Item
+                      label="Birthday"
+                      style={{ marginBottom: '12px' }}
+                    >
+                      <DatePicker
+                        value={birthday}
+                        onChange={(date) => setBirthday(date)}
+                        style={{ width: '100%' }}
+                        placeholder="Select your birthday"
+                        format="YYYY-MM-DD"
+                        prefix={<CalendarOutlined className="text-gray-400" />}
+                      />
+                    </Form.Item>
+
+                    <Form.Item
+                      label="Personal Introduction"
+                      style={{ marginBottom: '0' }}
+                    >
+                      <TextArea
+                        value={intro}
+                        onChange={(e) => setIntro(e.target.value)}
+                        placeholder="Briefly introduce yourself, your expertise, and your teaching style..."
+                        rows={5}
+                        className="text-base"
+                        style={{ borderRadius: '8px', padding: '12px' }}
+                      />
+                      
+                      {!intro && (
+                        <div className="mt-4 p-4 bg-blue-50 text-gray-500 rounded-lg">
+                          <Text type="secondary">
+                            Your introduction is a chance to connect with potential clients. 
+                            Describe your teaching philosophy, experience, and unique 
+                            approach. An engaging introduction can significantly 
+                            boost client engagement.
+                          </Text>
+                        </div>
+                      )}
+                    </Form.Item>
+                  </Form>
                 </Card>
               </motion.div>
             </Col>
             
-            {/* 右侧面板：个人介绍和专业标签 */}
+            {/* 右侧面板：专业标签和位置选择 */}
             <Col xs={24} lg={16}>
               <motion.div
                 initial={{ opacity: 0, y: 50 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
+                style={{ 
+                  position: 'relative',
+                  height: 'calc(100vh - 104px)',  // 减去顶部导航栏高度和内边距
+                  overflowY: 'auto',
+                  paddingRight: '12px'  // 为滚动条预留空间
+                }}
+                className="custom-scrollbar"  // 添加自定义滚动条样式
               >
-                <Card 
+                {/* 专业标签部分 */}
+                <Card
                   title={
-                    <div className="flex items-center">
-                      <span className="text-xl font-medium">Personal Introduction</span>
-                    </div>
+                    <Space>
+                      <span className="text-lg font-medium">Professional Tags</span>
+                      <Text type="secondary" style={{ fontSize: '14px', marginLeft: '8px' }}>
+                        Selected Tags: {coachTags.length} | Available Tags: {otherTags.length}
+                      </Text>
+                    </Space>
                   }
                   className="shadow-md hover:shadow-lg transition-shadow duration-300 mb-6"
-                  style={{ borderRadius: '12px' }}
-                  extra={
-                    <Button 
-                      type="primary" 
-                      icon={<SaveOutlined />} 
-                      onClick={handleSaveIntro}
-                      loading={isUpdatingIntro}
-                      shape="round"
-                    >
-                      Save
-                    </Button>
-                  }
+                  style={{ 
+                    borderRadius: '12px',
+                    position: 'relative',
+                    backgroundColor: '#fff'
+                  }}
                 >
-                  <TextArea
-                    value={intro}
-                    onChange={(e) => setIntro(e.target.value)}
-                    placeholder="Briefly introduce yourself, your expertise, and your teaching style..."
-                    rows={8}
-                    className="text-base"
-                    style={{ borderRadius: '8px', padding: '12px' }}
-                  />
-                  
-                  {!intro && (
-                    <div className="mt-4 p-4 bg-blue-50 text-gray-500 rounded-lg">
-                      <Text type="secondary">
-                        Your introduction is a chance to connect with potential clients. 
-                        Describe your teaching philosophy, experience, and unique 
-                        approach. An engaging introduction can significantly 
-                        boost client engagement.
-                      </Text>
-                    </div>
-                  )}
+                  <DndProvider backend={HTML5Backend}>
+                    <Row gutter={[24, 24]}>
+                      <Col xs={24} md={12}>
+                        <div style={{ 
+                          background: '#f5f5f5', 
+                          padding: '16px',
+                          borderRadius: '8px',
+                          minHeight: '200px'
+                        }}>
+                          <div style={{ 
+                            marginBottom: '12px',
+                            color: '#1890ff',
+                            fontWeight: 500
+                          }}>
+                            Your Expertise
+                          </div>
+                          <TagsContainer 
+                            tags={coachTags}
+                            type="coach"
+                            onMove={handleTagMove}
+                            style={{ 
+                              minHeight: '150px'
+                            }}
+                          />
+                        </div>
+                      </Col>
+                      
+                      <Col xs={24} md={12}>
+                        <div style={{ 
+                          background: '#f5f5f5', 
+                          padding: '16px',
+                          borderRadius: '8px',
+                          minHeight: '200px'
+                        }}>
+                          <div style={{ 
+                            marginBottom: '12px',
+                            color: '#1890ff',
+                            fontWeight: 500
+                          }}>
+                            Available Tags
+                          </div>
+                          <TagsContainer 
+                            tags={otherTags}
+                            type="other"
+                            onMove={handleTagMove}
+                            style={{ 
+                              minHeight: '150px'
+                            }}
+                          />
+                        </div>
+                      </Col>
+                    </Row>
+                  </DndProvider>
                 </Card>
-              </motion.div>
-              
-              <motion.div
-                initial={{ opacity: 0, y: 50 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.4 }}
-              >
-                {/* 添加提示标签数量的信息 */}
-                <div className="mb-4">
-                  <Text type="secondary">
-                    Selected Tags: {coachTags.length} | Available Tags: {otherTags.length}
-                  </Text>
-                </div>
-                
-                <DndProvider backend={HTML5Backend}>
-                  <Row gutter={[24, 24]}>
-                    <Col xs={24} md={12}>
-                      <TagsContainer 
-                        title="Your Expertise"
-                        tags={coachTags}
-                        type="coach"
-                        onMove={handleTagMove}
-                        style={{ 
-                          borderRadius: '12px',
-                          minHeight: '300px'
-                        }}
-                      />
-                    </Col>
-                    
-                    <Col xs={24} md={12}>
-                      <TagsContainer 
-                        title="Available Tags"
-                        tags={otherTags}
-                        type="other"
-                        onMove={handleTagMove}
-                        style={{ 
-                          borderRadius: '12px',
-                          minHeight: '300px'
-                        }}
-                      />
-                    </Col>
-                  </Row>
-                  
-                  <div className="mt-6 text-center">
-                    <Paragraph type="secondary" className="mb-4">
-                      Drag and drop tags between containers to select your expertise
-                    </Paragraph>
+
+                {/* 位置选择卡片 */}
+                <Card
+                  title={
+                    <Space>
+                      <EnvironmentOutlined style={{ color: '#1890ff' }} />
+                      <span>Training Locations</span>
+                      <Tooltip title="Click to view all locations on map">
+                        <QuestionCircleOutlined
+                          style={{ 
+                            color: '#1890ff',
+                            cursor: 'pointer',
+                            fontSize: '18px',
+                            backgroundColor: '#e6f7ff',
+                            borderRadius: '50%',
+                            padding: '6px',
+                            transition: 'all 0.3s'
+                          }}
+                          className="hover:bg-blue-100 hover:scale-110"
+                          onClick={showMapModal}
+                        />
+                      </Tooltip>
+                    </Space>
+                  }
+                  className="shadow-md hover:shadow-lg transition-shadow duration-300 mb-6"
+                  style={{ 
+                    borderRadius: '12px',
+                    position: 'relative',
+                    backgroundColor: '#fff'
+                  }}
+                >
+                  <div className="mb-4">
+                    <Text type="secondary">
+                      Selected Locations: {coachLocations.length} | Available Locations: {otherLocations.length}
+                    </Text>
                   </div>
-                </DndProvider>
+                  
+                  <div style={{ maxHeight: '300px', overflowY: 'auto', padding: '8px' }}>
+                    {[...coachLocations, ...otherLocations]
+                      .sort((a, b) => a.name.localeCompare(b.name))
+                      .map(location => (
+                        <div 
+                          key={location.id} 
+                          style={{ 
+                            marginBottom: '12px',
+                            padding: '8px',
+                            borderRadius: '8px',
+                            background: coachLocations.some(loc => loc.id === location.id) 
+                              ? '#e6f7ff' 
+                              : 'transparent',
+                            transition: 'all 0.3s'
+                          }}
+                        >
+                          <Checkbox
+                            checked={coachLocations.some(loc => loc.id === location.id)}
+                            onChange={() => handleLocationChange(location.id)}
+                          >
+                            <div>
+                              <div>{location.name}</div>
+                              <div style={{ fontSize: '12px', color: '#666' }}>
+                                {`${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`}
+                              </div>
+                            </div>
+                          </Checkbox>
+                        </div>
+                    ))}
+                  </div>
+                </Card>
               </motion.div>
             </Col>
           </Row>
         </Content>
       </Layout>
+
+      {/* Add GoogleMap component */}
+      <GoogleMap
+        locations={[...coachLocations, ...otherLocations]}
+        isModal={true}
+        visible={isMapModalVisible}
+        onClose={hideMapModal}
+        title="Training Locations Map"
+        modalProps={{
+          width: 800,
+          bodyStyle: { padding: '16px' }
+        }}
+        mapProps={{
+          zoom: 12
+        }}
+      />
     </PageTransition>
   );
 };

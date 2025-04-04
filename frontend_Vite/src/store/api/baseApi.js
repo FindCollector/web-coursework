@@ -14,8 +14,8 @@ export const baseApi = createApi({
         return headers;
       }
       
-      // 从localStorage获取token
-      const token = localStorage.getItem('token');
+      // 从sessionStorage获取token
+      const token = sessionStorage.getItem('token');
       if (token) {
         headers.set('Authorization', `Bearer ${token}`);
         headers.set('token', token);

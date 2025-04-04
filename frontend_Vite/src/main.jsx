@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { ConfigProvider } from 'antd';
-import zhCN from 'antd/lib/locale/zh_CN';
+import enUS from 'antd/lib/locale/en_US';
 
 import App from './App.jsx';
 import store from './store';
@@ -24,15 +24,15 @@ if (process.env.NODE_ENV !== 'production') {
   exposeApiTestFunctions();
   logAuthState();
   
-  console.log('🚀 应用以开发模式启动');
-  console.log('🛠️ 开发调试工具已启用');
-  console.log('💡 提示: 在控制台使用 window.testAuth 进行快速API测试');
+  console.log('🚀 Application started in development mode');
+  console.log('🛠️ Development debugging tools enabled');
+  console.log('💡 Tip: Use window.testAuth in console for quick API testing');
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <Provider store={store}>
-      <ConfigProvider locale={zhCN}>
+      <ConfigProvider locale={enUS}>
         <BrowserRouter>
           <App />
         </BrowserRouter>

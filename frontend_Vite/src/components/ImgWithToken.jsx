@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react';
 import { Spin, Image, Avatar } from 'antd';
 import { UserOutlined } from '@ant-design/icons';
-import { createImageSrcObject, createImageUrlWithToken } from '../utils/imageUtils';
+import { useTokenizedImage } from '../hooks';
 
 /**
  * 带认证token的图片组件
@@ -32,41 +31,27 @@ const ImgWithToken = ({
   onLoad,
   onError
 }) => {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-  const [tokenUrl, setTokenUrl] = useState('');
+  // 使用自定义 hook 处理图片 URL 和状态
+  const {
+    tokenUrl,
+    loading,
+    error,
+    handleLoad,
+    handleError
+  } = useTokenizedImage(src);
   
-  // 请求头信息，用于Image组件
-  const srcObject = createImageSrcObject(src);
-  
-  // 生成URL参数形式的认证图片链接
-  useEffect(() => {
-    if (src) {
-      setTokenUrl(createImageUrlWithToken(src));
-      setError(false);
-      setLoading(true);
-    } else {
-      setError(true);
-      setLoading(false);
-    }
-  }, [src]);
-  
-  // 图片加载处理
-  const handleLoad = (e) => {
-    setLoading(false);
+  // 自定义处理函数
+  const handleImageLoad = (e) => {
+    handleLoad();
     if (onLoad) onLoad(e);
   };
   
-  // 图片错误处理
-  const handleError = (e) => {
-    console.error('Image failed to load:', src);
-    setError(true);
-    setLoading(false);
+  const handleImageError = (e) => {
+    handleError();
     if (onError) onError(e);
   };
   
-  // 图片点击处理
-  const handleClick = (e) => {
+  const handleImageClick = (e) => {
     if (onClick) onClick(e);
   };
   
@@ -81,7 +66,7 @@ const ImgWithToken = ({
           ...style
         }}
         className={className}
-        onClick={handleClick}
+        onClick={handleImageClick}
       />
     ) : (
       <Avatar 
@@ -89,9 +74,9 @@ const ImgWithToken = ({
         src={tokenUrl}
         style={style}
         className={className}
-        onLoad={handleLoad}
-        onError={handleError}
-        onClick={handleClick}
+        onLoad={handleImageLoad}
+        onError={handleImageError}
+        onClick={handleImageClick}
       />
     );
   }
@@ -145,9 +130,9 @@ const ImgWithToken = ({
           alt={alt}
           width={width}
           height={height}
-          onLoad={handleLoad}
-          onError={handleError}
-          onClick={handleClick}
+          onLoad={handleImageLoad}
+          onError={handleImageError}
+          onClick={handleImageClick}
           preview={preview}
           style={{ 
             display: loading ? 'none' : 'block',

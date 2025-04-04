@@ -53,6 +53,31 @@ export const authApi = baseApi.injectEndpoints({
       providesTags: ['Auth']
     }),
 
+    // 注册新用户
+    register: builder.mutation({
+      query: (data) => {
+        const { headers, ...requestData } = data;
+        console.log('注册请求数据:', requestData, '请求头:', headers);
+        return {
+          url: '/auth/register',
+          method: 'POST',
+          body: requestData,
+          headers: {
+            ...headers,
+            'Content-Type': 'application/json'
+          }
+        };
+      },
+      transformResponse: (response, meta, arg) => {
+        console.log('注册响应数据:', response);
+        return response;
+      },
+      transformErrorResponse: (response, meta, arg) => {
+        console.error('注册错误响应:', response);
+        return response;
+      }
+    }),
+
     // 发送验证码
     sendVerificationCode: builder.mutation({
       query: (data) => {
@@ -108,6 +133,7 @@ export const {
   useLoginMutation,
   useLogoutMutation,
   useGetCurrentUserQuery,
+  useRegisterMutation,
   useSendVerificationCodeMutation,
   useVerifyCodeMutation,
   useResendVerificationCodeMutation

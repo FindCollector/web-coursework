@@ -51,6 +51,4 @@ public class AdminController {
         Integer status = (Integer) requestBody.get("status");
         return userService.updateStatus(id,status);
     }
-
-
 }

@@ -31,9 +31,9 @@ const DebugPage = () => {
   
   // 加载存储的认证状态
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const userType = localStorage.getItem('userType');
-    const userName = localStorage.getItem('userName');
+    const token = sessionStorage.getItem('token');
+    const userType = sessionStorage.getItem('userType');
+    const userName = sessionStorage.getItem('userName');
     
     setAuthState({
       token: token,
@@ -61,9 +61,9 @@ const DebugPage = () => {
       setResponseData(data);
       
       if (data.code === 0 && data.data?.userInfo?.token) {
-        localStorage.setItem('token', data.data.userInfo.token);
-        localStorage.setItem('userType', data.data.userInfo.role || 'user');
-        localStorage.setItem('userName', data.data.userInfo.userName || 'User');
+        sessionStorage.setItem('token', data.data.userInfo.token);
+        sessionStorage.setItem('userType', data.data.userInfo.role || 'user');
+        sessionStorage.setItem('userName', data.data.userInfo.userName || 'User');
         
         setAuthState({
           token: data.data.userInfo.token,
@@ -91,13 +91,13 @@ const DebugPage = () => {
       
       if (result.code === 0) {
         message.success('RTK Query登录成功!');
-        // localStorage会由authSlice处理
+        // sessionStorage会由authSlice处理
         
         // 刷新显示的认证状态
         setTimeout(() => {
-          const token = localStorage.getItem('token');
-          const userType = localStorage.getItem('userType');
-          const userName = localStorage.getItem('userName');
+          const token = sessionStorage.getItem('token');
+          const userType = sessionStorage.getItem('userType');
+          const userName = sessionStorage.getItem('userName');
           
           setAuthState({
             token: token,
@@ -152,9 +152,9 @@ const DebugPage = () => {
   
   // 清除令牌
   const handleClearToken = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('userType');
-    localStorage.removeItem('userName');
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('userType');
+    sessionStorage.removeItem('userName');
     
     setAuthState({
       token: null,
@@ -169,9 +169,9 @@ const DebugPage = () => {
   const handleCheckAuth = () => {
     logAuthState();
     
-    const token = localStorage.getItem('token');
-    const userType = localStorage.getItem('userType');
-    const userName = localStorage.getItem('userName');
+    const token = sessionStorage.getItem('token');
+    const userType = sessionStorage.getItem('userType');
+    const userName = sessionStorage.getItem('userName');
     
     setAuthState({
       token: token,

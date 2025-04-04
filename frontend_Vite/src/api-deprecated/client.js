@@ -1,4 +1,21 @@
+/**
+ * 已弃用 - 不再使用 axios 客户端
+ * 
+ * 此文件已弃用，项目已全部迁移到 RTK Query。
+ * RTK Query 使用原生 fetch API 发送请求，配置位于 src/store/api/baseApi.js
+ * 
+ * 如需进行新的 API 开发，请在 src/store/api/ 目录下创建或修改相应的 API slice。
+ * 
+ * @deprecated 此文件仅保留作为历史参考，请勿在新代码中使用
+ */
+
+// 以下代码已弃用，仅作为历史参考
 import axios from 'axios';
+
+// 抛出错误，防止误用
+if (process.env.NODE_ENV !== 'production') {
+  throw new Error('axios client 已弃用，请使用 RTK Query。参考 src/store/api/baseApi.js');
+}
 
 // 从环境变量或配置中获取API基础URL，默认使用localhost
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
@@ -34,8 +51,8 @@ client.interceptors.request.use(
       config.url === '/auth/register' ||
       config.url === '/auth/resendCode';
     
-    // 从localStorage获取token并添加到请求头（非认证请求）
-    const token = localStorage.getItem('token');
+    // 从sessionStorage获取token并添加到请求头（非认证请求）
+    const token = sessionStorage.getItem('token');
     if (token && !isAuthRequest) {
       // 使用token作为header字段名
       config.headers.token = token;
@@ -63,7 +80,7 @@ client.interceptors.request.use(
       // 添加额外的日志确认token已被添加
       console.log(`将token添加到请求头 (${config.method} ${config.url}):`, token.substring(0, 10) + '...');
     } else if (!isAuthRequest) {
-      console.warn('在localStorage中未找到token，请求URL:', config.url);
+      console.warn('在sessionStorage中未找到token，请求URL:', config.url);
     }
     
     // 为请求添加唯一标识，确保不重复发送相同请求
@@ -134,7 +151,7 @@ client.interceptors.response.use(
       
       // 处理401未授权错误，清除token并重定向到登录页
       if (error.response.status === 401) {
-        localStorage.removeItem('token');
+        sessionStorage.removeItem('token');
         window.location.href = '/login';
       }
     } else if (error.request) {

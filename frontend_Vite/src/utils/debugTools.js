@@ -91,12 +91,12 @@ export const setupNetworkMonitoring = () => {
 // 显示当前的登录状态
 export const logAuthState = () => {
   console.group('🔐 认证状态');
-  console.log('token: ', localStorage.getItem('token') ? '已设置' : '未设置');
-  if (localStorage.getItem('token')) {
-    console.log('token值: ', localStorage.getItem('token').substring(0, 15) + '...');
+  console.log('token: ', sessionStorage.getItem('token') ? '已设置' : '未设置');
+  if (sessionStorage.getItem('token')) {
+    console.log('token值: ', sessionStorage.getItem('token').substring(0, 15) + '...');
   }
-  console.log('userType: ', localStorage.getItem('userType'));
-  console.log('userName: ', localStorage.getItem('userName'));
+  console.log('userType: ', sessionStorage.getItem('userType'));
+  console.log('userName: ', sessionStorage.getItem('userName'));
   console.groupEnd();
 }
 
@@ -147,18 +147,18 @@ export const exposeApiTestFunctions = () => {
         .then(data => {
           console.log('登录测试结果:', data);
           if (data.code === 0 && data.data?.userInfo?.token) {
-            localStorage.setItem('token', data.data.userInfo.token);
-            console.log('Token已保存到localStorage');
+            sessionStorage.setItem('token', data.data.userInfo.token);
+            console.log('Token已保存到sessionStorage');
           }
         })
         .catch(err => console.error('登录测试错误:', err));
       },
       checkToken: () => {
-        const token = localStorage.getItem('token');
+        const token = sessionStorage.getItem('token');
         console.log('当前token:', token);
       },
       clearToken: () => {
-        localStorage.removeItem('token');
+        sessionStorage.removeItem('token');
         console.log('Token已清除');
       }
     };

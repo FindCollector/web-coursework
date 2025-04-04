@@ -56,9 +56,9 @@ function App() {
     <DndProvider backend={HTML5Backend}>
       <Routes>
         {/* 公共路由 */}
+        <Route path="/verify-code" element={<VerifyCode />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/verify-code" element={<VerifyCode />} />
         <Route path="/" element={<Home />} />
         
         {/* 调试页面 - 仅在开发环境中显示 */}

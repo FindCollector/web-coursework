@@ -1,9 +1,5 @@
 package com.fitness_centre.dto;
 
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
-import com.fitness_centre.domain.Location;
-import com.fitness_centre.domain.Tag;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Past;
@@ -12,34 +8,34 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 
 /**
  * @author
- * @Classname CoachInfoResponse
+ * @Classname CoachInfoUpdateResponse
  * @Description TODO
- * @date 02/04/2025
+ * @date 04/04/2025
  */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class CoachInfoResponse {
+public class CoachInfoUpdateRequest {
 
     private String intro;
 
     private String photo;
 
+    @NotBlank(message = "The username cannot be empty.")
     private String userName;
 
+    @NotBlank(message = "The address cannot be empty.")
     private String address;
 
+    @Past(message = "birthday must be in the past")
+    @NotNull(message = "Birthday cannot be null.")
     private LocalDate birthday;
-    private List<Tag> coachTags;
+    private List<Long> coachTagIds;
 
-    private List<Tag> otherTags;
+    private List<Long> coachLocationIds;
 
-    private List<Location> coachLocations;
-
-    private List<Location> otherLocations;
 }

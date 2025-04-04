@@ -1,10 +1,10 @@
 import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
-  token: localStorage.getItem('token') || null,
-  userType: localStorage.getItem('userType') || null,
-  userName: localStorage.getItem('userName') || 'Admin',
-  isAuthenticated: !!localStorage.getItem('token'),
+  token: sessionStorage.getItem('token') || null,
+  userType: sessionStorage.getItem('userType') || null,
+  userName: sessionStorage.getItem('userName') || 'Admin',
+  isAuthenticated: !!sessionStorage.getItem('token'),
   loading: false,
   error: null
 };
@@ -25,13 +25,13 @@ const authSlice = createSlice({
       state.loading = false;
       state.error = null;
       
-      // 保存到localStorage
-      localStorage.setItem('token', action.payload.token);
-      localStorage.setItem('userType', action.payload.userType);
-      localStorage.setItem('userName', action.payload.userName || 'Admin');
+      // 保存到sessionStorage
+      sessionStorage.setItem('token', action.payload.token);
+      sessionStorage.setItem('userType', action.payload.userType);
+      sessionStorage.setItem('userName', action.payload.userName || 'Admin');
       
       // 调试日志，确认token已保存
-      console.log('Auth token stored in Redux and localStorage');
+      console.log('Auth token stored in Redux and sessionStorage');
     },
     loginFailure: (state, action) => {
       state.loading = false;
@@ -43,10 +43,10 @@ const authSlice = createSlice({
       state.userName = null;
       state.isAuthenticated = false;
       
-      // 清除localStorage中的认证信息
-      localStorage.removeItem('token');
-      localStorage.removeItem('userType');
-      localStorage.removeItem('userName');
+      // 清除sessionStorage中的认证信息
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('userType');
+      sessionStorage.removeItem('userName');
     }
   }
 });

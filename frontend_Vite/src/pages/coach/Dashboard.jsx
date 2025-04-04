@@ -11,7 +11,8 @@ import {
   Col, 
   Spin, 
   Space, 
-  Modal 
+  Modal,
+  message
 } from 'antd';
 import { 
   UserOutlined, 
@@ -23,6 +24,7 @@ import {
 import { logout as logoutAction } from '../../store/authSlice';
 import { useDispatch } from 'react-redux';
 import { useCheckCoachDetailsQuery } from '../../store/api/coachApi';
+import { useLogoutMutation } from '../../store/api/authApi';
 import PageTransition from '../../components/PageTransition';
 
 const { Title, Text } = Typography;
@@ -43,6 +45,9 @@ const CoachDashboard = () => {
     isError,
     refetch 
   } = useCheckCoachDetailsQuery();
+  
+  // 添加 RTK Query 的 logout mutation hook
+  const [logout, { isLoading: isLoggingOut }] = useLogoutMutation();
   
   // 处理教练信息检查
   useEffect(() => {
@@ -69,9 +74,16 @@ const CoachDashboard = () => {
     Modal.confirm({
       title: 'Logout Confirmation',
       content: 'Are you sure you want to logout?',
-      onOk: () => {
-        dispatch(logoutAction());
-        navigate('/login');
+      onOk: async () => {
+        try {
+          // 调用 RTK Query 的 logout mutation
+          const response = await logout().unwrap();
+          dispatch(logoutAction());
+          navigate('/login');
+        } catch (error) {
+          console.error('Logout failed:', error);
+          message.error('Logout failed. Please try again.');
+        }
       },
       okText: 'Logout',
       cancelText: 'Cancel',

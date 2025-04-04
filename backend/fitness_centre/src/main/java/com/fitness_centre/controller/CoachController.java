@@ -1,6 +1,7 @@
 package com.fitness_centre.controller;
 
 import com.fitness_centre.constant.ErrorCode;
+import com.fitness_centre.dto.CoachInfoUpdateRequest;
 import com.fitness_centre.dto.GeneralResponseResult;
 import com.fitness_centre.security.LoginUser;
 import com.fitness_centre.service.biz.interfaces.CoachInfoService;
@@ -12,7 +13,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
 
 /**
  * @author
@@ -39,11 +39,11 @@ public class CoachController {
         return responseResult;
     }
     @PostMapping("/details")
-    public GeneralResponseResult createDetails(Authentication authentication){
+    public GeneralResponseResult updateDetails(@RequestBody CoachInfoUpdateRequest request, Authentication authentication){
         //Spring MVC 会自动把当前登录用户的 Authentication 注入进来
         LoginUser loginUser = (LoginUser) authentication.getPrincipal();
         Long userId = loginUser.getId();
-        return null;
+        return coachInfoService.updateInfo(request,userId);
     }
 
     @GetMapping("/details")

@@ -45,6 +45,16 @@ export const coachApi = baseApi.injectEndpoints({
         body: { tagIds }
       }),
       invalidatesTags: ['Coach']
+    }),
+
+    // 更新教练位置
+    updateCoachLocations: builder.mutation({
+      query: (locationIds) => ({
+        url: '/coach/update/locations',
+        method: 'POST',
+        body: { locationIds }
+      }),
+      invalidatesTags: ['Coach']
     })
   })
 });
@@ -55,5 +65,6 @@ export const {
   useGetCoachDetailQuery,
   useUpdateCoachIntroMutation,
   useUploadCoachPhotoMutation,
-  useUpdateCoachTagsMutation
+  useUpdateCoachTagsMutation,
+  useUpdateCoachLocationsMutation
 } = coachApi; 

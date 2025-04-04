@@ -29,11 +29,11 @@ export const getFullImageUrl = (path) => {
 };
 
 /**
- * 从localStorage获取认证token
+ * 从sessionStorage获取认证token
  * @returns {string|null} 认证token或null
  */
 export const getToken = () => {
-  return localStorage.getItem('token');
+  return sessionStorage.getItem('token');
 };
 
 /**

@@ -43,6 +43,7 @@ const UserManagement = () => {
   });
   const [filters, setFilters] = useState({});
   const [sorter, setSorter] = useState({});
+  const [skip, setSkip] = useState(false);
 
   // --- State for custom delete modal ---
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
@@ -56,6 +57,9 @@ const UserManagement = () => {
     ...filters,
     sortField: sorter.field ? [sorter.field] : [],
     sortOrder: sorter.order ? [sorter.order === 'ascend' ? 'asc' : 'desc'] : []
+  }, {
+    skip,
+    refetchOnMountOrArgChange: true
   });
 
   // Process data source to ensure consistency
@@ -168,13 +172,56 @@ const UserManagement = () => {
     handleSearch(newValues);
   };
 
+  // 添加useEffect来监听数据变化
+  useEffect(() => {
+    if (!skip && data) {
+      console.log('Data received:', data);
+    }
+  }, [data, skip]);
+
   // Reset filters
   const resetFilters = () => {
+    // 重置表单
     searchForm.resetFields();
+    
+    // 显示加载提示
+    const loadingMessage = message.loading('Loading data...', 0);
+
+    // 重置状态
     setFilters({});
     setSorter({});
-    setPagination(prev => ({ ...prev, current: 1 }));
+    setPagination({
+      current: 1,
+      pageSize: 10
+    });
+
+    // 直接调用refetch强制刷新数据
+    refetch()
+      .then(() => {
+        loadingMessage();
+        message.success('Data refreshed successfully');
+      })
+      .catch(() => {
+        loadingMessage();
+        message.error('Failed to refresh data');
+      });
   };
+
+  // 监听状态变化
+  useEffect(() => {
+    console.log('[UserManagement] 状态变化:', {
+      pagination,
+      filters,
+      sorter
+    });
+  }, [pagination, filters, sorter]);
+
+  // 监听数据变化
+  useEffect(() => {
+    if (data) {
+      console.log('[UserManagement] 收到新数据:', data);
+    }
+  }, [data]);
 
   const approveUser = (userId) => {
     // Show loading message

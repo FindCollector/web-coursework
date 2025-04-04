@@ -1,19 +1,35 @@
 /**
- * API层导出文件
- * 导出所有API和兼容层，方便应用使用
+ * 提示: API 访问已迁移
+ * 
+ * 项目中的所有 API 请求现在都通过 RTK Query 实现。
+ * 请直接从相应的 store/api 目录导入需要的 hooks。
+ * 
+ * 例如:
+ * - import { useLoginMutation } from '../store/api/authApi';
+ * - import { useGetUserListQuery } from '../store/api/userApi';
+ * - import { useGetCoachDetailQuery } from '../store/api/coachApi';
+ * 
+ * 请参考 /docs/API_MIGRATION_PLAN.md 获取更多信息。
  */
 
-// 导出原始API函数（旧版本）
-export * from './authApi';
-export * from './userApi';
+// 仅导出一个函数，显示警告信息
+export const apiMigrationNotice = () => {
+  console.warn(
+    '注意: 项目 API 层已迁移到 RTK Query。' +
+    '请直接从 store/api/ 目录导入相关 hooks。' +
+    '参见 /docs/API_MIGRATION_PLAN.md 文件获取详情。'
+  );
+  return false;
+};
 
-// 导出React Query兼容层
-export * from './reactQueryCompat';
+// 不再导出旧版 API 函数，完全使用 RTK Query
+// export * from './authApi';
+// export * from './userApi';
+
+// 不再需要兼容层
+// export * from './reactQueryCompat';
 
 // 注释:
-// 未来可以逐步移除对旧API的依赖，全部使用RTK Query
-// 迁移顺序：
-// 1. 先创建RTK Query的API slice
-// 2. 在此导出兼容层
-// 3. 逐步修改组件使用RTK Query而非旧API
-// 4. 完全迁移后，移除旧API和兼容层 
+// API迁移已完成，完全使用RTK Query
+// 旧API函数和兼容层已移除
+// 所有组件现在都直接从 src/store/api/ 目录导入 RTK Query hooks 

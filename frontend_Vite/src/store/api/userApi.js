@@ -36,13 +36,24 @@ export const userApi = baseApi.injectEndpoints({
         queryParams.append('pageNow', pageNow);  
         queryParams.append('pageSize', pageSize);   
         
-        console.log('Sending user list request with params:', queryParams.toString());
+        // 添加时间戳防止缓存
+        queryParams.append('_t', Date.now());
+        
+        console.log('[userApi] 准备发送请求:', {
+          url: `/user/list?${queryParams.toString()}`,
+          params: Object.fromEntries(queryParams.entries()),
+          token: sessionStorage.getItem('token')
+        });
         
         return {
           url: `/user/list?${queryParams.toString()}`,
           method: 'GET'
         };
       },
+      // 禁用缓存
+      keepUnusedDataFor: 0,
+      // 确保每次都重新获取数据
+      forceRefetch: () => true,
       // 处理响应转换
       transformResponse: (response) => {
         // 确保即使后端返回数据格式不完整也能正常显示
@@ -60,6 +71,15 @@ export const userApi = baseApi.injectEndpoints({
       },
       // 为了确保缓存失效和重新获取正常工作
       providesTags: ['User'],
+      async onQueryStarted(arg, { queryFulfilled }) {
+        try {
+          console.log('[userApi] 开始发送请求');
+          const result = await queryFulfilled;
+          console.log('[userApi] 请求成功:', result);
+        } catch (error) {
+          console.error('[userApi] 请求失败:', error);
+        }
+      },
     }),
 
     // 更新用户状态

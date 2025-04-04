@@ -1,8 +1,6 @@
 package com.fitness_centre.domain;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import lombok.AllArgsConstructor;
@@ -35,18 +33,22 @@ public class User implements Serializable {
 
     private String password;
 
+
     private String role;
 
     private Integer gender;
 
+    @TableField(updateStrategy = FieldStrategy.NOT_NULL)
     private LocalDate birthday;
 
+    @TableField(updateStrategy = FieldStrategy.NOT_NULL)
     private String address;
 
     private LocalDateTime registerTime;
 
     private Integer status;
 
+    @TableField(updateStrategy = FieldStrategy.NOT_NULL)
     private String userName;
 
 }
