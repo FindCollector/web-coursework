@@ -28,12 +28,22 @@ export const coachApi = baseApi.injectEndpoints({
     // 上传教练照片
     uploadCoachPhoto: builder.mutation({
       query: (formData) => ({
-        url: '/coach/upload/photo',
+        url: '/coach/photo',
         method: 'POST',
         body: formData,
         // 不设置Content-Type，让浏览器自动设置为multipart/form-data
         formData: true,
       }),
+      transformResponse: (response) => {
+        if (response.code === 0) {
+          return {
+            code: 0,
+            msg: response.msg,
+            photoUrl: response.data.tempUrl
+          };
+        }
+        return response;
+      },
       invalidatesTags: ['Coach']
     }),
     
@@ -55,6 +65,16 @@ export const coachApi = baseApi.injectEndpoints({
         body: { locationIds }
       }),
       invalidatesTags: ['Coach']
+    }),
+
+    // 更新教练详情
+    updateCoachDetails: builder.mutation({
+      query: (details) => ({
+        url: '/coach/details',
+        method: 'POST',
+        body: details
+      }),
+      invalidatesTags: ['Coach']
     })
   })
 });
@@ -66,5 +86,6 @@ export const {
   useUpdateCoachIntroMutation,
   useUploadCoachPhotoMutation,
   useUpdateCoachTagsMutation,
-  useUpdateCoachLocationsMutation
+  useUpdateCoachLocationsMutation,
+  useUpdateCoachDetailsMutation
 } = coachApi; 

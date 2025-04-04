@@ -41,7 +41,8 @@ import {
   useUpdateCoachIntroMutation,
   useUploadCoachPhotoMutation,
   useUpdateCoachTagsMutation,
-  useUpdateCoachLocationsMutation
+  useUpdateCoachLocationsMutation,
+  useUpdateCoachDetailsMutation
 } from '../../store/api/coachApi';
 import PageTransition from '../../components/PageTransition';
 import TagsContainer from '../../components/TagsContainer';
@@ -190,10 +191,12 @@ const CoachDetails = () => {
   const [uploadPhoto, { isLoading: isUploadingPhoto }] = useUploadCoachPhotoMutation();
   const [updateTags, { isLoading: isUpdatingTags }] = useUpdateCoachTagsMutation();
   const [updateLocations, { isLoading: isUpdatingLocations }] = useUpdateCoachLocationsMutation();
+  const [updateDetails, { isLoading: isUpdatingDetails }] = useUpdateCoachDetailsMutation();
 
   // 状态管理
   const [intro, setIntro] = useState('');
   const [photoUrl, setPhotoUrl] = useState('');
+  const [tempPhotoUrl, setTempPhotoUrl] = useState(''); // 添加临时照片URL状态
   const [coachTags, setCoachTags] = useState([]);
   const [otherTags, setOtherTags] = useState([]);
   const [fileList, setFileList] = useState([]);
@@ -209,6 +212,7 @@ const CoachDetails = () => {
       const data = coachData.data;
       setIntro(data.intro || '');
       setPhotoUrl(data.photo || '');
+      setTempPhotoUrl(''); // 重置临时照片URL
       setUserName(data.userName || '');
       setAddress(data.address || '');
       setBirthday(data.birthday ? dayjs(data.birthday) : null);
@@ -301,75 +305,134 @@ const CoachDetails = () => {
     }
   };
   
-  // 统一处理所有保存操作
-  const handleSaveAll = async () => {
-    try {
-      // 显示加载中状态
-      message.loading('Saving changes...', 0);
-      
-      // 并行执行所有保存操作
-      const promises = [];
-      
-      // 保存介绍
-      if (intro !== coachData?.data?.intro) {
-        promises.push(updateIntro(intro));
-      }
-      
-      // 保存标签
-      const tagIds = coachTags.map(tag => tag.id);
-      if (JSON.stringify(tagIds) !== JSON.stringify(coachData?.data?.coachTags?.map(tag => tag.id))) {
-        promises.push(updateTags(tagIds));
-      }
-      
-      // 保存位置
-      const locationIds = coachLocations.map(location => location.id);
-      if (JSON.stringify(locationIds) !== JSON.stringify(coachData?.data?.coachLocations?.map(loc => loc.id))) {
-        promises.push(updateLocations(locationIds));
-      }
-      
-      // 等待所有保存操作完成
-      const results = await Promise.all(promises);
-      
-      // 检查所有操作是否成功
-      const isAllSuccess = results.every(res => res.data?.code === 0);
-      
-      // 隐藏加载中状态
-      message.destroy();
-      
-      if (isAllSuccess) {
-        message.success('All changes saved successfully');
-      } else {
-        message.error('Some changes failed to save');
-      }
-    } catch (error) {
-      message.destroy();
-      message.error('Failed to save changes');
-      console.error('Error saving changes:', error);
-    }
-  };
-  
   // 处理照片上传
   const handleUpload = async (options) => {
     const { file, onSuccess, onError } = options;
     
     try {
+      // 检查文件是否有效
+      if (!file) {
+        message.error('Please select a file');
+        onError(new Error('No file selected'));
+        return;
+      }
+
       const formData = new FormData();
-      formData.append('photo', file);
+      // 确保使用正确的字段名 'file'，与后端参数名对应
+      formData.append('file', file);
+      
+      // 打印日志以便调试
+      console.log('Uploading file:', file);
+      console.log('File size:', file.size);
+      console.log('File type:', file.type);
       
       const response = await uploadPhoto(formData).unwrap();
       
-      if (response.code === 0 && response.data?.photoUrl) {
-        setPhotoUrl(response.data.photoUrl);
+      if (response.code === 0) {
+        setTempPhotoUrl(response.photoUrl); // 保存临时照片URL
+        const imageUrlWithToken = createImageUrlWithToken(response.photoUrl);
+        setFileList([
+          {
+            uid: '-1',
+            name: file.name,
+            status: 'done',
+            url: imageUrlWithToken,
+          },
+        ]);
         message.success('Photo uploaded successfully');
         onSuccess(response, file);
+        
+        // 上传成功后刷新整个页面
+        window.location.reload();
       } else {
-        message.error(response.message || 'Failed to upload photo');
+        message.error(response.msg || 'Failed to upload photo');
         onError(new Error('Upload failed'));
       }
     } catch (error) {
-      message.error('Failed to upload photo');
       console.error('Error uploading photo:', error);
+      message.error(error.data?.msg || 'Failed to upload photo');
       onError(error);
+    }
+  };
+  
+  // 统一处理所有保存操作
+  const handleSaveAll = async () => {
+    try {
+      // 显示加载中状态
+      const loadingMessage = message.loading('Saving changes...', 0);
+      
+      // 准备要更新的数据
+      const updatedData = {};
+      
+      // 只添加修改过的字段
+      if (intro !== coachData?.data?.intro) {
+        updatedData.intro = intro;
+      }
+      
+      // 如果有临时照片URL，则添加到更新数据中
+      if (tempPhotoUrl) {
+        updatedData.photo = tempPhotoUrl;
+      }
+      
+      if (userName !== coachData?.data?.userName) {
+        updatedData.userName = userName;
+      }
+      
+      if (address !== coachData?.data?.address) {
+        updatedData.address = address;
+      }
+      
+      if (birthday?.format('YYYY-MM-DD') !== coachData?.data?.birthday) {
+        updatedData.birthday = birthday?.format('YYYY-MM-DD');
+      }
+      
+      const tagIds = coachTags.map(tag => tag.id);
+      if (JSON.stringify(tagIds) !== JSON.stringify(coachData?.data?.coachTags?.map(tag => tag.id))) {
+        updatedData.coachTagIds = tagIds;
+      }
+      
+      const locationIds = coachLocations.map(location => location.id);
+      if (JSON.stringify(locationIds) !== JSON.stringify(coachData?.data?.coachLocations?.map(loc => loc.id))) {
+        updatedData.coachLocationIds = locationIds;
+      }
+      
+      // 如果有修改的数据，则发送请求
+      if (Object.keys(updatedData).length > 0) {
+        const response = await updateDetails(updatedData).unwrap();
+        
+        // 关闭加载中状态
+        loadingMessage();
+        
+        if (response.code === 0) {
+          message.success({
+            content: 'All changes saved successfully!',
+            duration: 3
+          });
+          setTempPhotoUrl(''); // 清除临时照片URL
+          // 刷新数据
+          refetchDetails();
+        } else {
+          // 使用Modal显示错误信息
+          Modal.error({
+            title: 'Save Failed',
+            content: response.msg || 'An error occurred while saving changes',
+            okText: 'OK'
+          });
+        }
+      } else {
+        // 关闭加载中状态
+        loadingMessage();
+        message.info('No changes to save');
+      }
+    } catch (error) {
+      // 关闭加载中状态并显示错误
+      message.destroy();
+      Modal.error({
+        title: 'Save Failed',
+        content: error.data?.msg || 'An error occurred while saving changes',
+        okText: 'OK'
+      });
+      console.error('Error saving changes:', error);
     }
   };
   
@@ -414,23 +477,28 @@ const CoachDetails = () => {
   
   // 上传组件属性
   const uploadProps = {
-    name: 'photo',
+    name: 'file', // 修改为与后端参数名一致
     listType: 'picture',
     fileList: fileList,
     customRequest: handleUpload,
     onChange: ({ fileList }) => setFileList(fileList),
     headers: getAuthHeaders(),
     beforeUpload: (file) => {
+      // 检查文件类型
       const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png';
       if (!isJpgOrPng) {
         message.error('You can only upload JPG/PNG file!');
+        return false;
       }
+      // 检查文件大小（限制为2MB）
       const isLt2M = file.size / 1024 / 1024 < 2;
       if (!isLt2M) {
         message.error('Image must be smaller than 2MB!');
+        return false;
       }
       return isJpgOrPng && isLt2M;
     },
+    accept: 'image/jpeg,image/png', // 限制文件选择类型
   };
   
   // Add map modal visibility handlers
@@ -514,7 +582,7 @@ const CoachDetails = () => {
               type="primary" 
               icon={<SaveOutlined />}
               onClick={handleSaveAll}
-              loading={isUpdatingIntro || isUpdatingTags || isUpdatingLocations}
+              loading={isUpdatingDetails}
             >
               Save All Changes
             </Button>
@@ -634,6 +702,10 @@ const CoachDetails = () => {
                         placeholder="Select your birthday"
                         format="YYYY-MM-DD"
                         prefix={<CalendarOutlined className="text-gray-400" />}
+                        disabledDate={(current) => {
+                          // 禁用今天及之后的日期
+                          return current && current.isAfter(dayjs().endOf('day'));
+                        }}
                       />
                     </Form.Item>
 

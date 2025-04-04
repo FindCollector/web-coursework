@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.awt.*;
 import java.util.*;
@@ -68,15 +69,29 @@ public class CoachInfoServiceImpl extends ServiceImpl<CoachInfoMapper, CoachInfo
         if(Objects.isNull(coach_check)){
             throw new BusinessException(ErrorCode.INVALID_PARAMETER.getCode(),"Coach not found");
         }
+
         //domain配置后，只更新非空字段
         User user = new User();
+        user.setId(coachId);
         BeanUtils.copyProperties(request,user);
-        userMapper.updateById(user);
+        if(!Objects.isNull(user.getBirthday()) || !Objects.isNull(user.getUserName()) || !Objects.isNull(user.getAddress())){
+            userMapper.updateById(user);
+        }
 
         CoachInfo coach = new CoachInfo();
         BeanUtils.copyProperties(request,coach);
+        if(!Objects.isNull(coach.getIntro())){
+            coach.setId(coachId);
+            coachInfoMapper.updateById(coach);
+        }
+        if(!Objects.isNull(request.getCoachLocationIds())){
+            updateCoachLocations(request,coachId);
+        }
+        if(!Objects.isNull(request.getCoachTagIds())){
+            updateCoachTags(request,coachId);
+        }
 
-        updateCoachTags(request,coachId);
+
 
         return new GeneralResponseResult(ErrorCode.SUCCESS);
 
@@ -122,6 +137,41 @@ public class CoachInfoServiceImpl extends ServiceImpl<CoachInfoMapper, CoachInfo
         }
     }
 
+    public void updateCoachLocations(CoachInfoUpdateRequest request,Long coachId){
+        List<CoachLocation> oldLocations = coachLocationMapper.selectList(
+                new LambdaQueryWrapper<CoachLocation>()
+                        .eq(CoachLocation::getCoachId,coachId)
+        );
+
+        Set<Long> oldLocationIdSet = oldLocations.stream()
+                .map(CoachLocation::getLocationId)
+                .collect(Collectors.toSet());
+
+        Set<Long> newLocationIdSet = new HashSet<>(request.getCoachLocationIds());
+
+        Set<Long> toRemove = new HashSet<>(oldLocationIdSet);
+        toRemove.removeAll(newLocationIdSet);
+
+        Set<Long> toAdd = new HashSet<>(newLocationIdSet);
+        toAdd.removeAll(oldLocationIdSet);
+
+        if(!toRemove.isEmpty()){
+            coachLocationMapper.delete(
+                    new LambdaQueryWrapper<CoachLocation>()
+                            .eq(CoachLocation::getCoachId,coachId)
+                            .in(CoachLocation::getLocationId,toRemove)
+            );
+        }
+
+        for(Long locationId : toAdd){
+            CoachLocation cl = new CoachLocation();
+            cl.setCoachId(coachId);
+            cl.setLocationId(locationId);
+            coachLocationMapper.insert(cl);
+        }
+    }
+
+
     @Override
     public GeneralResponseResult coachInfo(Long coachId) {
         CoachInfoResponse coachInfoResponse = new CoachInfoResponse();
@@ -154,6 +204,18 @@ public class CoachInfoServiceImpl extends ServiceImpl<CoachInfoMapper, CoachInfo
 
 
         return new GeneralResponseResult(ErrorCode.SUCCESS,coachInfoResponse);
+    }
+
+    @Override
+    public GeneralResponseResult coachPhoto(MultipartFile file,Long coachId) {
+        String url = fileService.uploadFileToTemp(file,coachId);
+        CoachInfo coach = new CoachInfo();
+        coach.setId(coachId);
+        coach.setPhoto(url);
+        coachInfoMapper.updateById(coach);
+        Map<String,String> map = new HashMap<>();
+        map.put("photo",url);
+        return new GeneralResponseResult(ErrorCode.SUCCESS,map);
     }
 
     //获取现在教练有的id

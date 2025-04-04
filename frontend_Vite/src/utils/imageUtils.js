@@ -76,17 +76,8 @@ export const createImageSrcObject = (path) => {
  * @returns {string} 带认证参数的完整URL
  */
 export const createImageUrlWithToken = (path) => {
-  const token = getToken();
   const baseUrl = getFullImageUrl(path);
-  
-  if (!token) {
-    console.warn('No authentication token found for image URL');
-    return baseUrl;
-  }
-  
-  // 添加token作为URL参数
-  const separator = baseUrl.includes('?') ? '&' : '?';
-  return `${baseUrl}${separator}token=${encodeURIComponent(token)}`;
+  return baseUrl;
 };
 
 /**

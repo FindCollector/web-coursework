@@ -29,13 +29,17 @@ public class User implements Serializable {
     @JsonSerialize(using = ToStringSerializer.class)
     private Long id;
 
+    @TableField(updateStrategy = FieldStrategy.NOT_NULL)
     private String email;
 
+    @TableField(updateStrategy = FieldStrategy.NOT_NULL)
     private String password;
 
 
+    @TableField(updateStrategy = FieldStrategy.NOT_NULL)
     private String role;
 
+    @TableField(updateStrategy = FieldStrategy.NOT_NULL)
     private Integer gender;
 
     @TableField(updateStrategy = FieldStrategy.NOT_NULL)
@@ -44,8 +48,10 @@ public class User implements Serializable {
     @TableField(updateStrategy = FieldStrategy.NOT_NULL)
     private String address;
 
+    @TableField(updateStrategy = FieldStrategy.NOT_NULL)
     private LocalDateTime registerTime;
 
+    @TableField(updateStrategy = FieldStrategy.NOT_NULL)
     private Integer status;
 
     @TableField(updateStrategy = FieldStrategy.NOT_NULL)

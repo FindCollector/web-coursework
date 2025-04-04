@@ -30,13 +30,11 @@ public class CoachController {
     FileService fileService;
 
     //上传文件
-    @PostMapping("/uploadFile")
-    public GeneralResponseResult uploadFile(MultipartFile file){
-        String tempUrl = fileService.uploadFileToTemp(file);
-        Map<String,String> map = new HashMap<>();
-        map.put("tempUrl",tempUrl);
-        GeneralResponseResult responseResult = new GeneralResponseResult<>(ErrorCode.SUCCESS,map);
-        return responseResult;
+    @PostMapping("/photo")
+    public GeneralResponseResult uploadFile(MultipartFile file,Authentication authentication){
+        LoginUser loginUser = (LoginUser)  authentication.getPrincipal();
+        Long userId = loginUser.getId();
+        return coachInfoService.coachPhoto(file,userId);
     }
     @PostMapping("/details")
     public GeneralResponseResult updateDetails(@RequestBody CoachInfoUpdateRequest request, Authentication authentication){

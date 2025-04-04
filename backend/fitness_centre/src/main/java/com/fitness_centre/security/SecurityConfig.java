@@ -41,7 +41,10 @@ public class SecurityConfig{
             "/auth/resendCode",
             "/auth/sendCode",
             "/auth/verifyCode",
-            "/formal/default.jpg"
+            "/formal/default.jpg",
+//            "/coach/photo"
+            //todo 如何让这些图片被验证token
+            "/temp/**"
     };
 
     //放行

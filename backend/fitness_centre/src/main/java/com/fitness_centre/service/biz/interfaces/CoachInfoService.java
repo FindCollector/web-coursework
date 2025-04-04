@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.fitness_centre.domain.CoachInfo;
 import com.fitness_centre.dto.CoachInfoUpdateRequest;
 import com.fitness_centre.dto.GeneralResponseResult;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -17,6 +18,8 @@ public interface CoachInfoService extends IService<CoachInfo> {
     GeneralResponseResult updateInfo(CoachInfoUpdateRequest request, Long coachId);
 
     GeneralResponseResult coachInfo(Long coachId);
+
+    GeneralResponseResult coachPhoto(MultipartFile file,Long coachId);
 
     GeneralResponseResult coachInfoCheck(Long coachId);
 
