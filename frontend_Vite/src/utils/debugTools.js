@@ -3,6 +3,12 @@
  * 用于调试API请求和响应
  */
 
+// 获取存储键名，不再添加实例ID后缀
+const getStorageKey = (key) => {
+  // 使用简单的键名，不追加实例ID
+  return key;
+};
+
 // 监听网络请求
 export const setupNetworkMonitoring = () => {
   if (process.env.NODE_ENV !== 'production') {
@@ -88,17 +94,31 @@ export const setupNetworkMonitoring = () => {
   }
 }
 
-// 显示当前的登录状态
+// 打印认证状态
 export const logAuthState = () => {
-  console.group('🔐 认证状态');
-  console.log('token: ', sessionStorage.getItem('token') ? '已设置' : '未设置');
-  if (sessionStorage.getItem('token')) {
-    console.log('token值: ', sessionStorage.getItem('token').substring(0, 15) + '...');
+  if (process.env.NODE_ENV === 'production') {
+    return;
   }
-  console.log('userType: ', sessionStorage.getItem('userType'));
-  console.log('userName: ', sessionStorage.getItem('userName'));
-  console.groupEnd();
-}
+  
+  const getStorageKey = (key) => {
+    // 使用简单的键名，不追加实例ID
+    return key;
+  };
+  
+  // 打印认证状态
+  try {
+    console.group('🔐 认证状态');
+    console.log('token: ', sessionStorage.getItem(getStorageKey('token')) ? '已设置' : '未设置');
+    if (sessionStorage.getItem(getStorageKey('token'))) {
+      console.log('token值: ', sessionStorage.getItem(getStorageKey('token')).substring(0, 15) + '...');
+    }
+    console.log('userType: ', sessionStorage.getItem(getStorageKey('userType')));
+    console.log('userName: ', sessionStorage.getItem(getStorageKey('userName')));
+    console.groupEnd();
+  } catch (error) {
+    console.error('打印认证状态时出错:', error);
+  }
+};
 
 // 添加调试样式到页面
 export const addDebugStyles = () => {
@@ -129,40 +149,64 @@ export const addDebugStyles = () => {
   }
 }
 
-// 添加便捷的API测试函数到window对象
+// 暴露API测试函数
 export const exposeApiTestFunctions = () => {
-  if (process.env.NODE_ENV !== 'production') {
-    window.testAuth = {
-      login: (email, password) => {
-        console.log(`测试登录: ${email}`);
-        fetch('http://localhost:8080/auth/login', {
+  if (process.env.NODE_ENV === 'production') {
+    return;
+  }
+  
+  const getStorageKey = (key) => {
+    // 使用简单的键名，不追加实例ID
+    return key;
+  };
+  
+  // 创建全局测试对象
+  window.testAuth = {
+    // 登录测试
+    login: async (email = 'admin@example.com', password = 'password123') => {
+      try {
+        console.log('测试登录:', email, password);
+        
+        const response = await fetch('http://localhost:8080/auth/login', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify({ email, password }),
           credentials: 'include'
-        })
-        .then(res => res.json())
-        .then(data => {
-          console.log('登录测试结果:', data);
-          if (data.code === 0 && data.data?.userInfo?.token) {
-            sessionStorage.setItem('token', data.data.userInfo.token);
-            console.log('Token已保存到sessionStorage');
-          }
-        })
-        .catch(err => console.error('登录测试错误:', err));
-      },
-      checkToken: () => {
-        const token = sessionStorage.getItem('token');
-        console.log('当前token:', token);
-      },
-      clearToken: () => {
-        sessionStorage.removeItem('token');
-        console.log('Token已清除');
+        });
+        
+        const data = await response.json();
+        console.log('登录响应:', data);
+        
+        if (data.code === 0 && data.data?.userInfo?.token) {
+          sessionStorage.setItem(getStorageKey('token'), data.data.userInfo.token);
+          console.log('🔑 Token 已保存到 sessionStorage:', getStorageKey('token'));
+          return { success: true, data };
+        } else {
+          console.error('登录失败:', data.msg || '未知错误');
+          return { success: false, error: data.msg || '登录失败', data };
+        }
+      } catch (error) {
+        console.error('登录请求错误:', error);
+        return { success: false, error: error.message };
       }
-    };
+    },
     
-    console.log('🧪 API测试函数已添加到window.testAuth');
-  }
-} 
+    // 检查认证状态
+    checkAuth: () => {
+      const token = sessionStorage.getItem(getStorageKey('token'));
+      console.log('当前令牌状态:', token ? '已认证' : '未认证');
+      return !!token;
+    },
+    
+    // 注销
+    logout: () => {
+      sessionStorage.removeItem(getStorageKey('token'));
+      console.log('已注销，删除令牌');
+      return true;
+    }
+  };
+  
+  console.log('API测试函数已暴露。使用 window.testAuth 进行API测试');
+}; 

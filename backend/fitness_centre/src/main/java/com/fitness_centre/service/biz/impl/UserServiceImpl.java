@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fitness_centre.constant.ErrorCode;
 import com.fitness_centre.constant.UserStatus;
+import com.fitness_centre.dto.admin.UserListQueryRequest;
 import com.fitness_centre.dto.auth.UserLoginResponse;
 import com.fitness_centre.security.LoginUser;
 import com.fitness_centre.domain.User;
@@ -236,7 +237,17 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     //查询过滤用户
     @Override
-    public Page<User> pageQueryUser(String role, Integer status,String userName,String email,List<String> sortFields, List<String> sortOrders, int pageNow, int pageSize) {
+    public Page<User> pageQueryUser(UserListQueryRequest queryRequest) {
+
+        String role = queryRequest.getRole();
+        Integer status = queryRequest.getStatus();
+        String userName = queryRequest.getUserName();
+        String email = queryRequest.getEmail();
+        List<String> sortFields = queryRequest.getSortFields();
+        List<String> sortOrders = queryRequest.getSortOrders();
+        int pageNow = queryRequest.getPageNow();
+        int pageSize = queryRequest.getPageSize();
+
         Page<User> page = new Page<>(pageNow,pageSize);
         //查询对应的角色
         LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();

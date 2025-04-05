@@ -11,5 +11,5 @@ import org.apache.ibatis.annotations.Mapper;
  * @date 01/04/2025
  */
 @Mapper
-public interface CoachInfoMapper extends BaseMapper<CoachInfo> {
+public interface CoachMapper extends BaseMapper<CoachInfo> {
 }

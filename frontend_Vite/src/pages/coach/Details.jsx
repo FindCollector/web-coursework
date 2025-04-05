@@ -28,7 +28,8 @@ import {
   EnvironmentOutlined,
   CalendarOutlined,
   HomeOutlined,
-  QuestionCircleOutlined
+  QuestionCircleOutlined,
+  ReloadOutlined
 } from '@ant-design/icons';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -110,13 +111,13 @@ const MapModal = ({ visible, onClose, locations }) => {
       locations.forEach(location => {
         const marker = document.createElement('gmp-advanced-marker');
         marker.setAttribute('position', `${location.latitude},${location.longitude}`);
-        marker.setAttribute('title', location.name);
+        marker.setAttribute('title', location.locationName);
         
         // Create info content
         const content = document.createElement('div');
         content.innerHTML = `
           <div style="padding: 8px;">
-            <h3 style="margin: 0 0 8px 0;">${location.name}</h3>
+            <h3 style="margin: 0 0 8px 0;">${location.locationName}</h3>
             <p style="margin: 0;">Lat: ${location.latitude.toFixed(4)}</p>
             <p style="margin: 0;">Lng: ${location.longitude.toFixed(4)}</p>
           </div>
@@ -175,6 +176,9 @@ const CoachDetails = () => {
   const navigate = useNavigate();
   const { token } = useSelector(state => state.auth);
   
+  // 添加调试日志
+  console.log('CoachDetails 组件渲染 - Auth Token:', token);
+  
   // Add state for map modal
   const [isMapModalVisible, setIsMapModalVisible] = useState(false);
   
@@ -183,8 +187,29 @@ const CoachDetails = () => {
     data: coachData, 
     isLoading: isLoadingDetails, 
     isError: isErrorDetails,
+    error,
     refetch: refetchDetails 
   } = useGetCoachDetailQuery();
+  
+  // 添加更详细的调试日志
+  useEffect(() => {
+    console.log('CoachDetails API 响应:', {
+      data: coachData,
+      isLoading: isLoadingDetails,
+      isError: isErrorDetails,
+      error: error,
+      token: token
+    });
+    
+    // 检查是否为认证错误
+    if (error) {
+      console.error('API 错误详情:', {
+        status: error.status,
+        data: error.data,
+        message: error.message
+      });
+    }
+  }, [coachData, isLoadingDetails, isErrorDetails, error, token]);
   
   // API mutations
   const [updateIntro, { isLoading: isUpdatingIntro }] = useUpdateCoachIntroMutation();
@@ -210,6 +235,11 @@ const CoachDetails = () => {
   useEffect(() => {
     if (coachData && coachData.code === 0) {
       const data = coachData.data;
+      
+      // 添加详细的数据检查
+      console.log('API响应完整数据:', data);
+      
+      // 设置基本信息
       setIntro(data.intro || '');
       setPhotoUrl(data.photo || '');
       setTempPhotoUrl(''); // 重置临时照片URL
@@ -217,15 +247,27 @@ const CoachDetails = () => {
       setAddress(data.address || '');
       setBirthday(data.birthday ? dayjs(data.birthday) : null);
       
-      setCoachTags(data.coachTags || []);
-      setOtherTags(data.otherTags || []);
+      // 设置标签数据并检查
+      const coachTagsData = Array.isArray(data.coachTags) ? data.coachTags : [];
+      const otherTagsData = Array.isArray(data.otherTags) ? data.otherTags : [];
+      setCoachTags(coachTagsData);
+      setOtherTags(otherTagsData);
+      console.log('设置标签数据 - 教练标签:', coachTagsData);
+      console.log('设置标签数据 - 其他标签:', otherTagsData);
       
-      setCoachLocations(data.coachLocations || []);
-      setOtherLocations(data.otherLocations || []);
+      // 设置位置数据并检查
+      const coachLocationsData = Array.isArray(data.coachLocations) ? data.coachLocations : [];
+      const otherLocationsData = Array.isArray(data.otherLocations) ? data.otherLocations : [];
+      console.log('设置位置数据 - 教练位置:', coachLocationsData);
+      console.log('设置位置数据 - 其他位置:', otherLocationsData);
       
-      // 调试信息: 查看标签数据
-      console.log('Coach Tags:', data.coachTags);
-      console.log('Other Tags:', data.otherTags);
+      // 检查位置数据结构
+      if (coachLocationsData.length > 0) {
+        console.log('位置数据示例:', coachLocationsData[0]);
+      }
+      
+      setCoachLocations(coachLocationsData);
+      setOtherLocations(otherLocationsData);
       
       // 设置文件列表用于Upload组件
       if (data.photo) {
@@ -239,6 +281,10 @@ const CoachDetails = () => {
           },
         ]);
       }
+    } else if (coachData) {
+      // API返回了错误
+      console.error('API返回错误:', coachData);
+      message.error(coachData.msg || '获取教练数据失败');
     }
   }, [coachData]);
   
@@ -438,18 +484,41 @@ const CoachDetails = () => {
   
   // 处理位置选择变化
   const handleLocationChange = (locationId) => {
-    const location = [...coachLocations, ...otherLocations].find(loc => loc.id === locationId);
+    console.log('位置选择变更 - ID:', locationId);
     
-    if (!location) return;
+    // 合并所有位置数据进行查找
+    const allLocations = [...coachLocations, ...otherLocations];
+    const location = allLocations.find(loc => loc.id === locationId);
+    
+    console.log('找到位置对象:', location);
+    
+    if (!location) {
+      console.error('未找到位置对象, ID:', locationId);
+      return;
+    }
     
     if (coachLocations.some(loc => loc.id === locationId)) {
       // 如果已选中，则取消选中
-      setCoachLocations(coachLocations.filter(loc => loc.id !== locationId));
-      setOtherLocations([...otherLocations, location]);
+      console.log('取消选择位置:', location.locationName);
+      const newCoachLocations = coachLocations.filter(loc => loc.id !== locationId);
+      const newOtherLocations = [...otherLocations, location];
+      
+      console.log('更新后的教练位置:', newCoachLocations);
+      console.log('更新后的其他位置:', newOtherLocations);
+      
+      setCoachLocations(newCoachLocations);
+      setOtherLocations(newOtherLocations);
     } else {
       // 如果未选中，则选中
-      setOtherLocations(otherLocations.filter(loc => loc.id !== locationId));
-      setCoachLocations([...coachLocations, location]);
+      console.log('选择位置:', location.locationName);
+      const newOtherLocations = otherLocations.filter(loc => loc.id !== locationId);
+      const newCoachLocations = [...coachLocations, location];
+      
+      console.log('更新后的教练位置:', newCoachLocations);
+      console.log('更新后的其他位置:', newOtherLocations);
+      
+      setOtherLocations(newOtherLocations);
+      setCoachLocations(newCoachLocations);
     }
   };
 
@@ -507,29 +576,52 @@ const CoachDetails = () => {
 
   if (isLoadingDetails) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <Spin size="large" tip="Loading coach details..." />
-      </div>
+      <PageTransition isVisible={true}>
+        <div className="flex justify-center items-center h-screen" style={{
+          background: 'linear-gradient(150deg, #e6f7ff 0%, #e3f2fd 50%, #bbdefb 100%)'
+        }}>
+          <div style={{ textAlign: 'center' }}>
+            <Spin size="large" />
+            <div style={{ marginTop: 16, fontSize: 16, color: '#1890ff' }}>
+              加载教练详情中，请稍候...
+            </div>
+          </div>
+        </div>
+      </PageTransition>
     );
   }
   
   if (isErrorDetails) {
     return (
-      <div className="p-6">
-        <Alert
-          message="Error"
-          description="Failed to load coach details. Please try again later."
-          type="error"
-          showIcon
-        />
-        <Button 
-          type="primary" 
-          onClick={refetchDetails} 
-          className="mt-4"
-        >
-          Retry
-        </Button>
-      </div>
+      <PageTransition isVisible={true}>
+        <div className="flex flex-col justify-center items-center h-screen" style={{
+          background: 'linear-gradient(150deg, #e6f7ff 0%, #e3f2fd 50%, #bbdefb 100%)',
+          padding: '20px'
+        }}>
+          <Alert
+            message="加载失败"
+            description={error?.data?.msg || error?.error || "无法加载教练详情，请稍后重试或联系管理员"}
+            type="error"
+            showIcon
+            style={{ marginBottom: 20, width: '100%', maxWidth: 500 }}
+          />
+          <div style={{ display: 'flex', gap: 16 }}>
+            <Button 
+              type="primary" 
+              onClick={refetchDetails} 
+              icon={<ReloadOutlined />}
+            >
+              重试
+            </Button>
+            <Button 
+              onClick={() => navigate('/coach/dashboard')}
+              icon={<ArrowLeftOutlined />}
+            >
+              返回仪表板
+            </Button>
+          </div>
+        </div>
+      </PageTransition>
     );
   }
   
@@ -861,34 +953,63 @@ const CoachDetails = () => {
                   </div>
                   
                   <div style={{ maxHeight: '300px', overflowY: 'auto', padding: '8px' }}>
-                    {[...coachLocations, ...otherLocations]
-                      .sort((a, b) => a.name.localeCompare(b.name))
-                      .map(location => (
-                        <div 
-                          key={location.id} 
-                          style={{ 
-                            marginBottom: '12px',
-                            padding: '8px',
-                            borderRadius: '8px',
-                            background: coachLocations.some(loc => loc.id === location.id) 
-                              ? '#e6f7ff' 
-                              : 'transparent',
-                            transition: 'all 0.3s'
-                          }}
-                        >
-                          <Checkbox
-                            checked={coachLocations.some(loc => loc.id === location.id)}
-                            onChange={() => handleLocationChange(location.id)}
-                          >
-                            <div>
-                              <div>{location.name}</div>
-                              <div style={{ fontSize: '12px', color: '#666' }}>
-                                {`${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`}
+                    {[...coachLocations, ...otherLocations].length > 0 ? (
+                      [...coachLocations, ...otherLocations]
+                        .filter(location => location && location.locationName) // 使用locationName替代name
+                        .sort((a, b) => (a.locationName || '').localeCompare(b.locationName || ''))
+                        .map(location => {
+                          // 增加调试信息
+                          console.log('渲染位置条目:', location);
+                          return (
+                            <div 
+                              key={location.id} 
+                              style={{ 
+                                marginBottom: '12px',
+                                padding: '8px',
+                                borderRadius: '8px',
+                                background: coachLocations.some(loc => loc.id === location.id) 
+                                  ? '#e6f7ff' 
+                                  : 'transparent',
+                                transition: 'all 0.3s',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'flex-start'
+                              }}
+                              onClick={() => handleLocationChange(location.id)}
+                            >
+                              <Checkbox
+                                checked={coachLocations.some(loc => loc.id === location.id)}
+                                style={{ marginRight: '10px', marginTop: '2px' }}
+                                onChange={(e) => {
+                                  // 阻止事件冒泡
+                                  e.stopPropagation();
+                                  handleLocationChange(location.id);
+                                }}
+                              />
+                              <div>
+                                <div style={{ fontWeight: 500 }}>{location.locationName}</div>
+                                <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                                  {location.latitude && location.longitude ? 
+                                    `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}` :
+                                    'Location coordinates not available'
+                                  }
+                                </div>
                               </div>
                             </div>
-                          </Checkbox>
-                        </div>
-                    ))}
+                          );
+                        })
+                    ) : (
+                      <div style={{ 
+                        padding: '30px', 
+                        textAlign: 'center', 
+                        color: '#999',
+                        background: '#f9f9f9',
+                        borderRadius: '8px',
+                        marginTop: '10px'
+                      }}>
+                        No locations available
+                      </div>
+                    )}
                   </div>
                 </Card>
               </motion.div>

@@ -98,11 +98,11 @@ const UserManagement = () => {
   // Fetch user data on component load
   useEffect(() => {
     // Check if token exists
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     if (token) {
-      console.log('Found token in localStorage, preparing to fetch user data');
+      console.log('Found token in sessionStorage, preparing to fetch user data');
     } else {
-      console.warn('No token found in localStorage, authentication may fail');
+      console.warn('No token found in sessionStorage, authentication may fail');
     }
   }, []);
 

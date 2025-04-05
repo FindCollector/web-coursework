@@ -33,7 +33,12 @@ export const getFullImageUrl = (path) => {
  * @returns {string|null} 认证token或null
  */
 export const getToken = () => {
-  return sessionStorage.getItem('token');
+  // 获取带页面ID的存储键名
+  const getStorageKey = (key) => {
+    return window.PAGE_INSTANCE_ID ? `${key}_${window.PAGE_INSTANCE_ID}` : key;
+  };
+  
+  return sessionStorage.getItem(getStorageKey('token'));
 };
 
 /**

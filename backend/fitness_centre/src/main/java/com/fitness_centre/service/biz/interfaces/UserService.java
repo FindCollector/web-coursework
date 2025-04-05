@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.fitness_centre.domain.User;
 import com.fitness_centre.dto.GeneralResponseResult;
+import com.fitness_centre.dto.admin.UserListQueryRequest;
 import com.fitness_centre.dto.auth.UserLoginRequest;
 import com.fitness_centre.dto.auth.UserRegisterRequest;
 
@@ -29,7 +30,7 @@ public interface UserService extends IService<User> {
 
     GeneralResponseResult verifyRegister(String email,String verifyCode,String role);
 
-    Page<User> pageQueryUser(String role, Integer status,String userName,String email,List<String> sortFields, List<String> sortOrders, int pageNow, int pageSize);
+    Page<User> pageQueryUser(UserListQueryRequest queryRequest);
 
     GeneralResponseResult deleteById(Serializable id);
 

@@ -1,4 +1,4 @@
-package com.fitness_centre.dto;
+package com.fitness_centre.dto.coach;
 
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;

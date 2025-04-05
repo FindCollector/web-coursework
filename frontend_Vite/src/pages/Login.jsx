@@ -1,15 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLoginMutation } from '../store/api/authApi';
-import { Form, Input, Button, Card, Typography, Modal } from 'antd';
+import { Form, Input, Button, Card, Typography, message } from 'antd';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
-import { useReCaptcha, useModalState, useButtonLoading } from '../hooks';
+import { useReCaptcha, useButtonLoading } from '../hooks';
 
 import { loginStart, loginSuccess, loginFailure } from '../store/authSlice';
-import { getRedirectPath, getUserTypeFromData } from '../utils/routeUtils';
+import { getRedirectPath, getUserTypeFromData, isUserAuthenticated } from '../utils/routeUtils';
 import PageTransition from '../components/PageTransition';
 
 const { Title } = Typography;
@@ -25,7 +25,6 @@ const Login = () => {
   const isRegisterPage = location.pathname === '/register';
   
   // 使用自定义 hooks
-  const [isModalVisible, showModal, hideModal] = useModalState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { loading, error } = useSelector((state) => state.auth);
@@ -52,7 +51,8 @@ const Login = () => {
   const onSubmit = async (formData) => {
     if (!isScriptLoaded || !isInitialized) {
       dispatch(loginFailure(recaptchaError || 'reCAPTCHA 未准备好，请刷新页面重试'));
-      showModal();
+      // 显示reCAPTCHA错误
+      message.error(recaptchaError || 'reCAPTCHA 未准备好，请刷新页面重试');
       return;
     }
     
@@ -74,50 +74,86 @@ const Login = () => {
         }
       }).unwrap();
       
+      console.log('登录响应完整数据:', data);
+      
       if (data.code === 0) {
         // 获取用户信息，适应新的数据结构
         const userInfo = data.data?.userInfo || {};
         
         // 从userInfo中获取token和角色
         const token = userInfo.token;
-        const userType = userInfo.role || 'admin';
+        const userType = userInfo.role;
         const userName = userInfo.userName || 'Admin';
         
         if (!token) {
-          dispatch(loginFailure('登录成功但未获取到凭证，请联系管理员'));
-          showModal();
+          const errorMsg = '登录成功但未获取到凭证，请联系管理员';
+          dispatch(loginFailure(errorMsg));
+          message.error(errorMsg);
           return;
         }
         
         // 分发登录成功action
         dispatch(loginSuccess({
-          token: token,
-          userType: userType,
-          userName: userName
+          token,
+          userType,
+          userName
         }));
         
-        // Redirect based on user type
+        // 显示登录成功提示
+        message.success('登录成功');
+        
+        // 使用工具函数获取重定向路径
         const redirectPath = getRedirectPath(userType);
-        navigate(redirectPath);
+        console.log('登录成功，准备跳转到:', redirectPath, {
+          token,
+          userType,
+          userName
+        });
+        
+        // 直接跳转，不使用setTimeout
+        navigate(redirectPath, { replace: true });
       } else {
         // 确保使用后端返回的错误消息
         const errorMessage = data.msg || 'Login failed, please try again later';
+        console.log('业务逻辑错误，使用错误消息:', errorMessage);
+        
         dispatch(loginFailure(errorMessage));
-        showModal();
+        
+        // 显示错误信息
+        message.error(errorMessage);
       }
     } catch (error) {
+      console.error('登录错误:', error);
+      // 添加详细的错误结构日志
+      console.error('错误对象结构:', {
+        error,
+        data: error.data,
+        message: error.message,
+        response: error.response,
+        stack: error.stack
+      });
+      
       let errorMessage = 'Login failed';
       
+      // 检查错误对象的不同可能的结构
       if (error.data) {
         errorMessage = error.data.msg || errorMessage;
+        console.log('从error.data中提取的错误消息:', error.data.msg);
       } else if (error.response && error.response.data) {
         errorMessage = error.response.data.msg || errorMessage;
+        console.log('从error.response.data中提取的错误消息:', error.response.data.msg);
       } else if (error.message) {
         errorMessage = error.message;
+        console.log('从error.message中提取的错误消息:', error.message);
       }
       
+      console.log('最终使用的错误消息:', errorMessage);
+      
+      // 只更新Redux状态
       dispatch(loginFailure(errorMessage));
-      showModal();
+      
+      // 显示错误信息
+      message.error(errorMessage);
     } finally {
       // 完成后重置加载状态
       setLoading(false);
@@ -186,25 +222,6 @@ const Login = () => {
             </Button>
           </div>
         </Card>
-        
-        {/* Login failure modal */}
-        <Modal
-          title="Login Failed"
-          open={isModalVisible}
-          onOk={hideModal}
-          onCancel={hideModal}
-          cancelButtonProps={{ style: { display: 'none' } }}
-          okText="Retry"
-        >
-          <div>
-            <p style={{ fontSize: '16px', marginBottom: '10px' }}>{error || 'Login failed, please check your email and password.'}</p>
-            {recaptchaError && (
-              <p style={{ fontSize: '14px', color: '#f5222d' }}>
-                reCAPTCHA Error: {recaptchaError}
-              </p>
-            )}
-          </div>
-        </Modal>
       </div>
     </PageTransition>
   );

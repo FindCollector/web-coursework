@@ -5,7 +5,7 @@ import PropTypes from 'prop-types';
 /**
  * Location object type definition
  * @typedef {Object} Location
- * @property {string} name - The name of the location
+ * @property {string} locationName - The name of the location
  * @property {number} latitude - The latitude coordinate
  * @property {number} longitude - The longitude coordinate
  */
@@ -85,13 +85,13 @@ const GoogleMap = ({
       locations.forEach(location => {
         const marker = document.createElement('gmp-advanced-marker');
         marker.setAttribute('position', `${location.latitude},${location.longitude}`);
-        marker.setAttribute('title', location.name);
+        marker.setAttribute('title', location.locationName);
         
         // Create info content with English text
         const content = document.createElement('div');
         content.innerHTML = `
           <div style="padding: 8px; font-family: Arial, sans-serif;">
-            <h3 style="margin: 0 0 8px 0; color: #1a1a1a; font-size: 16px;">${location.name}</h3>
+            <h3 style="margin: 0 0 8px 0; color: #1a1a1a; font-size: 16px;">${location.locationName}</h3>
             <div style="color: #666; font-size: 14px;">
               <p style="margin: 0;">Location Details:</p>
               <p style="margin: 4px 0;">Latitude: ${location.latitude.toFixed(4)}°N</p>
@@ -105,7 +105,7 @@ const GoogleMap = ({
         marker.addEventListener('click', () => {
           const infoWindow = new google.maps.InfoWindow({
             content: content,
-            ariaLabel: `Information about ${location.name}`
+            ariaLabel: `Information about ${location.locationName}`
           });
           infoWindow.open(mapElement, marker);
         });
@@ -166,7 +166,7 @@ const GoogleMap = ({
 
 GoogleMap.propTypes = {
   locations: PropTypes.arrayOf(PropTypes.shape({
-    name: PropTypes.string.isRequired,
+    locationName: PropTypes.string.isRequired,
     latitude: PropTypes.number.isRequired,
     longitude: PropTypes.number.isRequired
   })).isRequired,

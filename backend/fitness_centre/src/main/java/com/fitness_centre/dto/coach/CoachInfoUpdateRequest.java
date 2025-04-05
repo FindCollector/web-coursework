@@ -1,4 +1,4 @@
-package com.fitness_centre.dto;
+package com.fitness_centre.dto.coach;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

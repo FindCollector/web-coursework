@@ -44,7 +44,8 @@ public class SecurityConfig{
             "/formal/default.jpg",
 //            "/coach/photo"
             //todo 如何让这些图片被验证token
-            "/temp/**"
+            "/temp/**",
+
     };
 
     //放行
@@ -78,7 +79,7 @@ public class SecurityConfig{
                         // 接口允许匿名访问
                         .requestMatchers(WHILELIST).anonymous()
                         //在全局异常类中捕获
-                        .requestMatchers("/auth/sendCode","/auth/verifyRegister").permitAll()
+                        .requestMatchers("/auth/sendCode","/auth/verifyRegister","/auth/logout").permitAll()
                         //todo 删除测试页面的放行
                         // 其余所有请求均需要认证
                         .anyRequest().authenticated())
@@ -126,6 +127,4 @@ public class SecurityConfig{
         // 4. 最后构建一个 AuthenticationManager 返回
         return builder.build();
     }
-
-
 }

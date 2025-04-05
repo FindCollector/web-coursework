@@ -75,6 +75,15 @@ export const coachApi = baseApi.injectEndpoints({
         body: details
       }),
       invalidatesTags: ['Coach']
+    }),
+
+    // 获取教练列表
+    getCoachList: builder.query({
+      query: () => ({
+        url: '/member/coachList',
+        method: 'GET'
+      }),
+      providesTags: ['CoachList']
     })
   })
 });
@@ -87,5 +96,6 @@ export const {
   useUploadCoachPhotoMutation,
   useUpdateCoachTagsMutation,
   useUpdateCoachLocationsMutation,
-  useUpdateCoachDetailsMutation
+  useUpdateCoachDetailsMutation,
+  useGetCoachListQuery
 } = coachApi; 

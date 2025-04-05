@@ -3,6 +3,7 @@ package com.fitness_centre.controller;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fitness_centre.domain.User;
 import com.fitness_centre.dto.GeneralResponseResult;
+import com.fitness_centre.dto.admin.UserListQueryRequest;
 import com.fitness_centre.service.biz.impl.UserServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -25,17 +26,8 @@ public class AdminController {
 
     @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).ADMIN.getRole())")
     @GetMapping("/list")
-    public Page<User> userList(
-            @RequestParam(required = false) String role,
-            @RequestParam(required = false) Integer status,
-            @RequestParam(required = false) String userName,
-            @RequestParam(required = false) String email,
-            @RequestParam(required = false) List<String> sortField,
-            @RequestParam(required = false) List<String> sortOrder,
-            @RequestParam(defaultValue = "1") int pageNow,
-            @RequestParam(defaultValue = "10")int pageSize
-    ){
-        Page<User> pageResult = userService.pageQueryUser(role,status,userName,email,sortField,sortOrder,pageNow,pageSize);
+    public Page<User> userList(@ModelAttribute UserListQueryRequest queryRequest){
+        Page<User> pageResult = userService.pageQueryUser(queryRequest);
         return pageResult;
     }
 

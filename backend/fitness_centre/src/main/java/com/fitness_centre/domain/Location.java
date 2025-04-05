@@ -27,7 +27,7 @@ public class Location implements Serializable {
     @JsonSerialize(using = ToStringSerializer.class)
     private Long id;
 
-    private String name;
+    private String locationName;
 
     private Double longitude;
 

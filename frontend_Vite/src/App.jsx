@@ -3,7 +3,7 @@ import { useSelector } from 'react-redux';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import VerifyCode from './pages/VerifyCode';
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
@@ -13,6 +13,8 @@ import AdminDashboard from './pages/admin/Dashboard';
 // 导入教练页面组件
 import CoachDashboard from './pages/coach/Dashboard';
 import CoachDetails from './pages/coach/Details';
+// 导入会员页面组件
+import MemberDashboard from './pages/member/Dashboard';
 // 导入调试页面组件
 import DebugPage from './pages/Debug';
 // 导入DnD Provider
@@ -22,14 +24,27 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 // 受保护路由组件
 const ProtectedRoute = ({ children, requiredUserType = null }) => {
   const { isAuthenticated, userType } = useSelector((state) => state.auth);
+  const [isChecking, setIsChecking] = useState(true);
+  
+  // 使用useEffect确保认证检查在组件挂载后立即执行
+  useEffect(() => {
+    console.log('路由保护检查 - 认证状态:', isAuthenticated, '用户类型:', userType);
+    // 延迟极短时间以确保Redux状态已完全加载
+    const timer = setTimeout(() => {
+      setIsChecking(false);
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [isAuthenticated, userType]);
 
-  // 检查用户是否已认证及用户类型是否符合要求
-  if (!isAuthenticated) {
+  // 检查用户是否已认证
+  if (!isAuthenticated && !isChecking) {
+    console.log('未认证，重定向到登录页面');
     return <Navigate to="/login" replace />;
   }
 
   // 如果指定了所需的用户类型，但用户类型不匹配，则重定向到适当的页面
-  if (requiredUserType && userType !== requiredUserType) {
+  if (isAuthenticated && requiredUserType && userType !== requiredUserType && !isChecking) {
+    console.log('用户类型不匹配，重定向到对应面板');
     switch (userType) {
       case 'admin':
         return <Navigate to="/admin/dashboard" replace />;
@@ -42,11 +57,17 @@ const ProtectedRoute = ({ children, requiredUserType = null }) => {
     }
   }
 
+  // 如果仍在检查或认证通过，返回子组件
+  if (isChecking) {
+    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+      <div>正在验证身份...</div>
+    </div>;
+  }
+
   return children;
 };
 
 // 占位页面组件
-const MemberDashboard = () => <div className="p-6">Member Dashboard</div>;
 const Home = () => <div className="p-6">Home</div>;
 
 function App() {

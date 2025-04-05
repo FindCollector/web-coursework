@@ -10,6 +10,11 @@ import { logAuthState } from '../utils/debugTools';
 const { Title, Text, Paragraph } = Typography;
 const { TabPane } = Tabs;
 
+// 获取带页面ID的存储键名，防止多页面混淆
+const getStorageKey = (key) => {
+  return window.PAGE_INSTANCE_ID ? `${key}_${window.PAGE_INSTANCE_ID}` : key;
+};
+
 const DebugPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -31,15 +36,18 @@ const DebugPage = () => {
   
   // 加载存储的认证状态
   useEffect(() => {
-    const token = sessionStorage.getItem('token');
-    const userType = sessionStorage.getItem('userType');
-    const userName = sessionStorage.getItem('userName');
+    // 读取认证状态
+    const token = sessionStorage.getItem(getStorageKey('token'));
+    const userType = sessionStorage.getItem(getStorageKey('userType'));
+    const userName = sessionStorage.getItem(getStorageKey('userName'));
     
-    setAuthState({
-      token: token,
-      userType: userType,
-      userName: userName
-    });
+    if (token) {
+      setAuthState({
+        token,
+        userType: userType || 'unknown',
+        userName: userName || 'User'
+      });
+    }
   }, []);
   
   // 测试直接登录
@@ -61,9 +69,9 @@ const DebugPage = () => {
       setResponseData(data);
       
       if (data.code === 0 && data.data?.userInfo?.token) {
-        sessionStorage.setItem('token', data.data.userInfo.token);
-        sessionStorage.setItem('userType', data.data.userInfo.role || 'user');
-        sessionStorage.setItem('userName', data.data.userInfo.userName || 'User');
+        sessionStorage.setItem(getStorageKey('token'), data.data.userInfo.token);
+        sessionStorage.setItem(getStorageKey('userType'), data.data.userInfo.role || 'user');
+        sessionStorage.setItem(getStorageKey('userName'), data.data.userInfo.userName || 'User');
         
         setAuthState({
           token: data.data.userInfo.token,
@@ -91,13 +99,13 @@ const DebugPage = () => {
       
       if (result.code === 0) {
         message.success('RTK Query登录成功!');
-        // sessionStorage会由authSlice处理
+        // localStorage会由authSlice处理
         
         // 刷新显示的认证状态
         setTimeout(() => {
-          const token = sessionStorage.getItem('token');
-          const userType = sessionStorage.getItem('userType');
-          const userName = sessionStorage.getItem('userName');
+          const token = sessionStorage.getItem(getStorageKey('token'));
+          const userType = sessionStorage.getItem(getStorageKey('userType'));
+          const userName = sessionStorage.getItem(getStorageKey('userName'));
           
           setAuthState({
             token: token,
@@ -152,9 +160,9 @@ const DebugPage = () => {
   
   // 清除令牌
   const handleClearToken = () => {
-    sessionStorage.removeItem('token');
-    sessionStorage.removeItem('userType');
-    sessionStorage.removeItem('userName');
+    sessionStorage.removeItem(getStorageKey('token'));
+    sessionStorage.removeItem(getStorageKey('userType'));
+    sessionStorage.removeItem(getStorageKey('userName'));
     
     setAuthState({
       token: null,
@@ -169,9 +177,9 @@ const DebugPage = () => {
   const handleCheckAuth = () => {
     logAuthState();
     
-    const token = sessionStorage.getItem('token');
-    const userType = sessionStorage.getItem('userType');
-    const userName = sessionStorage.getItem('userName');
+    const token = sessionStorage.getItem(getStorageKey('token'));
+    const userType = sessionStorage.getItem(getStorageKey('userType'));
+    const userName = sessionStorage.getItem(getStorageKey('userName'));
     
     setAuthState({
       token: token,
@@ -180,6 +188,54 @@ const DebugPage = () => {
     });
     
     message.info('已刷新认证状态');
+  };
+  
+  const checkAuth = () => {
+    // 实时读取认证状态
+    const token = sessionStorage.getItem(getStorageKey('token'));
+    const userType = sessionStorage.getItem(getStorageKey('userType'));
+    const userName = sessionStorage.getItem(getStorageKey('userName'));
+    
+    const currentState = {
+      token,
+      userType,
+      userName
+    };
+    
+    setResponseData(currentState);
+    
+    message.info(token 
+      ? `认证成功，角色: ${userType || '未知'}, 用户名: ${userName || '未知'}`
+      : '未认证'
+    );
+  };
+  
+  const handleLogout = () => {
+    // 清除认证状态
+    sessionStorage.removeItem(getStorageKey('token'));
+    sessionStorage.removeItem(getStorageKey('userType'));
+    sessionStorage.removeItem(getStorageKey('userName'));
+    
+    setAuthState({
+      token: null,
+      userType: null,
+      userName: null
+    });
+    
+    message.success('已注销!');
+  };
+  
+  const handleCheckLocalAuth = () => {
+    // 检查认证状态
+    const token = sessionStorage.getItem(getStorageKey('token'));
+    const userType = sessionStorage.getItem(getStorageKey('userType'));
+    const userName = sessionStorage.getItem(getStorageKey('userName'));
+    
+    if (token) {
+      message.success(`已认证，角色: ${userType || '未知'}, 用户名: ${userName || '未知'}`);
+    } else {
+      message.error('未认证');
+    }
   };
   
   return (
