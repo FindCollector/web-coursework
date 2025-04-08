@@ -30,7 +30,7 @@
         FROM sys_user u
         JOIN coach_info c ON c.id = u.id
         -- member_coach 表，看是否存在status='pending'
-        LEFT JOIN member_coach mc ON mc.coach_id = c.id AND mc.member_id = #{memberId}
+        LEFT JOIN subscription mc ON mc.coach_id = c.id AND mc.member_id = #{memberId}
 
         -- coach_tag &amp; tag
         LEFT JOIN coach_tag ct ON ct.coach_id = c.id
