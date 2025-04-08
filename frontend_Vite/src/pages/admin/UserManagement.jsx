@@ -28,7 +28,7 @@ import {
   DeleteOutlined,
   ExclamationCircleOutlined
 } from '@ant-design/icons';
-import { useGetUserListQuery, useUpdateUserStatusMutation, useDeleteUserMutation } from '../../store/api/userApi';
+import { useGetUserListQuery, useUpdateUserStatusMutation, useDeleteUserMutation, useGetUserConfigQuery } from '../../store/api/userApi';
 import enUS from 'antd/lib/locale/en_US';
 
 const { Option } = Select;
@@ -61,6 +61,19 @@ const UserManagement = () => {
     skip,
     refetchOnMountOrArgChange: true
   });
+
+  // 获取用户配置
+  const { data: userConfig } = useGetUserConfigQuery();
+  const [roleOptions, setRoleOptions] = useState([]);
+  const [statusOptions, setStatusOptions] = useState([]);
+
+  // 当配置数据加载完成后，更新选项
+  useEffect(() => {
+    if (userConfig) {
+      setRoleOptions(userConfig.roles || []);
+      setStatusOptions(userConfig.statuses || []);
+    }
+  }, [userConfig]);
 
   // Process data source to ensure consistency
   const getUserData = () => {
@@ -148,7 +161,7 @@ const UserManagement = () => {
     const formattedFilters = {};
     
     if (role) formattedFilters.role = role;
-    if (status !== undefined) formattedFilters.status = status;
+    if (status !== undefined) formattedFilters.status = parseInt(status);
     if (userName) formattedFilters.userName = userName;
     if (email) formattedFilters.email = email;
     
@@ -337,31 +350,15 @@ const UserManagement = () => {
   };
 
   // Render user status tag
-  const renderStatusTag = (status) => {
-    switch (status) {
-      case 0:
-        return <Tag color="success">Active</Tag>;
-      case 1:
-        return <Tag color="warning">Pending</Tag>;
-      case 2:
-        return <Tag color="error">Banned</Tag>;
-      default:
-        return <Tag>Unknown</Tag>;
-    }
+  const renderStatusTag = (statusValue) => {
+    const status = statusOptions.find(s => s.value === (typeof statusValue === 'string' ? parseInt(statusValue) : statusValue));
+    return status ? <Tag color={status.color}>{status.label}</Tag> : <Tag>Unknown</Tag>;
   };
 
   // Render user role tag
-  const renderRoleTag = (role) => {
-    switch (role) {
-      case 'admin':
-        return <Tag color="purple">Admin</Tag>;
-      case 'member':
-        return <Tag color="blue">Member</Tag>;
-      case 'coach':
-        return <Tag color="green">Coach</Tag>;
-      default:
-        return <Tag>Unknown</Tag>;
-    }
+  const renderRoleTag = (roleValue) => {
+    const role = roleOptions.find(r => r.value === roleValue);
+    return role ? <Tag color={role.color}>{role.label}</Tag> : <Tag>Unknown</Tag>;
   };
 
   // Define table columns
@@ -495,9 +492,11 @@ const UserManagement = () => {
                     allowClear
                     onChange={(value) => handleSelectChange(value, 'role')}
                   >
-                    <Option value="admin">Admin</Option>
-                    <Option value="member">Member</Option>
-                    <Option value="coach">Coach</Option>
+                    {roleOptions.map(role => (
+                      <Option key={role.value} value={role.value}>
+                        <Tag color={role.color}>{role.label}</Tag>
+                      </Option>
+                    ))}
                   </Select>
                 </Form.Item>
               </Col>
@@ -508,9 +507,11 @@ const UserManagement = () => {
                     allowClear
                     onChange={(value) => handleSelectChange(value, 'status')}
                   >
-                    <Option value={0}>Active</Option>
-                    <Option value={1}>Pending</Option>
-                    <Option value={2}>Banned</Option>
+                    {statusOptions.map(status => (
+                      <Option key={status.value} value={status.value}>
+                        <Tag color={status.color}>{status.label}</Tag>
+                      </Option>
+                    ))}
                   </Select>
                 </Form.Item>
               </Col>

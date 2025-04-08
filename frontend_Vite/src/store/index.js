@@ -1,5 +1,6 @@
 import { configureStore } from '@reduxjs/toolkit';
 import authReducer from './authSlice';
+import navReducer from './navSlice';
 import { baseApi } from './api/baseApi';
 import { setupListeners } from '@reduxjs/toolkit/query';
 
@@ -14,6 +15,7 @@ const getStoreNamespace = () => {
 export const store = configureStore({
   reducer: {
     auth: authReducer,
+    navigation: navReducer,
     // 添加RTK Query的API Reducer
     [baseApi.reducerPath]: baseApi.reducer,
     // 可根据需要添加其他reducer

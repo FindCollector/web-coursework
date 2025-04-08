@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fitness_centre.constant.ErrorCode;
+import com.fitness_centre.constant.UserRole;
 import com.fitness_centre.constant.UserStatus;
 import com.fitness_centre.dto.admin.UserListQueryRequest;
 import com.fitness_centre.dto.auth.UserLoginResponse;
@@ -326,6 +327,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             }
         }
         return new GeneralResponseResult(ErrorCode.SUCCESS);
+    }
+
+    @Override
+    public GeneralResponseResult userFilter() {
+
+        Map<String,Map> map = new HashMap<>();
+        map.put("status",UserStatus.getAllStatus());
+        map.put("role", UserRole.getAllRole());
+        return new GeneralResponseResult(ErrorCode.SUCCESS,map);
     }
 
 

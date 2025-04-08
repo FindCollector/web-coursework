@@ -1,5 +1,8 @@
 package com.fitness_centre.dto.member;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.fitness_centre.domain.Location;
 import com.fitness_centre.domain.Tag;
 import lombok.AllArgsConstructor;
@@ -18,6 +21,8 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class CoachDetailsResponse {
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
+    @JsonSerialize(using = ToStringSerializer.class)
     private Long coachId;
     private String userName;
 

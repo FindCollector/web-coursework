@@ -48,8 +48,6 @@ public class CoachServiceImpl extends ServiceImpl<CoachMapper, CoachInfo> implem
     @Autowired
     private UserMapper userMapper;
 
-    @Autowired
-    private CoachQueryMapper coachQueryMapper;
 
 
     @Override
@@ -197,7 +195,7 @@ public class CoachServiceImpl extends ServiceImpl<CoachMapper, CoachInfo> implem
 
         // 执行自定义多表分页查询
         IPage<CoachDetailsResponse> rawPage =
-                coachQueryMapper.selectCoachPage(pageParam, memberId, request);
+                coachMapper.selectCoachPage(pageParam, memberId, request);
 
         // 取出结果列表
         List<CoachDetailsResponse> records = rawPage.getRecords();
@@ -215,5 +213,7 @@ public class CoachServiceImpl extends ServiceImpl<CoachMapper, CoachInfo> implem
         }
         return rawPage;
     }
+
+
 
 }

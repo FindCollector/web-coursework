@@ -1,25 +1,34 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import VerifyCode from './pages/VerifyCode';
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
 
-// 导入管理员页面组件
-import AdminDashboard from './pages/admin/Dashboard';
-// 导入教练页面组件
-import CoachDashboard from './pages/coach/Dashboard';
-import CoachDetails from './pages/coach/Details';
-// 导入会员页面组件
-import MemberDashboard from './pages/member/Dashboard';
-// 导入调试页面组件
-import DebugPage from './pages/Debug';
+// 懒加载页面组件
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const VerifyCode = lazy(() => import('./pages/VerifyCode'));
+
+// 懒加载管理员页面组件
+const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
+// 懒加载教练页面组件
+const CoachDashboard = lazy(() => import('./pages/coach/Dashboard'));
+const CoachDetails = lazy(() => import('./pages/coach/Details'));
+// 懒加载会员页面组件
+const MemberDashboard = lazy(() => import('./pages/member/Dashboard'));
+// 懒加载调试页面组件
+const DebugPage = lazy(() => import('./pages/Debug'));
 // 导入DnD Provider
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
+
+// 加载中组件
+const LoadingComponent = () => (
+  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+    <div>页面加载中...</div>
+  </div>
+);
 
 // 受保护路由组件
 const ProtectedRoute = ({ children, requiredUserType = null }) => {
@@ -77,14 +86,30 @@ function App() {
     <DndProvider backend={HTML5Backend}>
       <Routes>
         {/* 公共路由 */}
-        <Route path="/verify-code" element={<VerifyCode />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+        <Route path="/verify-code" element={
+          <Suspense fallback={<LoadingComponent />}>
+            <VerifyCode />
+          </Suspense>
+        } />
+        <Route path="/login" element={
+          <Suspense fallback={<LoadingComponent />}>
+            <Login />
+          </Suspense>
+        } />
+        <Route path="/register" element={
+          <Suspense fallback={<LoadingComponent />}>
+            <Register />
+          </Suspense>
+        } />
         <Route path="/" element={<Home />} />
         
         {/* 调试页面 - 仅在开发环境中显示 */}
         {process.env.NODE_ENV !== 'production' && (
-          <Route path="/debug" element={<DebugPage />} />
+          <Route path="/debug" element={
+            <Suspense fallback={<LoadingComponent />}>
+              <DebugPage />
+            </Suspense>
+          } />
         )}
 
         {/* 管理员路由 */}
@@ -92,7 +117,9 @@ function App() {
           path="/admin/dashboard"
           element={
             <ProtectedRoute requiredUserType="admin">
-              <AdminDashboard />
+              <Suspense fallback={<LoadingComponent />}>
+                <AdminDashboard />
+              </Suspense>
             </ProtectedRoute>
           }
         />
@@ -102,7 +129,9 @@ function App() {
           path="/member/dashboard"
           element={
             <ProtectedRoute requiredUserType="member">
-              <MemberDashboard />
+              <Suspense fallback={<LoadingComponent />}>
+                <MemberDashboard />
+              </Suspense>
             </ProtectedRoute>
           }
         />
@@ -112,7 +141,9 @@ function App() {
           path="/coach/dashboard"
           element={
             <ProtectedRoute requiredUserType="coach">
-              <CoachDashboard />
+              <Suspense fallback={<LoadingComponent />}>
+                <CoachDashboard />
+              </Suspense>
             </ProtectedRoute>
           }
         />
@@ -120,7 +151,9 @@ function App() {
           path="/coach/details"
           element={
             <ProtectedRoute requiredUserType="coach">
-              <CoachDetails />
+              <Suspense fallback={<LoadingComponent />}>
+                <CoachDetails />
+              </Suspense>
             </ProtectedRoute>
           }
         />

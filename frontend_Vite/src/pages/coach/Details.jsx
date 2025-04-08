@@ -18,7 +18,10 @@ import {
   DatePicker,
   Form,
   Modal,
-  Tooltip
+  Tooltip,
+  Menu,
+  Avatar,
+  theme
 } from 'antd';
 import { 
   UploadOutlined, 
@@ -29,12 +32,16 @@ import {
   CalendarOutlined,
   HomeOutlined,
   QuestionCircleOutlined,
-  ReloadOutlined
+  ReloadOutlined,
+  DashboardOutlined,
+  TeamOutlined,
+  SettingOutlined,
+  LogoutOutlined
 } from '@ant-design/icons';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { motion } from 'framer-motion';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import dayjs from 'dayjs';
 
 import { 
@@ -45,15 +52,20 @@ import {
   useUpdateCoachLocationsMutation,
   useUpdateCoachDetailsMutation
 } from '../../store/api/coachApi';
+import { useLogoutMutation } from '../../store/api/authApi';
+import { logout as logoutAction } from '../../store/authSlice';
+import { setActiveMenu } from '../../store/navSlice';
 import PageTransition from '../../components/PageTransition';
 import TagsContainer from '../../components/TagsContainer';
 import ImgWithToken from '../../components/ImgWithToken';
 import GoogleMap from '../../components/GoogleMap';
 import { getAuthHeaders, getFullImageUrl, createImageUrlWithToken } from '../../utils/imageUtils';
+import { loginSuccess } from '../../store/authSlice';
+import CoachSidebar from '../../components/layout/CoachSidebar';
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
-const { Header, Content } = Layout;
+const { Header, Content, Sider } = Layout;
 
 // 添加自定义滚动条样式
 const scrollbarStyles = `
@@ -174,7 +186,17 @@ const MapModal = ({ visible, onClose, locations }) => {
 
 const CoachDetails = () => {
   const navigate = useNavigate();
-  const { token } = useSelector(state => state.auth);
+  const dispatch = useDispatch();
+  const { token, userName: authUserName } = useSelector(state => state.auth);
+  const { token: themeToken } = theme.useToken();
+  
+  // 在组件加载时设置activeMenu为profile
+  useEffect(() => {
+    dispatch(setActiveMenu('profile'));
+  }, [dispatch]);
+  
+  // 添加 RTK Query 的 logout mutation hook
+  const [logout, { isLoading: isLoggingOut }] = useLogoutMutation();
   
   // 添加调试日志
   console.log('CoachDetails 组件渲染 - Auth Token:', token);
@@ -450,6 +472,20 @@ const CoachDetails = () => {
         loadingMessage();
         
         if (response.code === 0) {
+          // 如果用户名被更新了，同时更新 Redux store
+          if (updatedData.userName) {
+            // 从 sessionStorage 获取当前的认证信息
+            const token = sessionStorage.getItem('token');
+            const userType = sessionStorage.getItem('userType');
+            
+            // 更新 Redux store 中的用户信息
+            dispatch(loginSuccess({
+              token,
+              userType,
+              userName: updatedData.userName
+            }));
+          }
+          
           message.success({
             content: 'All changes saved successfully!',
             duration: 3
@@ -539,9 +575,38 @@ const CoachDetails = () => {
     }
   };
   
-  // 返回上一页
-  const handleGoBack = () => {
+  // 处理登出
+  const handleLogout = () => {
+    Modal.confirm({
+      title: 'Logout Confirmation',
+      content: 'Are you sure you want to logout?',
+      onOk: async () => {
+        try {
+          // 调用 RTK Query 的 logout mutation
+          const response = await logout().unwrap();
+          dispatch(logoutAction());
+          navigate('/login');
+        } catch (error) {
+          console.error('Logout failed:', error);
+          message.error('Logout failed. Please try again.');
+        }
+      },
+      okText: 'Logout',
+      cancelText: 'Cancel',
+    });
+  };
+  
+  // 返回Dashboard
+  const goToDashboard = () => {
     navigate('/coach/dashboard');
+  };
+  
+  // 导航到其他菜单
+  const handleMenuClick = ({ key }) => {
+    if (key !== 'profile') {
+      dispatch(setActiveMenu(key));
+      navigate('/coach/dashboard');
+    }
   };
   
   // 上传组件属性
@@ -573,6 +638,9 @@ const CoachDetails = () => {
   // Add map modal visibility handlers
   const showMapModal = () => setIsMapModalVisible(true);
   const hideMapModal = () => setIsMapModalVisible(false);
+
+  // 在class或function组件内部添加sidebarCollapsed状态
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   if (isLoadingDetails) {
     return (
@@ -628,411 +696,408 @@ const CoachDetails = () => {
   return (
     <PageTransition isVisible={true}>
       <style>{scrollbarStyles}</style>
-      <Layout style={{ 
-        minHeight: '100vh', 
-        background: 'linear-gradient(150deg, #e6f7ff 0%, #e3f2fd 50%, #bbdefb 100%)',
-        paddingTop: '56px'
-      }}>
-        <div style={{ 
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 100,
-          backgroundColor: '#fff',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-        }}>
-          <Header style={{ 
-            padding: '0 30px', 
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            maxWidth: '1600px',
-            margin: '0 auto',
-            background: 'transparent',
-            height: '56px'
-          }}>
-            <Space size={16} align="center">
-              <Button 
-                icon={<ArrowLeftOutlined />} 
-                onClick={handleGoBack}
-                type="default"
-                style={{ 
-                  border: 'none',
-                  boxShadow: 'none',
-                  background: 'transparent',
-                  padding: '4px 10px',
-                  display: 'flex',
-                  alignItems: 'center'
-                }}
-              >
-                Back
-              </Button>
-              <Title level={3} style={{ margin: 0, lineHeight: '32px' }}>Coach Details</Title>
-            </Space>
-            <Button 
-              type="primary" 
-              icon={<SaveOutlined />}
-              onClick={handleSaveAll}
-              loading={isUpdatingDetails}
-            >
-              Save All Changes
-            </Button>
-          </Header>
-        </div>
-
-        <Content style={{ 
-          padding: '24px',
-          maxWidth: '1600px', 
-          margin: '0 auto', 
-          width: '100%',
-          minHeight: 'calc(100vh - 56px)',
-          marginTop: '56px',
-          position: 'relative',
-          zIndex: 1
-        }}>
-          <Row gutter={[24, 24]}>
-            {/* 左侧面板：个人资料和基本信息 */}
-            <Col xs={24} lg={8}>
-              <motion.div
-                initial={{ opacity: 0, y: 50 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                style={{ position: 'sticky', top: '80px' }}
-              >
-                <Card 
-                  className="shadow-md hover:shadow-lg transition-shadow duration-300 mb-6"
-                  style={{ borderRadius: '12px', overflow: 'hidden' }}
+      <DndProvider backend={HTML5Backend}>
+        <Layout style={{ minHeight: '100vh' }}>
+          <CoachSidebar 
+            colorToken={themeToken}
+            onCollapse={setSidebarCollapsed}
+          />
+          <Layout style={{ marginLeft: sidebarCollapsed ? 80 : 200, transition: 'all 0.2s' }}>
+            <Header style={{ 
+              background: themeToken.colorBgContainer, 
+              padding: '0 16px', 
+              display: 'flex', 
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              boxShadow: '0 1px 4px rgba(0,21,41,.08)',
+              zIndex: 10,
+              height: '64px',
+              position: 'sticky',
+              top: 0,
+              width: '100%',
+              overflow: 'hidden'
+            }}>
+              <div style={{ 
+                fontSize: '18px', 
+                fontWeight: 'bold',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis'
+              }}>
+                Profile Management
+              </div>
+              <Space size={16} style={{ flexShrink: 0 }}>
+                <Button 
+                  type="primary" 
+                  icon={<SaveOutlined />}
+                  onClick={handleSaveAll}
+                  loading={isUpdatingDetails}
                 >
-                  <div className="flex flex-col items-center text-center">
-                    {photoUrl ? (
-                      <ImgWithToken 
-                        src={photoUrl}
-                        avatar
-                        size={100}
-                        className="mb-4"
-                        style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                        fallbackIcon={<UserOutlined />}
-                        fallbackColor="#1890ff"
-                      />
-                    ) : (
-                      <ImgWithToken 
-                        avatar
-                        size={100}
-                        className="mb-4"
-                        fallbackIcon={<UserOutlined />}
-                        fallbackColor="#1890ff"
-                        style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                      />
-                    )}
-                    
-                    <Title level={5} className="mb-2">Profile Photo</Title>
-                    <Paragraph type="secondary" className="mb-4">
-                      A professional photo helps build trust with clients
-                    </Paragraph>
-                    
-                    <Upload {...uploadProps} showUploadList={false}>
-                      <Button 
-                        icon={<UploadOutlined />} 
-                        loading={isUploadingPhoto}
-                        type="primary"
-                        shape="round"
-                        size="middle"
-                        block
-                      >
-                        {photoUrl ? 'Change Photo' : 'Upload Photo'}
-                      </Button>
-                    </Upload>
-                  </div>
-                </Card>
-
-                {/* 基本信息卡片 */}
-                <Card
-                  title={
-                    <Space>
-                      <UserOutlined style={{ color: '#1890ff' }} />
-                      <span>Basic Information</span>
-                    </Space>
-                  }
-                  className="shadow-md hover:shadow-lg transition-shadow duration-300"
-                  style={{ borderRadius: '12px' }}
-                >
-                  <Form layout="vertical">
-                    <Form.Item
-                      label="Name"
-                      required
-                      style={{ marginBottom: '12px' }}
+                  Save All Changes
+                </Button>
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center',
+                  gap: '8px',
+                  minWidth: 0
+                }}>
+                  <Avatar style={{ 
+                    backgroundColor: themeToken.colorPrimary,
+                    flexShrink: 0 
+                  }}>
+                    <UserOutlined />
+                  </Avatar>
+                  <span style={{ 
+                    margin: '0 8px',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    maxWidth: '120px'
+                  }}>{authUserName}</span>
+                  <Button 
+                    icon={<LogoutOutlined />} 
+                    onClick={handleLogout}
+                    type="link"
+                    style={{ flexShrink: 0 }}
+                  >
+                    Logout
+                  </Button>
+                </div>
+              </Space>
+            </Header>
+            <Content style={{ 
+              margin: '24px 16px', 
+              padding: 24, 
+              background: themeToken.colorBgContainer,
+              borderRadius: 4,
+              minHeight: 280,
+              overflow: 'initial'
+            }}>
+              <Row gutter={[24, 24]}>
+                {/* 左侧面板：个人资料和基本信息 */}
+                <Col xs={24} lg={8}>
+                  <motion.div
+                    initial={{ opacity: 0, y: 50 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                  >
+                    <Card 
+                      className="shadow-md hover:shadow-lg transition-shadow duration-300 mb-6"
+                      style={{ borderRadius: '12px', overflow: 'hidden' }}
                     >
-                      <Input
-                        value={userName}
-                        onChange={(e) => setUserName(e.target.value)}
-                        placeholder="Enter your name"
-                        prefix={<UserOutlined className="text-gray-400" />}
-                      />
-                    </Form.Item>
+                      <div className="flex flex-col items-center text-center">
+                        {photoUrl ? (
+                          <ImgWithToken 
+                            src={photoUrl}
+                            avatar
+                            size={100}
+                            className="mb-4"
+                            style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                            fallbackIcon={<UserOutlined />}
+                            fallbackColor="#1890ff"
+                          />
+                        ) : (
+                          <ImgWithToken 
+                            avatar
+                            size={100}
+                            className="mb-4"
+                            fallbackIcon={<UserOutlined />}
+                            fallbackColor="#1890ff"
+                            style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                          />
+                        )}
+                        
+                        <Title level={5} className="mb-2">Profile Photo</Title>
+                        <Paragraph type="secondary" className="mb-4">
+                          A professional photo helps build trust with clients
+                        </Paragraph>
+                        
+                        <Upload {...uploadProps} showUploadList={false}>
+                          <Button icon={<UploadOutlined />}>Upload New Photo</Button>
+                        </Upload>
+                      </div>
+                    </Card>
 
-                    <Form.Item
-                      label="Address"
-                      style={{ marginBottom: '12px' }}
+                    {/* 基本信息卡片 */}
+                    <Card
+                      title={
+                        <Space>
+                          <UserOutlined style={{ color: '#1890ff' }} />
+                          <span>Basic Information</span>
+                        </Space>
+                      }
+                      className="shadow-md hover:shadow-lg transition-shadow duration-300"
+                      style={{ borderRadius: '12px' }}
                     >
-                      <Input
-                        value={address}
-                        onChange={(e) => setAddress(e.target.value)}
-                        placeholder="Enter your address"
-                        prefix={<HomeOutlined className="text-gray-400" />}
-                      />
-                    </Form.Item>
+                      <Form layout="vertical">
+                        <Form.Item
+                          label="Name"
+                          required
+                          style={{ marginBottom: '12px' }}
+                        >
+                          <Input
+                            value={userName}
+                            onChange={(e) => setUserName(e.target.value)}
+                            placeholder="Enter your name"
+                            prefix={<UserOutlined className="text-gray-400" />}
+                          />
+                        </Form.Item>
 
-                    <Form.Item
-                      label="Birthday"
-                      style={{ marginBottom: '12px' }}
-                    >
-                      <DatePicker
-                        value={birthday}
-                        onChange={(date) => setBirthday(date)}
-                        style={{ width: '100%' }}
-                        placeholder="Select your birthday"
-                        format="YYYY-MM-DD"
-                        prefix={<CalendarOutlined className="text-gray-400" />}
-                        disabledDate={(current) => {
-                          // 禁用今天及之后的日期
-                          return current && current.isAfter(dayjs().endOf('day'));
-                        }}
-                      />
-                    </Form.Item>
+                        <Form.Item
+                          label="Address"
+                          style={{ marginBottom: '12px' }}
+                        >
+                          <Input
+                            value={address}
+                            onChange={(e) => setAddress(e.target.value)}
+                            placeholder="Enter your address"
+                            prefix={<HomeOutlined className="text-gray-400" />}
+                          />
+                        </Form.Item>
 
-                    <Form.Item
-                      label="Personal Introduction"
-                      style={{ marginBottom: '0' }}
-                    >
-                      <TextArea
-                        value={intro}
-                        onChange={(e) => setIntro(e.target.value)}
-                        placeholder="Briefly introduce yourself, your expertise, and your teaching style..."
-                        rows={5}
-                        className="text-base"
-                        style={{ borderRadius: '8px', padding: '12px' }}
-                      />
-                      
-                      {!intro && (
-                        <div className="mt-4 p-4 bg-blue-50 text-gray-500 rounded-lg">
-                          <Text type="secondary">
-                            Your introduction is a chance to connect with potential clients. 
-                            Describe your teaching philosophy, experience, and unique 
-                            approach. An engaging introduction can significantly 
-                            boost client engagement.
+                        <Form.Item
+                          label="Birthday"
+                          style={{ marginBottom: '12px' }}
+                        >
+                          <DatePicker
+                            value={birthday}
+                            onChange={(date) => setBirthday(date)}
+                            style={{ width: '100%' }}
+                            placeholder="Select your birthday"
+                            format="YYYY-MM-DD"
+                            prefix={<CalendarOutlined className="text-gray-400" />}
+                            disabledDate={(current) => {
+                              // 禁用今天及之后的日期
+                              return current && current.isAfter(dayjs().endOf('day'));
+                            }}
+                          />
+                        </Form.Item>
+
+                        <Form.Item
+                          label="Personal Introduction"
+                          style={{ marginBottom: '0' }}
+                        >
+                          <TextArea
+                            value={intro}
+                            onChange={(e) => setIntro(e.target.value)}
+                            placeholder="Briefly introduce yourself, your expertise, and your teaching style..."
+                            rows={5}
+                            className="text-base"
+                            style={{ borderRadius: '8px', padding: '12px' }}
+                          />
+                          
+                          {!intro && (
+                            <div className="mt-4 p-4 bg-blue-50 text-gray-500 rounded-lg">
+                              <Text type="secondary">
+                                Your introduction is a chance to connect with potential clients. 
+                                Describe your teaching philosophy, experience, and unique 
+                                approach. An engaging introduction can significantly 
+                                boost client engagement.
+                              </Text>
+                            </div>
+                          )}
+                        </Form.Item>
+                      </Form>
+                    </Card>
+                  </motion.div>
+                </Col>
+                
+                {/* 右侧面板：专业标签和位置选择 */}
+                <Col xs={24} lg={16}>
+                  <motion.div
+                    initial={{ opacity: 0, y: 50 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.2 }}
+                    style={{ 
+                      position: 'relative',
+                      height: 'calc(100vh - 104px)',  // 减去顶部导航栏高度和内边距
+                      overflowY: 'auto',
+                      paddingRight: '12px'  // 为滚动条预留空间
+                    }}
+                    className="custom-scrollbar"  // 添加自定义滚动条样式
+                  >
+                    {/* 专业标签部分 */}
+                    <Card
+                      title={
+                        <Space>
+                          <span className="text-lg font-medium">Professional Tags</span>
+                          <Text type="secondary" style={{ fontSize: '14px', marginLeft: '8px' }}>
+                            Selected Tags: {coachTags.length} | Available Tags: {otherTags.length}
                           </Text>
-                        </div>
-                      )}
-                    </Form.Item>
-                  </Form>
-                </Card>
-              </motion.div>
-            </Col>
-            
-            {/* 右侧面板：专业标签和位置选择 */}
-            <Col xs={24} lg={16}>
-              <motion.div
-                initial={{ opacity: 0, y: 50 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
-                style={{ 
-                  position: 'relative',
-                  height: 'calc(100vh - 104px)',  // 减去顶部导航栏高度和内边距
-                  overflowY: 'auto',
-                  paddingRight: '12px'  // 为滚动条预留空间
-                }}
-                className="custom-scrollbar"  // 添加自定义滚动条样式
-              >
-                {/* 专业标签部分 */}
-                <Card
-                  title={
-                    <Space>
-                      <span className="text-lg font-medium">Professional Tags</span>
-                      <Text type="secondary" style={{ fontSize: '14px', marginLeft: '8px' }}>
-                        Selected Tags: {coachTags.length} | Available Tags: {otherTags.length}
-                      </Text>
-                    </Space>
-                  }
-                  className="shadow-md hover:shadow-lg transition-shadow duration-300 mb-6"
-                  style={{ 
-                    borderRadius: '12px',
-                    position: 'relative',
-                    backgroundColor: '#fff'
-                  }}
-                >
-                  <DndProvider backend={HTML5Backend}>
-                    <Row gutter={[24, 24]}>
-                      <Col xs={24} md={12}>
-                        <div style={{ 
-                          background: '#f5f5f5', 
-                          padding: '16px',
-                          borderRadius: '8px',
-                          minHeight: '200px'
-                        }}>
-                          <div style={{ 
-                            marginBottom: '12px',
-                            color: '#1890ff',
-                            fontWeight: 500
-                          }}>
-                            Your Expertise
-                          </div>
-                          <TagsContainer 
-                            tags={coachTags}
-                            type="coach"
-                            onMove={handleTagMove}
-                            style={{ 
-                              minHeight: '150px'
-                            }}
-                          />
-                        </div>
-                      </Col>
-                      
-                      <Col xs={24} md={12}>
-                        <div style={{ 
-                          background: '#f5f5f5', 
-                          padding: '16px',
-                          borderRadius: '8px',
-                          minHeight: '200px'
-                        }}>
-                          <div style={{ 
-                            marginBottom: '12px',
-                            color: '#1890ff',
-                            fontWeight: 500
-                          }}>
-                            Available Tags
-                          </div>
-                          <TagsContainer 
-                            tags={otherTags}
-                            type="other"
-                            onMove={handleTagMove}
-                            style={{ 
-                              minHeight: '150px'
-                            }}
-                          />
-                        </div>
-                      </Col>
-                    </Row>
-                  </DndProvider>
-                </Card>
-
-                {/* 位置选择卡片 */}
-                <Card
-                  title={
-                    <Space>
-                      <EnvironmentOutlined style={{ color: '#1890ff' }} />
-                      <span>Training Locations</span>
-                      <Tooltip title="Click to view all locations on map">
-                        <QuestionCircleOutlined
-                          style={{ 
-                            color: '#1890ff',
-                            cursor: 'pointer',
-                            fontSize: '18px',
-                            backgroundColor: '#e6f7ff',
-                            borderRadius: '50%',
-                            padding: '6px',
-                            transition: 'all 0.3s'
-                          }}
-                          className="hover:bg-blue-100 hover:scale-110"
-                          onClick={showMapModal}
-                        />
-                      </Tooltip>
-                    </Space>
-                  }
-                  className="shadow-md hover:shadow-lg transition-shadow duration-300 mb-6"
-                  style={{ 
-                    borderRadius: '12px',
-                    position: 'relative',
-                    backgroundColor: '#fff'
-                  }}
-                >
-                  <div className="mb-4">
-                    <Text type="secondary">
-                      Selected Locations: {coachLocations.length} | Available Locations: {otherLocations.length}
-                    </Text>
-                  </div>
-                  
-                  <div style={{ maxHeight: '300px', overflowY: 'auto', padding: '8px' }}>
-                    {[...coachLocations, ...otherLocations].length > 0 ? (
-                      [...coachLocations, ...otherLocations]
-                        .filter(location => location && location.locationName) // 使用locationName替代name
-                        .sort((a, b) => (a.locationName || '').localeCompare(b.locationName || ''))
-                        .map(location => {
-                          // 增加调试信息
-                          console.log('渲染位置条目:', location);
-                          return (
-                            <div 
-                              key={location.id} 
-                              style={{ 
+                        </Space>
+                      }
+                      className="shadow-md hover:shadow-lg transition-shadow duration-300 mb-6"
+                      style={{ 
+                        borderRadius: '12px',
+                        position: 'relative',
+                        backgroundColor: '#fff'
+                      }}
+                    >
+                      <DndProvider backend={HTML5Backend}>
+                        <Row gutter={[24, 24]}>
+                          <Col xs={24} md={12}>
+                            <div style={{ 
+                              background: '#f5f5f5', 
+                              padding: '16px',
+                              borderRadius: '8px',
+                              minHeight: '200px'
+                            }}>
+                              <div style={{ 
                                 marginBottom: '12px',
-                                padding: '8px',
-                                borderRadius: '8px',
-                                background: coachLocations.some(loc => loc.id === location.id) 
-                                  ? '#e6f7ff' 
-                                  : 'transparent',
-                                transition: 'all 0.3s',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'flex-start'
-                              }}
-                              onClick={() => handleLocationChange(location.id)}
-                            >
-                              <Checkbox
-                                checked={coachLocations.some(loc => loc.id === location.id)}
-                                style={{ marginRight: '10px', marginTop: '2px' }}
-                                onChange={(e) => {
-                                  // 阻止事件冒泡
-                                  e.stopPropagation();
-                                  handleLocationChange(location.id);
+                                color: '#1890ff',
+                                fontWeight: 500
+                              }}>
+                                Your Expertise
+                              </div>
+                              <TagsContainer 
+                                tags={coachTags}
+                                type="coach"
+                                onMove={handleTagMove}
+                                style={{ 
+                                  minHeight: '150px'
                                 }}
                               />
-                              <div>
-                                <div style={{ fontWeight: 500 }}>{location.locationName}</div>
-                                <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-                                  {location.latitude && location.longitude ? 
-                                    `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}` :
-                                    'Location coordinates not available'
-                                  }
-                                </div>
-                              </div>
                             </div>
-                          );
-                        })
-                    ) : (
-                      <div style={{ 
-                        padding: '30px', 
-                        textAlign: 'center', 
-                        color: '#999',
-                        background: '#f9f9f9',
-                        borderRadius: '8px',
-                        marginTop: '10px'
-                      }}>
-                        No locations available
-                      </div>
-                    )}
-                  </div>
-                </Card>
-              </motion.div>
-            </Col>
-          </Row>
-        </Content>
-      </Layout>
+                          </Col>
+                          
+                          <Col xs={24} md={12}>
+                            <div style={{ 
+                              background: '#f5f5f5', 
+                              padding: '16px',
+                              borderRadius: '8px',
+                              minHeight: '200px'
+                            }}>
+                              <div style={{ 
+                                marginBottom: '12px',
+                                color: '#1890ff',
+                                fontWeight: 500
+                              }}>
+                                Available Tags
+                              </div>
+                              <TagsContainer 
+                                tags={otherTags}
+                                type="other"
+                                onMove={handleTagMove}
+                                style={{ 
+                                  minHeight: '150px'
+                                }}
+                              />
+                            </div>
+                          </Col>
+                        </Row>
+                      </DndProvider>
+                    </Card>
 
-      {/* Add GoogleMap component */}
-      <GoogleMap
-        locations={[...coachLocations, ...otherLocations]}
-        isModal={true}
-        visible={isMapModalVisible}
-        onClose={hideMapModal}
-        title="Training Locations Map"
-        modalProps={{
-          width: 800,
-          bodyStyle: { padding: '16px' }
-        }}
-        mapProps={{
-          zoom: 12
-        }}
-      />
+                    {/* 位置选择卡片 */}
+                    <Card
+                      title={
+                        <Space>
+                          <EnvironmentOutlined style={{ color: '#1890ff' }} />
+                          <span>Training Locations</span>
+                          <Tooltip title="Click to view all locations on map">
+                            <QuestionCircleOutlined
+                              style={{ 
+                                color: '#1890ff',
+                                cursor: 'pointer',
+                                fontSize: '18px',
+                                backgroundColor: '#e6f7ff',
+                                borderRadius: '50%',
+                                padding: '6px',
+                                transition: 'all 0.3s'
+                              }}
+                              className="hover:bg-blue-100 hover:scale-110"
+                              onClick={showMapModal}
+                            />
+                          </Tooltip>
+                        </Space>
+                      }
+                      className="shadow-md hover:shadow-lg transition-shadow duration-300 mb-6"
+                      style={{ 
+                        borderRadius: '12px',
+                        position: 'relative',
+                        backgroundColor: '#fff'
+                      }}
+                    >
+                      <div className="mb-4">
+                        <Text type="secondary">
+                          Selected Locations: {coachLocations.length} | Available Locations: {otherLocations.length}
+                        </Text>
+                      </div>
+                      
+                      <div style={{ maxHeight: '300px', overflowY: 'auto', padding: '8px' }}>
+                        {[...coachLocations, ...otherLocations].length > 0 ? (
+                          [...coachLocations, ...otherLocations]
+                            .filter(location => location && location.locationName) // 使用locationName替代name
+                            .sort((a, b) => (a.locationName || '').localeCompare(b.locationName || ''))
+                            .map(location => {
+                              // 增加调试信息
+                              console.log('渲染位置条目:', location);
+                              return (
+                                <div 
+                                  key={location.id} 
+                                  style={{ 
+                                    marginBottom: '12px',
+                                    padding: '8px',
+                                    borderRadius: '8px',
+                                    background: coachLocations.some(loc => loc.id === location.id) 
+                                      ? '#e6f7ff' 
+                                      : 'transparent',
+                                    transition: 'all 0.3s',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'flex-start'
+                                  }}
+                                  onClick={() => handleLocationChange(location.id)}
+                                >
+                                  <Checkbox
+                                    checked={coachLocations.some(loc => loc.id === location.id)}
+                                    style={{ marginRight: '10px', marginTop: '2px' }}
+                                    onChange={(e) => {
+                                      // 阻止事件冒泡
+                                      e.stopPropagation();
+                                      handleLocationChange(location.id);
+                                    }}
+                                  />
+                                  <div>
+                                    <div style={{ fontWeight: 500 }}>{location.locationName}</div>
+                                    <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                                      {location.latitude && location.longitude ? 
+                                        `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}` :
+                                        'Location coordinates not available'
+                                      }
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })
+                        ) : (
+                          <div style={{ 
+                            padding: '30px', 
+                            textAlign: 'center', 
+                            color: '#999',
+                            background: '#f9f9f9',
+                            borderRadius: '8px',
+                            marginTop: '10px'
+                          }}>
+                            No locations available
+                          </div>
+                        )}
+                      </div>
+                    </Card>
+                  </motion.div>
+                </Col>
+              </Row>
+
+              {/* Map Modal */}
+              <MapModal 
+                visible={isMapModalVisible} 
+                onClose={hideMapModal} 
+                locations={coachLocations}
+              />
+            </Content>
+          </Layout>
+        </Layout>
+      </DndProvider>
     </PageTransition>
   );
 };

@@ -1,11 +1,12 @@
 import { Spin, Image, Avatar } from 'antd';
 import { UserOutlined } from '@ant-design/icons';
 import { useTokenizedImage } from '../hooks';
+import { useState, useEffect, useRef } from 'react';
 
 /**
- * 带认证token的图片组件
+ * 带认证token的图片组件，支持懒加载
  * 使用方法一：直接渲染带token的图片
- * <ImgWithToken src="/path/to/image.jpg" />
+ * <ImgWithToken src="/path/to/image.jpg" lazy />
  * 
  * 使用方法二：渲染Avatar组件
  * <ImgWithToken 
@@ -13,6 +14,7 @@ import { useTokenizedImage } from '../hooks';
  *   avatar 
  *   size={100} 
  *   fallbackIcon={<CustomIcon />} 
+ *   lazy
  * />
  */
 const ImgWithToken = ({ 
@@ -29,8 +31,14 @@ const ImgWithToken = ({
   preview = false,
   onClick,
   onLoad,
-  onError
+  onError,
+  lazy = true, // 默认启用懒加载
+  rootMargin = "100px 0px", // 提前100px开始加载
+  threshold = 0.1 // 当图片有10%进入视口时触发加载
 }) => {
+  const imgRef = useRef(null);
+  const [shouldLoad, setShouldLoad] = useState(!lazy); // 如果不使用懒加载，则立即加载
+  
   // 使用自定义 hook 处理图片 URL 和状态
   const {
     tokenUrl,
@@ -39,6 +47,34 @@ const ImgWithToken = ({
     handleLoad,
     handleError
   } = useTokenizedImage(src);
+  
+  // 初始化Intersection Observer实现懒加载
+  useEffect(() => {
+    if (!lazy || shouldLoad) return; // 如果已设置加载或不使用懒加载，则跳过
+    
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setShouldLoad(true);
+          observer.disconnect();
+        }
+      },
+      {
+        rootMargin,
+        threshold
+      }
+    );
+    
+    if (imgRef.current) {
+      observer.observe(imgRef.current);
+    }
+    
+    return () => {
+      if (imgRef.current) {
+        observer.disconnect();
+      }
+    };
+  }, [lazy, shouldLoad, rootMargin, threshold]);
   
   // 自定义处理函数
   const handleImageLoad = (e) => {
@@ -54,6 +90,24 @@ const ImgWithToken = ({
   const handleImageClick = (e) => {
     if (onClick) onClick(e);
   };
+  
+  // 渲染占位符
+  if (lazy && !shouldLoad) {
+    const placeholderStyle = {
+      width: width || (avatar ? size : '100%'),
+      height: height || (avatar ? size : '100px'),
+      background: '#f5f5f5',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center'
+    };
+    
+    return (
+      <div ref={imgRef} style={placeholderStyle} className={className}>
+        {/* 仅显示占位符，不加载图片 */}
+      </div>
+    );
+  }
   
   // Avatar模式
   if (avatar) {
@@ -71,7 +125,7 @@ const ImgWithToken = ({
     ) : (
       <Avatar 
         size={size}
-        src={tokenUrl}
+        src={shouldLoad ? tokenUrl : undefined}
         style={style}
         className={className}
         onLoad={handleImageLoad}
@@ -84,6 +138,7 @@ const ImgWithToken = ({
   // 标准图片模式
   return (
     <div 
+      ref={imgRef}
       style={{ 
         position: 'relative',
         display: 'inline-block',
@@ -126,7 +181,7 @@ const ImgWithToken = ({
         </div>
       ) : (
         <Image
-          src={tokenUrl}
+          src={shouldLoad ? tokenUrl : undefined}
           alt={alt}
           width={width}
           height={height}

@@ -120,6 +120,43 @@ export const userApi = baseApi.injectEndpoints({
       // 使缓存失效，触发重新获取
       invalidatesTags: ['User'],
     }),
+
+    // 获取用户配置（角色和状态）
+    getUserConfig: builder.query({
+      query: () => ({
+        url: '/user/filter',
+        method: 'GET'
+      }),
+      transformResponse: (response) => {
+        if (response.code === 0 && response.data) {
+          // 转换角色数据
+          const roles = Object.entries(response.data.role).map(([value, label]) => ({
+            value,
+            label,
+            // 为不同角色设置不同的颜色
+            color: value === 'admin' ? 'purple' : value === 'coach' ? 'green' : 'blue'
+          }));
+
+          // 转换状态数据
+          const statuses = Object.entries(response.data.status).map(([value, label]) => ({
+            value: parseInt(value),
+            label,
+            // 为不同状态设置不同的颜色
+            color: value === '0' ? 'success' : value === '1' ? 'warning' : 'error'
+          }));
+
+          return {
+            roles,
+            statuses
+          };
+        }
+        return {
+          roles: [],
+          statuses: []
+        };
+      },
+      providesTags: ['UserConfig']
+    }),
   }),
 });
 
@@ -127,5 +164,6 @@ export const userApi = baseApi.injectEndpoints({
 export const {
   useGetUserListQuery,
   useUpdateUserStatusMutation,
-  useDeleteUserMutation
+  useDeleteUserMutation,
+  useGetUserConfigQuery
 } = userApi; 

@@ -35,4 +35,6 @@ public interface UserService extends IService<User> {
     GeneralResponseResult deleteById(Serializable id);
 
     GeneralResponseResult updateStatus(Serializable id,Integer status);
+
+    GeneralResponseResult userFilter();
 }

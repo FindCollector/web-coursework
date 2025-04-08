@@ -31,6 +31,12 @@ public class AdminController {
         return pageResult;
     }
 
+    @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).ADMIN.getRole())")
+    @GetMapping("/filter")
+    public GeneralResponseResult userFilter(){
+        return userService.userFilter();
+    }
+
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).ADMIN.getRole())")
     public GeneralResponseResult deleteUser(@PathVariable Long id){

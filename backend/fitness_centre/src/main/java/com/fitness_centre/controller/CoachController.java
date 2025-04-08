@@ -1,16 +1,25 @@
 package com.fitness_centre.controller;
 
-import com.fitness_centre.annotation.RequireRecaptcha;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fitness_centre.constant.RequestStatus;
+import com.fitness_centre.constant.UserRole;
+import com.fitness_centre.domain.Subscription;
 import com.fitness_centre.dto.coach.CoachInfoUpdateRequest;
 import com.fitness_centre.dto.GeneralResponseResult;
+import com.fitness_centre.dto.coach.SubscriptionListResponse;
 import com.fitness_centre.security.LoginUser;
 import com.fitness_centre.service.biz.interfaces.CoachService;
+import com.fitness_centre.service.biz.interfaces.SubscriptionService;
 import com.fitness_centre.service.infrastructure.FileService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author
@@ -25,7 +34,7 @@ public class CoachController {
     private CoachService coachService;
 
     @Autowired
-    FileService fileService;
+    private SubscriptionService subscriptionService;
 
     //上传文件
     @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).COACH.getRole())")
@@ -47,7 +56,7 @@ public class CoachController {
 
     @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).COACH.getRole())")
     @GetMapping("/details")
-    public GeneralResponseResult coachDetails(Authentication authentication){
+    public GeneralResponseResult details(Authentication authentication){
         LoginUser loginUser = (LoginUser) authentication.getPrincipal();
         Long userId = loginUser.getId();
         return coachService.coachInfo(userId);
@@ -55,9 +64,60 @@ public class CoachController {
 
     @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).COACH.getRole())")
     @GetMapping("/details/check")
-    public GeneralResponseResult coachDetailsCheck(Authentication authentication){
+    public GeneralResponseResult detailsCheck(Authentication authentication){
         LoginUser loginUser = (LoginUser) authentication.getPrincipal();
         Long userId = loginUser.getId();
         return coachService.coachInfoCheck(userId);
     }
+
+    @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).COACH.getRole())")
+    @GetMapping("/subscriptionRequest")
+    public IPage<SubscriptionListResponse> subscriptionRequestList(Authentication authentication,
+                                                               @RequestParam(defaultValue = "1")int pageNow,
+                                                               @RequestParam(defaultValue = "10")int pageSize,
+                                                               @RequestParam(required = false) List<String> statusList){
+        LoginUser loginUser = (LoginUser) authentication.getPrincipal();
+        Long userId = loginUser.getId();
+        return subscriptionService.coachSubscriptionList(userId,pageNow,pageSize,statusList);
+    }
+
+    @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).COACH.getRole())")
+    @GetMapping("/unreadRequest/count")
+    public GeneralResponseResult countUnreadRequest(Authentication authentication){
+        LoginUser loginUser = (LoginUser) authentication.getPrincipal();
+        Long userId = loginUser.getId();
+        return subscriptionService.countUnreadRequest(userId,UserRole.COACH);
+    }
+
+    @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).COACH.getRole())")
+    @PatchMapping("/subscription/{id}/read")
+    public GeneralResponseResult readRequest(@PathVariable("id") Long requestId,Authentication authentication){
+        LoginUser loginUser = (LoginUser) authentication.getPrincipal();
+        Long userId = loginUser.getId();
+        return subscriptionService.readRequest(requestId,userId, UserRole.COACH);
+    }
+
+    @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).COACH.getRole())")
+    @PatchMapping("/subscription/{id}/accept")
+    public GeneralResponseResult acceptRequest(@PathVariable("id") Long requestId,
+                                                    @RequestBody Map<String,Object> requestBody,
+                                                    Authentication authentication){
+        LoginUser loginUser = (LoginUser) authentication.getPrincipal();
+        Long userId = loginUser.getId();
+        String reply = (String)requestBody.get("reply");
+        return subscriptionService.CoachHandleRequest(requestId,userId, RequestStatus.ACCEPT,reply);
+    }
+
+    @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).COACH.getRole())")
+    @PatchMapping("/subscription/{id}/reject")
+    public GeneralResponseResult rejectRequest(@PathVariable("id") Long requestId,
+                                                    @RequestBody Map<String,Object> requestBody,
+                                                    Authentication authentication){
+        LoginUser loginUser = (LoginUser) authentication.getPrincipal();
+        Long userId = loginUser.getId();
+        String reply = (String)requestBody.get("reply");
+        return subscriptionService.CoachHandleRequest(requestId,userId, RequestStatus.REJECT,reply);
+    }
+
+
 }

@@ -45,7 +45,8 @@ public class SecurityConfig{
 //            "/coach/photo"
             //todo 如何让这些图片被验证token
             "/temp/**",
-
+//            "/member/coach/filter"
+//            "/member/subscription",
     };
 
     //放行

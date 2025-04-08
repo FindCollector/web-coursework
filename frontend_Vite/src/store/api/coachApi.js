@@ -79,11 +79,153 @@ export const coachApi = baseApi.injectEndpoints({
 
     // 获取教练列表
     getCoachList: builder.query({
+      query: (params = {}) => {
+        const { userName, tags, locations, pageNow = 1, pageSize = 10 } = params;
+        
+        // Build query parameters
+        const queryParams = new URLSearchParams();
+        
+        if (userName) queryParams.append('userName', userName);
+        if (pageNow) queryParams.append('pageNow', pageNow);
+        if (pageSize) queryParams.append('pageSize', pageSize);
+        
+        // Handle arrays - convert to tagIds and locationIds
+        if (tags && tags.length > 0) {
+          tags.forEach(tagId => queryParams.append('tagIds', tagId));
+        }
+        
+        if (locations && locations.length > 0) {
+          locations.forEach(locationId => queryParams.append('locationIds', locationId));
+        }
+        
+        return {
+          url: `/member/coachList?${queryParams.toString()}`,
+          method: 'GET'
+        };
+      },
+      providesTags: ['CoachList']
+    }),
+
+    // 获取教练过滤器选项
+    getCoachFilterOptions: builder.query({
       query: () => ({
-        url: '/member/coachList',
+        url: '/member/coach/filter',
         method: 'GET'
       }),
-      providesTags: ['CoachList']
+      transformResponse: (response) => {
+        if (response.code === 0 && response.data) {
+          return {
+            locations: Object.entries(response.data.locations).map(([value, label]) => ({
+              value,
+              label
+            })),
+            tags: Object.entries(response.data.tags).map(([value, label]) => ({
+              value,
+              label
+            }))
+          };
+        }
+        return {
+          locations: [],
+          tags: []
+        };
+      }
+    }),
+
+    // 发送订阅请求
+    sendSubscriptionRequest: builder.mutation({
+      query: (data) => ({
+        url: '/member/subscription',
+        method: 'POST',
+        body: data
+      })
+    }),
+
+    // 获取订阅请求列表
+    getSubscriptionRequests: builder.query({
+      query: (params = {}) => {
+        const { pageNow = 1, pageSize = 10, statusList } = params;
+        
+        // Build query parameters
+        const queryParams = new URLSearchParams();
+        queryParams.append('pageNow', pageNow);
+        queryParams.append('pageSize', pageSize);
+        // 添加时间戳参数，确保不使用缓存
+        queryParams.append('_t', Date.now());
+        
+        // 处理状态列表
+        if (statusList && statusList.length > 0) {
+          statusList.forEach(status => {
+            queryParams.append('statusList', status);
+          });
+        }
+        
+        return {
+          url: `/coach/subscriptionRequest?${queryParams.toString()}`,
+          method: 'GET'
+        };
+      },
+      // 确保每次调用都是新的请求，不使用缓存
+      keepUnusedDataFor: 0,
+      providesTags: ['SubscriptionRequests']
+    }),
+
+    // 获取未读订阅请求计数
+    getUnreadRequestsCount: builder.query({
+      query: () => ({
+        url: '/coach/unreadRequest/count',
+        method: 'GET',
+        // 添加时间戳参数，确保不使用缓存
+        params: { _t: Date.now() }
+      }),
+      transformResponse: (response) => {
+        if (response.code === 0 && response.data) {
+          return response.data.count || 0;
+        }
+        return 0;
+      },
+      // 确保每次调用都是新的请求，不使用缓存
+      keepUnusedDataFor: 0,
+      providesTags: (result) => ['UnreadCount', 'SubscriptionRequests']
+    }),
+    
+    // 标记订阅请求为已读
+    markRequestAsRead: builder.mutation({
+      query: (requestId) => ({
+        url: `/coach/subscription/${requestId}/read`,
+        method: 'PATCH'
+      }),
+      invalidatesTags: ['UnreadCount', 'SubscriptionRequests']
+    }),
+    
+    // 处理订阅请求（接受或拒绝）
+    handleSubscriptionRequest: builder.mutation({
+      query: ({ requestId, status, reply }) => ({
+        url: '/coach/subscriptionRequest/handle',
+        method: 'POST',
+        body: { requestId, status, reply }
+      }),
+      invalidatesTags: ['UnreadCount', 'SubscriptionRequests']
+    }),
+    
+    // 接受订阅请求
+    acceptSubscriptionRequest: builder.mutation({
+      query: ({ requestId, reply }) => ({
+        url: `/coach/subscription/${requestId}/accept`,
+        method: 'PATCH',
+        body: { reply }
+      }),
+      invalidatesTags: ['UnreadCount', 'SubscriptionRequests']
+    }),
+    
+    // 拒绝订阅请求
+    rejectSubscriptionRequest: builder.mutation({
+      query: ({ requestId, reply }) => ({
+        url: `/coach/subscription/${requestId}/reject`,
+        method: 'PATCH',
+        body: { reply }
+      }),
+      invalidatesTags: ['UnreadCount', 'SubscriptionRequests']
     })
   })
 });
@@ -97,5 +239,13 @@ export const {
   useUpdateCoachTagsMutation,
   useUpdateCoachLocationsMutation,
   useUpdateCoachDetailsMutation,
-  useGetCoachListQuery
+  useGetCoachListQuery,
+  useGetCoachFilterOptionsQuery,
+  useSendSubscriptionRequestMutation,
+  useGetSubscriptionRequestsQuery,
+  useGetUnreadRequestsCountQuery,
+  useMarkRequestAsReadMutation,
+  useHandleSubscriptionRequestMutation,
+  useAcceptSubscriptionRequestMutation,
+  useRejectSubscriptionRequestMutation
 } = coachApi; 
