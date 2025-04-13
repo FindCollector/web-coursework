@@ -1,7 +1,7 @@
 package com.fitness_centre.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.fitness_centre.domain.CoachAvailability;
+import com.fitness_centre.domain.Availability;
 import org.apache.ibatis.annotations.Mapper;
 
 /**
@@ -11,5 +11,5 @@ import org.apache.ibatis.annotations.Mapper;
  * @date 06/04/2025
  */
 @Mapper
-public interface CoachAvailabilityMapper extends BaseMapper<CoachAvailability> {
+public interface AvailabilityMapper extends BaseMapper<Availability> {
 }

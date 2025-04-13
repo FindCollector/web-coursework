@@ -113,7 +113,7 @@ const CoachSidebar = ({ colorToken, onCollapse }) => {
       window.dispatchEvent(new Event('refresh-subscription-requests'));
     }
     
-    if (key === 'dashboard' || key === 'subscriptions' || key === 'schedule' || key === 'members' || key === 'settings') {
+    if (key === 'dashboard' || key === 'subscriptions' || key === 'schedule' || key === 'members' || key === 'settings' || key === 'availability') {
       navigate('/coach/dashboard');
       return;
     }
@@ -195,6 +195,11 @@ const CoachSidebar = ({ colorToken, onCollapse }) => {
                 )}
               </span>
             ),
+          },
+          {
+            key: 'availability',
+            icon: <CalendarOutlined />,
+            label: 'Availability',
           },
           {
             key: 'settings',

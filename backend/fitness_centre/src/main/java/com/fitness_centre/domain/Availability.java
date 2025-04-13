@@ -3,6 +3,7 @@ package com.fitness_centre.domain;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import lombok.AllArgsConstructor;
@@ -22,10 +23,11 @@ import java.time.LocalTime;
 @AllArgsConstructor
 @NoArgsConstructor
 @TableName("coach_availability")
-public class CoachAvailability implements Serializable {
+public class Availability implements Serializable {
     private static final long serialVersionUID = -8566309550909182243L;
 
     @TableId(type = IdType.ASSIGN_ID)
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     @JsonSerialize(using = ToStringSerializer.class)
     private Long id;
 
@@ -33,7 +35,9 @@ public class CoachAvailability implements Serializable {
 
     private Integer dayOfWeek;
 
+    @JsonFormat(pattern = "HH:mm")
     private LocalTime startTime;
 
+    @JsonFormat(pattern = "HH:mm")
     private LocalTime endTime;
 }

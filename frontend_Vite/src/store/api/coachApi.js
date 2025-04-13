@@ -226,6 +226,44 @@ export const coachApi = baseApi.injectEndpoints({
         body: { reply }
       }),
       invalidatesTags: ['UnreadCount', 'SubscriptionRequests']
+    }),
+
+    // 添加教练空闲时间
+    addAvailability: builder.mutation({
+      query: (availability) => ({
+        url: '/coach/availability',
+        method: 'POST',
+        body: availability
+      }),
+      invalidatesTags: ['Availability'] // 成功后使'Availability'标签失效，触发重新获取
+    }),
+
+    // 获取教练空闲时间
+    getAvailability: builder.query({
+      query: () => ({
+        url: '/coach/availability',
+        method: 'GET'
+      }),
+      providesTags: ['Availability']
+    }),
+
+    // 删除教练空闲时间
+    deleteAvailability: builder.mutation({
+      query: (id) => ({
+        url: `/coach/availability/${id}`,
+        method: 'DELETE'
+      }),
+      invalidatesTags: ['Availability'] // 成功后使'Availability'标签失效，触发重新获取
+    }),
+
+    // 更新教练空闲时间
+    updateAvailability: builder.mutation({
+      query: ({ id, ...patch }) => ({ // 接受 id 和包含更新数据的对象
+        url: `/coach/availability/${id}`,
+        method: 'PATCH',
+        body: patch // 发送包含 dayOfWeek, startTime, endTime 的对象
+      }),
+      invalidatesTags: ['Availability'] // 成功后刷新数据
     })
   })
 });
@@ -247,5 +285,9 @@ export const {
   useMarkRequestAsReadMutation,
   useHandleSubscriptionRequestMutation,
   useAcceptSubscriptionRequestMutation,
-  useRejectSubscriptionRequestMutation
-} = coachApi; 
+  useRejectSubscriptionRequestMutation,
+  useAddAvailabilityMutation,
+  useGetAvailabilityQuery,
+  useDeleteAvailabilityMutation,
+  useUpdateAvailabilityMutation
+} = coachApi;

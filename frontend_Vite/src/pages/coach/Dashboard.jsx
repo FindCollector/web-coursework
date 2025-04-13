@@ -35,6 +35,7 @@ import { useLogoutMutation } from '../../store/api/authApi';
 import PageTransition from '../../components/PageTransition';
 import SubscriptionRequests from './SubscriptionRequests';
 import CoachSidebar from '../../components/layout/CoachSidebar';
+import Availability from './Availability';
 
 const { Title, Text } = Typography;
 const { Header, Content } = Layout;
@@ -127,6 +128,8 @@ const CoachDashboard = () => {
         return renderDashboardContent();
       case 'subscriptions':
         return <SubscriptionRequests />;
+      case 'availability':
+        return <Availability />;
       default:
         return (
           <div className="flex flex-col items-center justify-center h-64">
@@ -275,6 +278,7 @@ const CoachDashboard = () => {
               {activeMenu === 'schedule' && 'Schedule Management'}
               {activeMenu === 'members' && 'Member Management'}
               {activeMenu === 'subscriptions' && 'Subscription Requests'}
+              {activeMenu === 'availability' && 'Availability Management'}
               {activeMenu === 'settings' && 'Settings'}
             </div>
             <div style={{ display: 'flex', alignItems: 'center' }}>

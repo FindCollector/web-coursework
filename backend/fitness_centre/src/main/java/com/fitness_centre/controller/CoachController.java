@@ -1,17 +1,17 @@
 package com.fitness_centre.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fitness_centre.constant.RequestStatus;
 import com.fitness_centre.constant.UserRole;
-import com.fitness_centre.domain.Subscription;
+import com.fitness_centre.dto.coach.AvailabilitySetRequest;
 import com.fitness_centre.dto.coach.CoachInfoUpdateRequest;
 import com.fitness_centre.dto.GeneralResponseResult;
 import com.fitness_centre.dto.coach.SubscriptionListResponse;
 import com.fitness_centre.security.LoginUser;
+import com.fitness_centre.service.biz.interfaces.AvailabilityService;
 import com.fitness_centre.service.biz.interfaces.CoachService;
 import com.fitness_centre.service.biz.interfaces.SubscriptionService;
-import com.fitness_centre.service.infrastructure.FileService;
+import org.apache.ibatis.annotations.Delete;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -35,6 +35,9 @@ public class CoachController {
 
     @Autowired
     private SubscriptionService subscriptionService;
+
+    @Autowired
+    private AvailabilityService availabilityService;
 
     //上传文件
     @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).COACH.getRole())")
@@ -118,6 +121,36 @@ public class CoachController {
         String reply = (String)requestBody.get("reply");
         return subscriptionService.CoachHandleRequest(requestId,userId, RequestStatus.REJECT,reply);
     }
+
+    @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).COACH.getRole())")
+    @PatchMapping("/availability/{id}")
+    public GeneralResponseResult updateAvailability(@PathVariable("id") Long availabilityId,@RequestBody AvailabilitySetRequest request,Authentication authentication){
+        LoginUser loginUser = (LoginUser) authentication.getPrincipal();
+        Long userId = loginUser.getId();
+        return availabilityService.updateAvailability(userId,availabilityId,request);
+    }
+    @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).COACH.getRole())")
+    @DeleteMapping("/availability/{id}")
+    public GeneralResponseResult deleteAvailability(@PathVariable("id") Long availabilityId){
+        return availabilityService.deleteAvailability(availabilityId);
+    }
+
+    @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).COACH.getRole())")
+    @PostMapping("/availability")
+    public GeneralResponseResult insertAvailability(@RequestBody AvailabilitySetRequest request,Authentication authentication){
+        LoginUser loginUser = (LoginUser) authentication.getPrincipal();
+        Long userId = loginUser.getId();
+        return availabilityService.insertAvailability(userId,request);
+    }
+
+    @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).COACH.getRole())")
+    @GetMapping("/availability")
+    public GeneralResponseResult availabilityList(Authentication authentication){
+        LoginUser loginUser = (LoginUser) authentication.getPrincipal();
+        Long userId = loginUser.getId();
+        return availabilityService.getAllAvailability(userId);
+    }
+
 
 
 }

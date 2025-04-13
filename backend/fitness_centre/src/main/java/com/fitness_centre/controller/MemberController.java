@@ -10,10 +10,7 @@ import com.fitness_centre.dto.member.CoachDetailsResponse;
 import com.fitness_centre.dto.member.CoachQueryRequest;
 import com.fitness_centre.dto.member.SubscriptionRequest;
 import com.fitness_centre.security.LoginUser;
-import com.fitness_centre.service.biz.interfaces.CoachService;
-import com.fitness_centre.service.biz.interfaces.LocationService;
-import com.fitness_centre.service.biz.interfaces.SubscriptionService;
-import com.fitness_centre.service.biz.interfaces.TagService;
+import com.fitness_centre.service.biz.interfaces.*;
 import org.apache.ibatis.annotations.Delete;
 import org.ietf.jgss.GSSName;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,6 +43,9 @@ public class MemberController {
 
     @Autowired
     private SubscriptionService subscriptionService;
+
+    @Autowired
+    private SessionBookingService sessionBookingService;
 
     @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).MEMBER.getRole())")
     @GetMapping("/coachList")
@@ -102,7 +102,15 @@ public class MemberController {
     @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).MEMBER.getRole())")
     @DeleteMapping("/subscription/{id}")
     public GeneralResponseResult cancel(@PathVariable("id") Long requestId){
+        //todo 取消订阅
         return null;
     }
 
+    @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).MEMBER.getRole())")
+    @GetMapping("/appropriateTimeList/{id}")
+    public GeneralResponseResult getAppropriateBookingTime(@PathVariable("id") Long coachId,Authentication authentication){
+        LoginUser loginUser = (LoginUser) authentication.getPrincipal();
+        System.out.println(coachId);
+        return sessionBookingService.getAppropriateBookingTime(coachId,60);
+    }
 }
