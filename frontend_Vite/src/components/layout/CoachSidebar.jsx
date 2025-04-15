@@ -51,8 +51,10 @@ const CoachSidebar = ({ colorToken, onCollapse }) => {
       refetchUnreadCount();
       
       // 如果当前在订阅请求页面，自动刷新请求列表
-      if (activeMenu === 'subscriptions') {
+      if (activeMenu === 'subscription-requests') {
         window.dispatchEvent(new Event('refresh-subscription-requests'));
+      } else if (activeMenu === 'session-requests') {
+        window.dispatchEvent(new Event('refresh-coach-session-requests'));
       }
     };
     
@@ -65,8 +67,10 @@ const CoachSidebar = ({ colorToken, onCollapse }) => {
   
   // 监听未读计数变化，如果当前在订阅请求页面且有未读消息，自动刷新请求列表
   useEffect(() => {
-    if (activeMenu === 'subscriptions' && unreadCount > 0) {
+    if (activeMenu === 'subscription-requests' && unreadCount > 0) {
       window.dispatchEvent(new Event('refresh-subscription-requests'));
+    } else if (activeMenu === 'session-requests' && unreadCount > 0) {
+      window.dispatchEvent(new Event('refresh-coach-session-requests'));
     }
   }, [unreadCount, activeMenu]);
   
@@ -106,14 +110,19 @@ const CoachSidebar = ({ colorToken, onCollapse }) => {
     }
     
     // 如果点击的是订阅请求菜单项，强制刷新未读计数
-    if (key === 'subscriptions') {
+    if (key === 'subscription-requests') {
       // 强制刷新未读计数
       refetchUnreadCount();
       // 触发订阅请求列表刷新事件
       window.dispatchEvent(new Event('refresh-subscription-requests'));
+    } else if (key === 'session-requests') {
+      // 强制刷新未读计数
+      refetchUnreadCount();
+      // 触发会话请求列表刷新事件
+      window.dispatchEvent(new Event('refresh-coach-session-requests'));
     }
     
-    if (key === 'dashboard' || key === 'subscriptions' || key === 'schedule' || key === 'members' || key === 'settings' || key === 'availability') {
+    if (key === 'dashboard' || key === 'subscription-requests' || key === 'session-requests' || key === 'schedule' || key === 'members' || key === 'settings' || key === 'availability') {
       navigate('/coach/dashboard');
       return;
     }
@@ -151,6 +160,7 @@ const CoachSidebar = ({ colorToken, onCollapse }) => {
         theme="dark"
         mode="inline"
         selectedKeys={[activeMenu]}
+        defaultOpenKeys={['requests']}
         onClick={handleMenuItemClick}
         items={[
           {
@@ -174,27 +184,41 @@ const CoachSidebar = ({ colorToken, onCollapse }) => {
             label: 'My Members',
           },
           {
-            key: 'subscriptions',
-            icon: <BellOutlined />,
-            label: (
-              <span>
-                Requests
-                {unreadCount > 0 && (
-                  <Badge 
-                    count={unreadCount} 
-                    size="small" 
-                    style={{ 
-                      marginLeft: 6, 
-                      fontSize: '10px', 
-                      padding: '0 4px',
-                      height: '16px',
-                      lineHeight: '16px',
-                      boxShadow: 'none' 
-                    }} 
-                  />
-                )}
-              </span>
+            key: 'requests',
+            icon: (
+              <Badge dot={unreadCount > 0}>
+                <BellOutlined />
+              </Badge>
             ),
+            label: 'Requests',
+            children: [
+              {
+                key: 'subscription-requests',
+                label: (
+                  <span>
+                    Subscription
+                    {unreadCount > 0 && (
+                      <Badge 
+                        count={unreadCount} 
+                        size="small" 
+                        style={{ 
+                          marginLeft: 6, 
+                          fontSize: '10px', 
+                          padding: '0 4px',
+                          height: '16px',
+                          lineHeight: '16px',
+                          boxShadow: 'none' 
+                        }} 
+                      />
+                    )}
+                  </span>
+                ),
+              },
+              {
+                key: 'session-requests',
+                label: 'Session',
+              }
+            ]
           },
           {
             key: 'availability',

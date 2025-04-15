@@ -264,6 +264,44 @@ export const coachApi = baseApi.injectEndpoints({
         body: patch // 发送包含 dayOfWeek, startTime, endTime 的对象
       }),
       invalidatesTags: ['Availability'] // 成功后刷新数据
+    }),
+
+    // 获取Session请求列表
+    getSessionRequests: builder.query({
+      query: (params = {}) => {
+        const { pageNow = 1, pageSize = 10, statusList } = params;
+        
+        // Build query parameters
+        const queryParams = new URLSearchParams();
+        queryParams.append('pageNow', pageNow);
+        queryParams.append('pageSize', pageSize);
+        // 添加时间戳参数，确保不使用缓存
+        queryParams.append('_t', Date.now());
+        
+        // 处理状态列表
+        if (statusList && statusList.length > 0) {
+          statusList.forEach(status => {
+            queryParams.append('statusList', status);
+          });
+        }
+        
+        return {
+          url: `/coach/session-requests?${queryParams.toString()}`,
+          method: 'GET'
+        };
+      },
+      // 确保每次调用都是新的请求，不使用缓存
+      keepUnusedDataFor: 0,
+      providesTags: ['SessionRequests']
+    }),
+    
+    // 标记Session请求为已读
+    markSessionRequestAsRead: builder.mutation({
+      query: (requestId) => ({
+        url: `/coach/session/${requestId}/read`,
+        method: 'PATCH'
+      }),
+      invalidatesTags: ['UnreadCount', 'SessionRequests']
     })
   })
 });
@@ -289,5 +327,7 @@ export const {
   useAddAvailabilityMutation,
   useGetAvailabilityQuery,
   useDeleteAvailabilityMutation,
-  useUpdateAvailabilityMutation
+  useUpdateAvailabilityMutation,
+  useGetSessionRequestsQuery,
+  useMarkSessionRequestAsReadMutation
 } = coachApi;

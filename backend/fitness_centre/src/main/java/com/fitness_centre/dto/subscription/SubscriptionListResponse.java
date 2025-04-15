@@ -1,4 +1,4 @@
-package com.fitness_centre.dto.coach;
+package com.fitness_centre.dto.subscription;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;

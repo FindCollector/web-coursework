@@ -34,6 +34,7 @@ import { useCheckCoachDetailsQuery } from '../../store/api/coachApi';
 import { useLogoutMutation } from '../../store/api/authApi';
 import PageTransition from '../../components/PageTransition';
 import SubscriptionRequests from './SubscriptionRequests';
+import SessionRequests from './SessionRequests';
 import CoachSidebar from '../../components/layout/CoachSidebar';
 import Availability from './Availability';
 
@@ -126,8 +127,10 @@ const CoachDashboard = () => {
     switch (activeMenu) {
       case 'dashboard':
         return renderDashboardContent();
-      case 'subscriptions':
+      case 'subscription-requests':
         return <SubscriptionRequests />;
+      case 'session-requests':
+        return <SessionRequests />;
       case 'availability':
         return <Availability />;
       default:
@@ -277,7 +280,8 @@ const CoachDashboard = () => {
               {activeMenu === 'profile' && 'Profile Management'}
               {activeMenu === 'schedule' && 'Schedule Management'}
               {activeMenu === 'members' && 'Member Management'}
-              {activeMenu === 'subscriptions' && 'Subscription Requests'}
+              {activeMenu === 'subscription-requests' && 'Subscription Requests'}
+              {activeMenu === 'session-requests' && 'Session Requests'}
               {activeMenu === 'availability' && 'Availability Management'}
               {activeMenu === 'settings' && 'Settings'}
             </div>

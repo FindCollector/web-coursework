@@ -77,3 +77,9 @@ button:focus-visible {
 .ant-picker-time-panel-column .ant-picker-time-panel-cell-disabled {
   display: none;
 }
+
+/* Ensure both Saturday and Sunday have a light yellow background in FullCalendar */
+.fc-day-sat,
+.fc-day-sun {
+  background-color: #fffacd; /* LemonChiffon - a light yellow */
+}

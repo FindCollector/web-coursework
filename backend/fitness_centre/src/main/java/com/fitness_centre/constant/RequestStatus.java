@@ -17,7 +17,9 @@ public enum RequestStatus {
 
     REJECT("reject","Reject"),
 
-    ACCEPT("accept","Accept");
+    ACCEPT("accept","Accept"),
+
+    CANCEL("cancel","Cancel");
 
     private final String status;
     private final String desc;

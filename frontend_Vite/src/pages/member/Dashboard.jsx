@@ -7,6 +7,7 @@ import {
   HistoryOutlined,
   LogoutOutlined,
   BellOutlined,
+  ScheduleOutlined,
 } from '@ant-design/icons';
 import CoachList from '../../components/CoachList';
 import { useSelector, useDispatch } from 'react-redux';
@@ -15,6 +16,8 @@ import { logout as logoutAction } from '../../store/authSlice';
 import { useLogoutMutation } from '../../store/api/authApi';
 import { useGetMemberUnreadRequestsCountQuery } from '../../store/api/memberApi';
 import SubscriptionRequests from './SubscriptionRequests';
+import SessionRequests from './SessionRequests';
+import BookingSession from './BookingSession';
 
 // Note: We are using Header from Layout, but positioning it manually outside the main Layout flow.
 const { Content, Sider, Header } = Layout;
@@ -50,8 +53,12 @@ const MemberDashboard = () => {
       refetchUnreadCount();
       
       // 如果当前在请求页面，自动刷新请求列表
-      if (activeMenu === 'requests') {
-        window.dispatchEvent(new Event('refresh-requests'));
+      if (activeMenu === 'subscription-requests' || activeMenu === 'session-requests') {
+        if (activeMenu === 'subscription-requests') {
+          window.dispatchEvent(new Event('refresh-requests'));
+        } else if (activeMenu === 'session-requests') {
+          window.dispatchEvent(new Event('refresh-session-requests'));
+        }
       }
     };
     
@@ -64,8 +71,10 @@ const MemberDashboard = () => {
   
   // 监听未读计数变化，如果当前在请求页面且有未读消息，自动刷新请求列表
   useEffect(() => {
-    if (activeMenu === 'requests' && unreadCount > 0) {
+    if (activeMenu === 'subscription-requests' && unreadCount > 0) {
       window.dispatchEvent(new Event('refresh-requests'));
+    } else if (activeMenu === 'session-requests' && unreadCount > 0) {
+      window.dispatchEvent(new Event('refresh-session-requests'));
     }
   }, [unreadCount, activeMenu]);
 
@@ -91,13 +100,46 @@ const MemberDashboard = () => {
       label: 'Find Coaches',
     },
     {
+      key: 'booking',
+      icon: <CalendarOutlined />,
+      label: 'Booking Session',
+    },
+    {
       key: 'requests',
       icon: (
-        <Badge count={unreadCount} size="small" offset={[10, 0]}>
+        <Badge dot={unreadCount > 0} size="small">
           <BellOutlined />
         </Badge>
       ),
       label: 'My Requests',
+      children: [
+        {
+          key: 'subscription-requests',
+          label: (
+            <span>
+              Subscription
+              {unreadCount > 0 && (
+                <Badge 
+                  count={unreadCount} 
+                  size="small" 
+                  style={{ 
+                    marginLeft: 6, 
+                    fontSize: '10px', 
+                    padding: '0 4px',
+                    height: '16px',
+                    lineHeight: '16px',
+                    boxShadow: 'none' 
+                  }} 
+                />
+              )}
+            </span>
+          ),
+        },
+        {
+          key: 'session-requests',
+          label: 'Session',
+        }
+      ]
     },
     {
       key: 'schedule',
@@ -117,6 +159,14 @@ const MemberDashboard = () => {
   ];
 
   const getPageTitle = (key) => {
+    // 处理子菜单项
+    if (key === 'subscription-requests') {
+      return 'Subscription Requests';
+    } else if (key === 'session-requests') {
+      return 'Session Requests';
+    }
+    
+    // 处理主菜单项
     const item = menuItems.find(item => item.key === key);
     return item ? item.label : 'Fitness Center';
   };
@@ -126,8 +176,12 @@ const MemberDashboard = () => {
     setActiveMenu(key);
     
     // 当切换到请求页面时，触发请求刷新事件
-    if (key === 'requests') {
+    if (key === 'subscription-requests') {
       window.dispatchEvent(new Event('refresh-requests'));
+      // 同时刷新未读计数
+      refetchUnreadCount();
+    } else if (key === 'session-requests') {
+      window.dispatchEvent(new Event('refresh-session-requests'));
       // 同时刷新未读计数
       refetchUnreadCount();
     }
@@ -137,8 +191,12 @@ const MemberDashboard = () => {
     switch (activeMenu) {
       case 'coaches':
         return <CoachList />;
-      case 'requests':
+      case 'booking':
+        return <BookingSession />;
+      case 'subscription-requests':
         return <SubscriptionRequests />;
+      case 'session-requests':
+        return <SessionRequests />;
       case 'schedule':
       case 'favorites':
       case 'history':
@@ -222,6 +280,7 @@ const MemberDashboard = () => {
           <Menu
             mode="inline"
             selectedKeys={[activeMenu]}
+            defaultOpenKeys={['requests']}
             onClick={({ key }) => handleMenuChange(key)}
             items={menuItems}
             className="border-r-0"

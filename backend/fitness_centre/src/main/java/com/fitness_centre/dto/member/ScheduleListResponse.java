@@ -11,23 +11,35 @@ import java.time.LocalTime;
 
 /**
  * @author
- * @Classname BookingRequest
+ * @Classname SessionListResponse
  * @Description TODO
- * @date 13/04/2025
+ * @date 14/04/2025
  */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class BookingRequest {
+public class ScheduleListResponse {
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
+    @JsonSerialize(using = ToStringSerializer.class)
+    private Long id;
+
     @JsonFormat(shape = JsonFormat.Shape.STRING)
     @JsonSerialize(using = ToStringSerializer.class)
     private Long coachId;
+
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
+    @JsonSerialize(using = ToStringSerializer.class)
+    private Long memberId;
     private Integer dayOfWeek;
-    @JsonFormat(pattern = "HH:mm") // 控制 JSON 输出格式为 HH:mm
+
+    @JsonFormat(pattern = "HH:mm")
     private LocalTime startTime;
 
-    @JsonFormat(pattern = "HH:mm") // 控制 JSON 输出格式为 HH:mm
+    @JsonFormat(pattern = "HH:mm")
     private LocalTime endTime;
 
-    private String message;
+    private String coachName;
+
+    private String memberName;
 }

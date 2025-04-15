@@ -7,27 +7,33 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalTime;
+import java.util.List;
 
 /**
  * @author
- * @Classname BookingRequest
+ * @Classname SubscriptionCoach
  * @Description TODO
- * @date 13/04/2025
+ * @date 15/04/2025
  */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class BookingRequest {
+public class SubscriptionCoach {
     @JsonFormat(shape = JsonFormat.Shape.STRING)
     @JsonSerialize(using = ToStringSerializer.class)
     private Long coachId;
-    private Integer dayOfWeek;
-    @JsonFormat(pattern = "HH:mm") // 控制 JSON 输出格式为 HH:mm
-    private LocalTime startTime;
 
-    @JsonFormat(pattern = "HH:mm") // 控制 JSON 输出格式为 HH:mm
-    private LocalTime endTime;
+    private String coachName;
 
-    private String message;
+    private String photo;
+
+    private Integer age;
+
+    private String email;
+
+    private String intro;
+
+    private List<String> tagNames;
+
+    private List<String> locationName;
 }

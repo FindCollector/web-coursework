@@ -8,24 +8,28 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fitness_centre.constant.ErrorCode;
 import com.fitness_centre.constant.RequestStatus;
 import com.fitness_centre.constant.UserRole;
-import com.fitness_centre.domain.Subscription;
+import com.fitness_centre.domain.*;
 import com.fitness_centre.dto.GeneralResponseResult;
-import com.fitness_centre.dto.coach.SubscriptionListResponse;
+import com.fitness_centre.dto.subscription.SubscriptionListResponse;
+import com.fitness_centre.dto.member.SubscriptionCoach;
 import com.fitness_centre.dto.member.SubscriptionRequest;
 import com.fitness_centre.exception.BusinessException;
 import com.fitness_centre.exception.SystemException;
-import com.fitness_centre.mapper.SubscriptionMapper;
+import com.fitness_centre.mapper.*;
 import com.fitness_centre.service.biz.interfaces.SubscriptionService;
 import com.fitness_centre.utils.DateUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Period;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * @author
@@ -38,6 +42,18 @@ public class SubscriptionServiceImpl extends ServiceImpl<SubscriptionMapper,Subs
 
     @Autowired
     private DateUtil dateUtil;
+
+    @Autowired
+    private UserMapper userMapper;
+
+    @Autowired
+    private CoachMapper coachMapper;
+
+    @Autowired
+    private CoachTagMapper coachTagMapper;
+
+    @Autowired
+    private CoachLocationMapper coachLocationMapper;
 
 
     /**
@@ -156,7 +172,7 @@ public class SubscriptionServiceImpl extends ServiceImpl<SubscriptionMapper,Subs
      * @param statusList request的状态
      */
     @Override
-    public IPage<SubscriptionListResponse> memberSubscriptionList(Long memberId, int pageNow, int pageSize, List<String> statusList) {
+    public IPage<SubscriptionListResponse> memberSubscriptionRequestList(Long memberId, int pageNow, int pageSize, List<String> statusList) {
         Page page = new Page<>(pageNow,pageSize);
         return this.baseMapper.findSubscriptionByMemberId(page,memberId,statusList);
     }
@@ -222,7 +238,7 @@ public class SubscriptionServiceImpl extends ServiceImpl<SubscriptionMapper,Subs
      * @param reply 文字回复
      */
     @Override
-    public GeneralResponseResult CoachHandleRequest(Long requestId, Long coachId,RequestStatus status,String reply) {
+    public GeneralResponseResult coachHandleRequest(Long requestId, Long coachId,RequestStatus status,String reply) {
         if(Objects.isNull(reply)){
             throw new BusinessException(ErrorCode.INVALID_PARAMETER.getCode(),"Please bring your reply");
         }
@@ -248,5 +264,62 @@ public class SubscriptionServiceImpl extends ServiceImpl<SubscriptionMapper,Subs
 
 
     //todo 取消订阅
+    public GeneralResponseResult memberCancelSubscription(Long memberId,Long coachId){
+        LambdaUpdateWrapper<Subscription> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(Subscription::getCoachId,coachId)
+                .eq(Subscription::getMemberId,memberId)
+                .set(Subscription::getStatus,RequestStatus.CANCEL)
+                .set(Subscription::getCancelTime,LocalDateTime.now());
+        int row = this.baseMapper.update(updateWrapper);
+        if(row <= 0){
+            throw new SystemException(ErrorCode.DB_OPERATION_ERROR);
+        }
+        return new GeneralResponseResult(ErrorCode.SUCCESS);
+    }
+
+    @Override
+    public GeneralResponseResult mySubscriptionCoach(Long memberId) {
+        LambdaQueryWrapper<Subscription> subscriptionLambdaQueryWrapper = new LambdaQueryWrapper<>();
+        subscriptionLambdaQueryWrapper.eq(Subscription::getMemberId,memberId)
+                .eq(Subscription::getStatus,RequestStatus.ACCEPT);
+
+        List<Subscription> subscriptionList = this.baseMapper.selectList(subscriptionLambdaQueryWrapper);
+
+        List<SubscriptionCoach> subscriptionCoachList = subscriptionList.stream()
+                .map(subscription -> {
+                    LambdaQueryWrapper<User> userLambdaQueryWrapper = new LambdaQueryWrapper<>();
+                    userLambdaQueryWrapper.eq(User::getId,subscription.getCoachId());
+                    User user = userMapper.selectOne(userLambdaQueryWrapper);
+                    String coachName = user.getUserName();
+                    String email = user.getEmail();
+                    Integer age = Period.between(user.getBirthday(), LocalDate.now()).getYears();
+
+                    LambdaQueryWrapper<CoachInfo> coachInfoLambdaQueryWrapper = new LambdaQueryWrapper<>();
+                    coachInfoLambdaQueryWrapper.eq(CoachInfo::getId,subscription.getCoachId());
+                    CoachInfo coachInfo = coachMapper.selectOne(coachInfoLambdaQueryWrapper);
+                    String intro = coachInfo.getIntro();
+                    String photo = coachInfo.getPhoto();
+
+                    List<Tag> tagList = coachTagMapper.selectTagsByCoachId(subscription.getCoachId());
+                    List<String> tagNames = tagList.stream()
+                            .map(tag -> tag.getTagName()).collect(Collectors.toList());
+
+                    List<Location> locationList = coachLocationMapper.selectLocationsByCoachId(subscription.getCoachId());
+                    List<String> locationNames = locationList.stream()
+                            .map(location -> location.getLocationName()).collect(Collectors.toList());
+
+                    return new SubscriptionCoach(
+                            subscription.getCoachId(),
+                            coachName,
+                            photo,
+                            age,
+                            email,
+                            intro,
+                            tagNames,
+                            locationNames
+                    );
+                }).collect(Collectors.toList());
+        return new GeneralResponseResult(ErrorCode.SUCCESS,subscriptionCoachList);
+    }
 
 }

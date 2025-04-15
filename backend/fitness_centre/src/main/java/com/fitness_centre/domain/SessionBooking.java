@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
+import com.fitness_centre.constant.RequestStatus;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -42,5 +43,22 @@ public class SessionBooking implements Serializable {
     private LocalDateTime endTime;
 
 
-    private String status;
+    private RequestStatus status;
+
+    private String reply;
+
+    private String message;
+
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm")
+    private LocalDateTime requestTime;
+
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm")
+    private LocalDateTime responseTime;
+
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm")
+    private LocalDateTime cancelTime;
+
+    private Boolean coachIsRead;
+
+    private Boolean memberIsRead;
 }

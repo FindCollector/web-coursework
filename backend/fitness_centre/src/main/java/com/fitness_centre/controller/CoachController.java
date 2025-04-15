@@ -6,12 +6,12 @@ import com.fitness_centre.constant.UserRole;
 import com.fitness_centre.dto.coach.AvailabilitySetRequest;
 import com.fitness_centre.dto.coach.CoachInfoUpdateRequest;
 import com.fitness_centre.dto.GeneralResponseResult;
-import com.fitness_centre.dto.coach.SubscriptionListResponse;
+import com.fitness_centre.dto.subscription.SubscriptionListResponse;
 import com.fitness_centre.security.LoginUser;
 import com.fitness_centre.service.biz.interfaces.AvailabilityService;
 import com.fitness_centre.service.biz.interfaces.CoachService;
+import com.fitness_centre.service.biz.interfaces.SessionBookingService;
 import com.fitness_centre.service.biz.interfaces.SubscriptionService;
-import org.apache.ibatis.annotations.Delete;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -38,6 +38,9 @@ public class CoachController {
 
     @Autowired
     private AvailabilityService availabilityService;
+
+    @Autowired
+    private SessionBookingService sessionBookingService;
 
     //上传文件
     @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).COACH.getRole())")
@@ -108,7 +111,7 @@ public class CoachController {
         LoginUser loginUser = (LoginUser) authentication.getPrincipal();
         Long userId = loginUser.getId();
         String reply = (String)requestBody.get("reply");
-        return subscriptionService.CoachHandleRequest(requestId,userId, RequestStatus.ACCEPT,reply);
+        return subscriptionService.coachHandleRequest(requestId,userId, RequestStatus.ACCEPT,reply);
     }
 
     @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).COACH.getRole())")
@@ -119,8 +122,9 @@ public class CoachController {
         LoginUser loginUser = (LoginUser) authentication.getPrincipal();
         Long userId = loginUser.getId();
         String reply = (String)requestBody.get("reply");
-        return subscriptionService.CoachHandleRequest(requestId,userId, RequestStatus.REJECT,reply);
+        return subscriptionService.coachHandleRequest(requestId,userId, RequestStatus.REJECT,reply);
     }
+    //--------------------------------------- 空闲时间 --------------------------------------------
 
     @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).COACH.getRole())")
     @PatchMapping("/availability/{id}")
@@ -151,6 +155,16 @@ public class CoachController {
         return availabilityService.getAllAvailability(userId);
     }
 
-
+    //--------------------------------------- 课程预定 --------------------------------------------
+    @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).COACH.getRole())")
+    @GetMapping("/session-requests")
+    public GeneralResponseResult sessionRequestList(Authentication authentication,
+                                                    @RequestParam(defaultValue = "1")int pageNow,
+                                                    @RequestParam(defaultValue = "10") int pageSize,
+                                                    @RequestParam(required = false)List<RequestStatus> statusList){
+        LoginUser loginUser = (LoginUser) authentication.getPrincipal();
+        Long userId = loginUser.getId();
+        return sessionBookingService.getBookingRequest(userId,pageNow,pageSize,statusList,UserRole.COACH);
+    }
 
 }
