@@ -78,8 +78,10 @@ button:focus-visible {
   display: none;
 }
 
-/* Ensure both Saturday and Sunday have a light yellow background in FullCalendar */
+/* Removed weekend highlighting to fix Wednesday issue */
+/* 
 .fc-day-sat,
 .fc-day-sun {
-  background-color: #fffacd; /* LemonChiffon - a light yellow */
+  background-color: #fffacd; 
 }
+*/

@@ -7,15 +7,14 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fitness_centre.constant.ErrorCode;
 import com.fitness_centre.constant.RequestStatus;
 import com.fitness_centre.constant.UserRole;
-import com.fitness_centre.constant.UserStatus;
 import com.fitness_centre.domain.Availability;
 import com.fitness_centre.domain.SessionBooking;
 import com.fitness_centre.domain.Subscription;
 import com.fitness_centre.domain.User;
 import com.fitness_centre.dto.GeneralResponseResult;
 import com.fitness_centre.dto.member.BookingRequest;
-import com.fitness_centre.dto.member.ScheduleListResponse;
-import com.fitness_centre.dto.member.SessionListResponse;
+import com.fitness_centre.dto.session.ScheduleListResponse;
+import com.fitness_centre.dto.session.SessionListResponse;
 import com.fitness_centre.dto.member.TimeSlotRequest;
 import com.fitness_centre.exception.BusinessException;
 import com.fitness_centre.exception.SystemException;
@@ -464,7 +463,8 @@ public class SessionBookingServiceImpl extends ServiceImpl<SessionBookingMapper,
                             startTime,
                             endTime,
                             coachName,
-                            memberName
+                            memberName,
+                            booking.getMessage()
                             );
                 })
                 .filter(Objects::nonNull)
@@ -487,8 +487,14 @@ public class SessionBookingServiceImpl extends ServiceImpl<SessionBookingMapper,
     public GeneralResponseResult getBookingRequest(Long userId, int pageNow, int pageSize, List<RequestStatus> statusList,UserRole role){
         LambdaQueryWrapper<SessionBooking> queryWrapper = new LambdaQueryWrapper<>();
         switch (role){
-            case MEMBER -> queryWrapper.eq(SessionBooking::getMemberId,userId);
-            case COACH -> queryWrapper.eq(SessionBooking::getCoachId,userId);
+            case MEMBER -> {
+                queryWrapper.eq(SessionBooking::getMemberId,userId);
+                queryWrapper.orderByAsc(SessionBooking::getMemberIsRead);
+            }
+            case COACH -> {
+                queryWrapper.eq(SessionBooking::getCoachId,userId);
+                queryWrapper.orderByAsc(SessionBooking::getCoachIsRead);
+            }
             default -> throw new BusinessException(ErrorCode.INVALID_PARAMETER.getCode(),"Illegal roles");
         }
 
@@ -496,7 +502,7 @@ public class SessionBookingServiceImpl extends ServiceImpl<SessionBookingMapper,
             queryWrapper.in(SessionBooking::getStatus,statusList);
         }
         //排序
-        queryWrapper.orderByDesc(SessionBooking::getResponseTime).orderByDesc(SessionBooking::getRequestTime);
+        queryWrapper.orderByDesc(SessionBooking::getRequestTime);
 
         // 创建分页对象，pageNow 表示当前页数，pageSize 表示每页显示的记录数
         Page<SessionBooking> bookingPage = new Page<>(pageNow, pageSize);

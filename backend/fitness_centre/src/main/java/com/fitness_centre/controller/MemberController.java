@@ -9,7 +9,7 @@ import com.fitness_centre.dto.subscription.SubscriptionListResponse;
 import com.fitness_centre.dto.member.BookingRequest;
 import com.fitness_centre.dto.member.CoachDetailsResponse;
 import com.fitness_centre.dto.member.CoachQueryRequest;
-import com.fitness_centre.dto.member.SubscriptionRequest;
+import com.fitness_centre.dto.subscription.SubscriptionRequest;
 import com.fitness_centre.security.LoginUser;
 import com.fitness_centre.service.biz.interfaces.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -139,7 +139,7 @@ public class MemberController {
     }
 
     @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).MEMBER.getRole())")
-    @PatchMapping("/bookingSession/{id}")
+    @PatchMapping("/cancelSession/{id}")
     public GeneralResponseResult cancelBooking(@PathVariable("id") Long id,Authentication authentication){
         LoginUser loginUser = (LoginUser) authentication.getPrincipal();
         Long userId = loginUser.getId();

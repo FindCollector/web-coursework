@@ -76,7 +76,8 @@ const SessionRequests = () => {
     { label: 'Pending', value: 'PENDING' },
     { label: 'Accepted', value: 'ACCEPT' },
     { label: 'Rejected', value: 'REJECT' },
-    { label: 'Cancelled', value: 'CANCEL' }
+    { label: 'Cancelled', value: 'CANCEL' },
+    { label: 'Withdrawn', value: 'WITHDRAWN' }
   ];
 
   // 处理撤回请求
@@ -147,7 +148,8 @@ const SessionRequests = () => {
           PENDING: 'gold',
           ACCEPT: 'green',
           REJECT: 'red',
-          CANCEL: 'grey'
+          CANCEL: 'grey',
+          WITHDRAWN: 'purple'
         };
         
         // 获取颜色，如果状态不在映射中则使用灰色
@@ -173,6 +175,12 @@ const SessionRequests = () => {
       dataIndex: 'requestTime',
       key: 'requestTime',
       render: (time) => dayjs(time).format('YYYY-MM-DD HH:mm'),
+    },
+    {
+      title: 'Response Time',
+      dataIndex: 'responseTime',
+      key: 'responseTime',
+      render: (time) => time ? dayjs(time).format('YYYY-MM-DD HH:mm') : 'N/A',
     },
     {
       title: 'Actions',
@@ -321,13 +329,14 @@ const SessionRequests = () => {
                   PENDING: 'gold',
                   ACCEPT: 'green',
                   REJECT: 'red',
-                  CANCEL: 'grey'
+                  CANCEL: 'grey',
+                  WITHDRAWN: 'purple'
                 };
                 const color = colorMap[selectedRequest.status] || 'default';
                 return <Tag color={color}>{selectedRequest.status}</Tag>;
               })()}
             </Descriptions.Item>
-            <Descriptions.Item label="Message">{selectedRequest.message}</Descriptions.Item>
+            <Descriptions.Item label="Fitness Goals">{selectedRequest.message}</Descriptions.Item>
             <Descriptions.Item label="Start Time">
               {dayjs(selectedRequest.startTime).format('YYYY-MM-DD HH:mm')}
             </Descriptions.Item>
@@ -343,7 +352,7 @@ const SessionRequests = () => {
                 <Descriptions.Item label="Response Time">
                   {selectedRequest.responseTime ? dayjs(selectedRequest.responseTime).format('YYYY-MM-DD HH:mm') : '-'}
                 </Descriptions.Item>
-                <Descriptions.Item label="Reply">
+                <Descriptions.Item label="Coach's Response">
                   {selectedRequest.reply || '-'}
                 </Descriptions.Item>
               </>

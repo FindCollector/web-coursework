@@ -191,4 +191,12 @@ public class CoachController {
         String reply = (String) map.get("reply");
         return sessionBookingService.coachHandleRequest(requestId,userId,status,reply);
     }
+
+    @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).COACH.getRole())")
+    @GetMapping("/sessionSchedule")
+    public GeneralResponseResult sessionSchedule(Authentication authentication){
+        LoginUser loginUser = (LoginUser) authentication.getPrincipal();
+        Long userId = loginUser.getId();
+        return sessionBookingService.getBookingSchedule(userId,UserRole.COACH);
+    }
 }

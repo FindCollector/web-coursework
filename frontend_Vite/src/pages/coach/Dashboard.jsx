@@ -37,6 +37,7 @@ import SubscriptionRequests from './SubscriptionRequests';
 import SessionRequests from './SessionRequests';
 import CoachSidebar from '../../components/layout/CoachSidebar';
 import Availability from './Availability';
+import CoachSchedule from './CoachSchedule';
 
 const { Title, Text } = Typography;
 const { Header, Content } = Layout;
@@ -133,6 +134,8 @@ const CoachDashboard = () => {
         return <SessionRequests />;
       case 'availability':
         return <Availability />;
+      case 'schedule':
+        return <CoachSchedule />;
       default:
         return (
           <div className="flex flex-col items-center justify-center h-64">

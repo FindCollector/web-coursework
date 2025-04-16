@@ -7,7 +7,7 @@ import com.fitness_centre.constant.UserRole;
 import com.fitness_centre.domain.Subscription;
 import com.fitness_centre.dto.GeneralResponseResult;
 import com.fitness_centre.dto.subscription.SubscriptionListResponse;
-import com.fitness_centre.dto.member.SubscriptionRequest;
+import com.fitness_centre.dto.subscription.SubscriptionRequest;
 
 import java.util.List;
 

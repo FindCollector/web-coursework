@@ -192,6 +192,36 @@ export const memberApi = baseApi.injectEndpoints({
       // 撤回成功后，使相关缓存失效，强制重新获取
       invalidatesTags: ['MemberSessionRequests', 'MemberUnreadSessionCount']
     }),
+
+    // 获取会员训练日程表
+    getMemberSessionSchedule: builder.query({
+      query: () => ({
+        url: '/member/sessionSchedule',
+        method: 'GET',
+        // 添加时间戳确保获取最新数据
+        params: { _t: Date.now() }
+      }),
+      transformResponse: (response) => {
+        if (response.code === 0 && response.data) {
+          return response.data;
+        }
+        // 处理错误情况
+        console.error('Failed to fetch member session schedule:', response.msg);
+        return { calenderView: {}, listView: [] };
+      },
+      // 禁用缓存，确保每次查询都是全新的请求
+      keepUnusedDataFor: 0,
+      providesTags: ['MemberSessionSchedule']
+    }),
+
+    // 会员取消Session
+    cancelMemberSession: builder.mutation({
+      query: (sessionId) => ({
+        url: `/member/cancelSession/${sessionId}`,
+        method: 'PATCH'
+      }),
+      invalidatesTags: ['MemberSessionSchedule']
+    }),
   }),
 });
 
@@ -207,5 +237,7 @@ export const {
   useGetCoachAppropriateTimeListQuery,
   useBookSessionMutation,
   useGetMemberUnreadSessionCountQuery,
-  useWithdrawSessionRequestMutation
+  useWithdrawSessionRequestMutation,
+  useGetMemberSessionScheduleQuery,
+  useCancelMemberSessionMutation
 } = memberApi; 

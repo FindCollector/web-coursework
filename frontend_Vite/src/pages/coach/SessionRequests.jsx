@@ -103,11 +103,6 @@ const SessionRequests = () => {
       ),
     },
     {
-      title: 'Coach Name',
-      dataIndex: 'coachName',
-      key: 'coachName',
-    },
-    {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
@@ -147,6 +142,12 @@ const SessionRequests = () => {
       dataIndex: 'requestTime',
       key: 'requestTime',
       render: (time) => dayjs(time).format('YYYY-MM-DD HH:mm'),
+    },
+    {
+      title: 'Response Time',
+      dataIndex: 'responseTime',
+      key: 'responseTime',
+      render: (time) => time ? dayjs(time).format('YYYY-MM-DD HH:mm') : 'N/A',
     },
     {
       title: 'Actions',
@@ -362,7 +363,6 @@ const SessionRequests = () => {
         {selectedRequest && (
           <Descriptions bordered column={1} className="mt-4">
             <Descriptions.Item label="Member Name">{selectedRequest.memberName}</Descriptions.Item>
-            <Descriptions.Item label="Coach Name">{selectedRequest.coachName}</Descriptions.Item>
             <Descriptions.Item label="Status">
               {(() => {
                 const colorMap = {
@@ -379,7 +379,7 @@ const SessionRequests = () => {
                 return <Tag color={color}>{selectedRequest.status}</Tag>;
               })()}
             </Descriptions.Item>
-            <Descriptions.Item label="Message">{selectedRequest.message}</Descriptions.Item>
+            <Descriptions.Item label="Fitness Goals">{selectedRequest.message}</Descriptions.Item>
             <Descriptions.Item label="Start Time">
               {dayjs(selectedRequest.startTime).format('YYYY-MM-DD HH:mm')}
             </Descriptions.Item>
@@ -416,7 +416,7 @@ const SessionRequests = () => {
           <div>
             <Descriptions column={1} className="mb-4">
               <Descriptions.Item label="Member Name">{selectedRequest.memberName}</Descriptions.Item>
-              <Descriptions.Item label="Message">{selectedRequest.message}</Descriptions.Item>
+              <Descriptions.Item label="Fitness Goals">{selectedRequest.message}</Descriptions.Item>
               <Descriptions.Item label="Start Time">
                 {dayjs(selectedRequest.startTime).format('YYYY-MM-DD HH:mm')}
               </Descriptions.Item>
@@ -427,7 +427,7 @@ const SessionRequests = () => {
             
             <div className="mb-4">
               <label className="block mb-2">
-                <span className="mr-1">Reply</span>
+                <span className="mr-1">Your Response</span>
                 <span className="text-red-500 font-bold">*</span>
                 <span className="text-gray-500 text-sm ml-2">(required)</span>
               </label>
@@ -435,13 +435,13 @@ const SessionRequests = () => {
                 rows={4}
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
-                placeholder="Enter your reply to the member... (required)"
+                placeholder="Enter your response to the member's session request..."
                 status={replyText.trim() ? '' : 'error'}
                 showCount
                 maxLength={500}
               />
               {!replyText.trim() && (
-                <div className="text-red-500 mt-1 text-sm">Please enter a reply before accepting or rejecting</div>
+                <div className="text-red-500 mt-1 text-sm">You must provide a response before accepting or rejecting</div>
               )}
             </div>
             

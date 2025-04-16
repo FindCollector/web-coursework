@@ -152,6 +152,11 @@ const BookingSession = () => {
       return;
     }
     
+    if (!bookingMessage.trim()) {
+      message.error('Please describe your fitness goals for this session');
+      return;
+    }
+    
     try {
       // 准备请求数据
       const bookingData = {
@@ -159,7 +164,7 @@ const BookingSession = () => {
         dayOfWeek: parseInt(selectedDay, 10),  // 转换为整数
         startTime: selectedTimeSlot.start,
         endTime: selectedTimeSlot.end,
-        message: bookingMessage.trim() || 'No additional message'
+        message: bookingMessage.trim()
       };
       
       console.log('Submitting booking request:', bookingData);
@@ -502,6 +507,7 @@ const BookingSession = () => {
             type="primary" 
             loading={isBooking}
             onClick={handleSubmitBooking}
+            disabled={!bookingMessage.trim()}
           >
             Confirm Booking
           </Button>
@@ -515,8 +521,15 @@ const BookingSession = () => {
               <p><strong>Time:</strong> {selectedTimeSlot.start} - {selectedTimeSlot.end}</p>
             </div>
             <Form.Item 
-              label="Fitness Goals (Optional)" 
+              label={
+                <span>
+                  Fitness Goals <span className="text-red-500">*</span>
+                </span>
+              }
               name="message"
+              required
+              rules={[{ required: true, message: 'Please describe your fitness goals' }]}
+              help="Describe what you want to achieve in this session"
             >
               <TextArea 
                 rows={4} 
@@ -525,8 +538,12 @@ const BookingSession = () => {
                 onChange={e => setBookingMessage(e.target.value)}
                 maxLength={500}
                 showCount
+                status={bookingMessage.trim() ? '' : 'error'}
               />
             </Form.Item>
+            {!bookingMessage.trim() && (
+              <div className="text-red-500 mt-1 mb-3 text-sm">Please describe your fitness goals for this session</div>
+            )}
           </Form>
         )}
       </Modal>

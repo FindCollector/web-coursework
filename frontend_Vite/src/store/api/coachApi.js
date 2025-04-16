@@ -331,7 +331,28 @@ export const coachApi = baseApi.injectEndpoints({
         body: { status, reply }
       }),
       invalidatesTags: ['UnreadCount', 'SessionRequests', 'UnreadSessionCount']
-    })
+    }),
+
+    // 获取教练训练日程表
+    getCoachSessionSchedule: builder.query({
+      query: () => ({
+        url: '/coach/sessionSchedule',
+        method: 'GET',
+        // 添加时间戳确保获取最新数据
+        params: { _t: Date.now() }
+      }),
+      transformResponse: (response) => {
+        if (response.code === 0 && response.data) {
+          return response.data;
+        }
+        // 处理错误情况
+        console.error('Failed to fetch coach session schedule:', response.msg);
+        return { calenderView: {}, listView: [] }; // 保持与 memberApi 一致的错误处理
+      },
+      // 禁用缓存，确保每次查询都是全新的请求
+      keepUnusedDataFor: 0,
+      providesTags: ['CoachSessionSchedule'] // 提供标签
+    }),
   })
 });
 
@@ -360,5 +381,6 @@ export const {
   useGetSessionRequestsQuery,
   useMarkCoachSessionRequestAsReadMutation,
   useHandleSessionRequestMutation,
-  useGetUnreadSessionCountQuery
+  useGetUnreadSessionCountQuery,
+  useGetCoachSessionScheduleQuery
 } = coachApi;

@@ -1,4 +1,4 @@
-package com.fitness_centre.dto.member;
+package com.fitness_centre.dto.session;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -42,4 +42,6 @@ public class ScheduleListResponse {
     private String coachName;
 
     private String memberName;
+
+    private String message;
 }

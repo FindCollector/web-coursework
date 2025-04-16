@@ -21,6 +21,7 @@ import {
 import SubscriptionRequests from './SubscriptionRequests';
 import SessionRequests from './SessionRequests';
 import BookingSession from './BookingSession';
+import MemberSchedule from './MemberSchedule';
 
 // Note: We are using Header from Layout, but positioning it manually outside the main Layout flow.
 const { Content, Sider, Header } = Layout;
@@ -238,6 +239,7 @@ const MemberDashboard = () => {
       case 'session-requests':
         return <SessionRequests />;
       case 'schedule':
+        return <MemberSchedule />;
       case 'favorites':
       case 'history':
       default:
