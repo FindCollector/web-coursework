@@ -248,11 +248,12 @@ public class SubscriptionServiceImpl extends ServiceImpl<SubscriptionMapper,Subs
                 .set(Subscription::getStatus,status)
                 .set(Subscription::getReply,reply)
                 .set(Subscription::getResponseTime,LocalDateTime.now())
+                .set(Subscription::getCoachIsRead,true)
                 .set(Subscription::getMemberIsRead,false);
 
         try{
             int rows = this.baseMapper.update(null,updateWrapper);
-            if(rows < 0 || rows == 0){
+            if(rows <= 0){
                 throw new SystemException(ErrorCode.DB_OPERATION_ERROR);
             }
         }

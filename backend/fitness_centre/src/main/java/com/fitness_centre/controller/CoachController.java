@@ -88,8 +88,8 @@ public class CoachController {
     }
 
     @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).COACH.getRole())")
-    @GetMapping("/unreadRequest/count")
-    public GeneralResponseResult countUnreadRequest(Authentication authentication){
+    @GetMapping("/subscription/unreadRequest/count")
+    public GeneralResponseResult countUnreadSubscriptionRequest(Authentication authentication){
         LoginUser loginUser = (LoginUser) authentication.getPrincipal();
         Long userId = loginUser.getId();
         return subscriptionService.countUnreadRequest(userId,UserRole.COACH);
@@ -97,7 +97,7 @@ public class CoachController {
 
     @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).COACH.getRole())")
     @PatchMapping("/subscription/{id}/read")
-    public GeneralResponseResult readRequest(@PathVariable("id") Long requestId,Authentication authentication){
+    public GeneralResponseResult readSubscriptionRequest(@PathVariable("id") Long requestId,Authentication authentication){
         LoginUser loginUser = (LoginUser) authentication.getPrincipal();
         Long userId = loginUser.getId();
         return subscriptionService.readRequest(requestId,userId, UserRole.COACH);
@@ -105,7 +105,7 @@ public class CoachController {
 
     @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).COACH.getRole())")
     @PatchMapping("/subscription/{id}/accept")
-    public GeneralResponseResult acceptRequest(@PathVariable("id") Long requestId,
+    public GeneralResponseResult acceptSubscriptionRequest(@PathVariable("id") Long requestId,
                                                     @RequestBody Map<String,Object> requestBody,
                                                     Authentication authentication){
         LoginUser loginUser = (LoginUser) authentication.getPrincipal();
@@ -116,7 +116,7 @@ public class CoachController {
 
     @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).COACH.getRole())")
     @PatchMapping("/subscription/{id}/reject")
-    public GeneralResponseResult rejectRequest(@PathVariable("id") Long requestId,
+    public GeneralResponseResult rejectSubscriptionRequest(@PathVariable("id") Long requestId,
                                                     @RequestBody Map<String,Object> requestBody,
                                                     Authentication authentication){
         LoginUser loginUser = (LoginUser) authentication.getPrincipal();
@@ -167,4 +167,28 @@ public class CoachController {
         return sessionBookingService.getBookingRequest(userId,pageNow,pageSize,statusList,UserRole.COACH);
     }
 
+    @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).COACH.getRole())")
+    @PatchMapping("/session/request/{id}/read")
+    public GeneralResponseResult readSessionRequest(@PathVariable("id") Long requestId,Authentication authentication){
+        LoginUser loginUser = (LoginUser) authentication.getPrincipal();
+        Long userId = loginUser.getId();
+        return sessionBookingService.readRequest(requestId,userId,UserRole.COACH);
+    }
+
+    @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).COACH.getRole())")
+    @GetMapping("/session/unreadRequest/count")
+    public GeneralResponseResult countUnreadSessionRequest(Authentication authentication){
+        LoginUser loginUser = (LoginUser) authentication.getPrincipal();
+        Long userId = loginUser.getId();
+        return sessionBookingService.countUnreadRequest(userId,UserRole.COACH);
+    }
+    @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).COACH.getRole())")
+    @PatchMapping("/session/request/{id}/handle")
+    public GeneralResponseResult handleSessionRequest(@PathVariable("id")Long requestId,@RequestBody Map<String,Object> map,Authentication authentication){
+        LoginUser loginUser = (LoginUser) authentication.getPrincipal();
+        Long userId = loginUser.getId();
+        RequestStatus status = RequestStatus.valueOf((String) map.get("status"));
+        String reply = (String) map.get("reply");
+        return sessionBookingService.coachHandleRequest(requestId,userId,status,reply);
+    }
 }

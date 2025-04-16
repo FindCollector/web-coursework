@@ -13,7 +13,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { logout as logoutAction } from '../../store/authSlice';
 import { setActiveMenu } from '../../store/navSlice';
 import { useLogoutMutation } from '../../store/api/authApi';
-import { useGetUnreadRequestsCountQuery } from '../../store/api/coachApi';
+import { useGetUnreadRequestsCountQuery, useGetUnreadSessionCountQuery } from '../../store/api/coachApi';
 import { Modal, message } from 'antd';
 
 const { Sider } = Layout;
@@ -34,21 +34,40 @@ const CoachSidebar = ({ colorToken, onCollapse }) => {
   // 添加 RTK Query 的 logout mutation hook
   const [logout, { isLoading: isLoggingOut }] = useLogoutMutation();
   
-  // 获取未读请求计数
-  const { data: unreadCount = 0, refetch: refetchUnreadCount } = useGetUnreadRequestsCountQuery(null, {
+  // 获取未读订阅请求计数
+  const { 
+    data: unreadSubscriptionCount = 0, 
+    refetch: refetchUnreadSubscriptionCount 
+  } = useGetUnreadRequestsCountQuery(null, {
     pollingInterval: 60000, // 每60秒轮询一次
     refetchOnMountOrArgChange: true, // 组件挂载时始终重新获取
     refetchOnFocus: true, // 窗口获得焦点时刷新
     refetchOnReconnect: true, // 网络重连时刷新
   });
   
+  // 获取未读Session请求计数
+  const { 
+    data: unreadSessionCount = 0, 
+    refetch: refetchUnreadSessionCount 
+  } = useGetUnreadSessionCountQuery(null, {
+    pollingInterval: 60000, // 每60秒轮询一次
+    refetchOnMountOrArgChange: true, // 组件挂载时始终重新获取
+    refetchOnFocus: true, // 窗口获得焦点时刷新
+    refetchOnReconnect: true, // 网络重连时刷新
+  });
+  
+  // 计算总未读消息数
+  const totalUnreadCount = unreadSubscriptionCount + unreadSessionCount;
+  
   // 组件挂载或激活时刷新未读计数
   useEffect(() => {
-    refetchUnreadCount();
+    refetchUnreadSubscriptionCount();
+    refetchUnreadSessionCount();
     
     // 注册事件监听器，用于强制刷新计数
     const refreshHandler = () => {
-      refetchUnreadCount();
+      refetchUnreadSubscriptionCount();
+      refetchUnreadSessionCount();
       
       // 如果当前在订阅请求页面，自动刷新请求列表
       if (activeMenu === 'subscription-requests') {
@@ -63,16 +82,16 @@ const CoachSidebar = ({ colorToken, onCollapse }) => {
     return () => {
       window.removeEventListener('refresh-unread-count', refreshHandler);
     };
-  }, [refetchUnreadCount, activeMenu]);
+  }, [refetchUnreadSubscriptionCount, refetchUnreadSessionCount, activeMenu]);
   
-  // 监听未读计数变化，如果当前在订阅请求页面且有未读消息，自动刷新请求列表
+  // 监听未读计数变化，如果当前在请求页面且有未读消息，自动刷新请求列表
   useEffect(() => {
-    if (activeMenu === 'subscription-requests' && unreadCount > 0) {
+    if (activeMenu === 'subscription-requests' && unreadSubscriptionCount > 0) {
       window.dispatchEvent(new Event('refresh-subscription-requests'));
-    } else if (activeMenu === 'session-requests' && unreadCount > 0) {
+    } else if (activeMenu === 'session-requests' && unreadSessionCount > 0) {
       window.dispatchEvent(new Event('refresh-coach-session-requests'));
     }
-  }, [unreadCount, activeMenu]);
+  }, [unreadSubscriptionCount, unreadSessionCount, activeMenu]);
   
   // 处理登出
   const handleLogout = () => {
@@ -112,12 +131,12 @@ const CoachSidebar = ({ colorToken, onCollapse }) => {
     // 如果点击的是订阅请求菜单项，强制刷新未读计数
     if (key === 'subscription-requests') {
       // 强制刷新未读计数
-      refetchUnreadCount();
+      refetchUnreadSubscriptionCount();
       // 触发订阅请求列表刷新事件
       window.dispatchEvent(new Event('refresh-subscription-requests'));
     } else if (key === 'session-requests') {
       // 强制刷新未读计数
-      refetchUnreadCount();
+      refetchUnreadSessionCount();
       // 触发会话请求列表刷新事件
       window.dispatchEvent(new Event('refresh-coach-session-requests'));
     }
@@ -186,7 +205,7 @@ const CoachSidebar = ({ colorToken, onCollapse }) => {
           {
             key: 'requests',
             icon: (
-              <Badge dot={unreadCount > 0}>
+              <Badge dot={totalUnreadCount > 0}>
                 <BellOutlined />
               </Badge>
             ),
@@ -197,9 +216,9 @@ const CoachSidebar = ({ colorToken, onCollapse }) => {
                 label: (
                   <span>
                     Subscription
-                    {unreadCount > 0 && (
+                    {unreadSubscriptionCount > 0 && (
                       <Badge 
-                        count={unreadCount} 
+                        count={unreadSubscriptionCount} 
                         size="small" 
                         style={{ 
                           marginLeft: 6, 
@@ -216,7 +235,25 @@ const CoachSidebar = ({ colorToken, onCollapse }) => {
               },
               {
                 key: 'session-requests',
-                label: 'Session',
+                label: (
+                  <span>
+                    Session
+                    {unreadSessionCount > 0 && (
+                      <Badge 
+                        count={unreadSessionCount} 
+                        size="small" 
+                        style={{ 
+                          marginLeft: 6, 
+                          fontSize: '10px', 
+                          padding: '0 4px',
+                          height: '16px',
+                          lineHeight: '16px',
+                          boxShadow: 'none' 
+                        }} 
+                      />
+                    )}
+                  </span>
+                ),
               }
             ]
           },

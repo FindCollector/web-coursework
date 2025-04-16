@@ -11,12 +11,14 @@ import {
   Empty,
   Button,
   Modal,
-  Descriptions
+  Descriptions,
+  message
 } from 'antd';
 import { 
   useGetMemberSessionRequestsQuery, 
   useMarkSessionRequestAsReadMutation,
-  useGetMemberUnreadRequestsCountQuery
+  useGetMemberUnreadSessionCountQuery,
+  useWithdrawSessionRequestMutation
 } from '../../store/api/memberApi';
 import dayjs from 'dayjs';
 
@@ -29,6 +31,9 @@ const SessionRequests = () => {
   const [detailsVisible, setDetailsVisible] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [wasUnread, setWasUnread] = useState(false);
+  const [withdrawModalVisible, setWithdrawModalVisible] = useState(false);
+  const [withdrawingId, setWithdrawingId] = useState(null);
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
 
   // 使用RTK Query获取数据
   const { data, isLoading, refetch } = useGetMemberSessionRequestsQuery({
@@ -43,9 +48,12 @@ const SessionRequests = () => {
   // 添加标记已读的mutation
   const [markAsRead] = useMarkSessionRequestAsReadMutation();
   
-  // 获取未读数量查询
-  const { refetch: refetchUnreadCount } = useGetMemberUnreadRequestsCountQuery();
+  // 获取未读Session数量查询
+  const { refetch: refetchUnreadCount } = useGetMemberUnreadSessionCountQuery();
   
+  // 添加撤回Session请求的mutation
+  const [withdrawRequest] = useWithdrawSessionRequestMutation();
+
   // 当组件首次加载或被激活时刷新数据
   useEffect(() => {
     // 组件挂载或激活时立即刷新数据
@@ -70,6 +78,40 @@ const SessionRequests = () => {
     { label: 'Rejected', value: 'REJECT' },
     { label: 'Cancelled', value: 'CANCEL' }
   ];
+
+  // 处理撤回请求
+  const handleWithdraw = (record) => {
+    setWithdrawingId(record.id);
+    setWithdrawModalVisible(true);
+  };
+
+  // 确认撤回请求
+  const confirmWithdraw = async () => {
+    if (!withdrawingId) return;
+    
+    setIsWithdrawing(true);
+    
+    try {
+      const response = await withdrawRequest(withdrawingId).unwrap();
+      
+      if (response.code === 0) {
+        message.success('Session request withdrawn successfully');
+        setWithdrawModalVisible(false);
+        
+        // 刷新列表
+        refetch();
+        // 刷新未读计数
+        refetchUnreadCount();
+      } else {
+        message.error(response.msg || 'Failed to withdraw request');
+      }
+    } catch (error) {
+      console.error('Error withdrawing session request:', error);
+      message.error(error.data?.msg || 'Failed to withdraw request. Please try again.');
+    } finally {
+      setIsWithdrawing(false);
+    }
+  };
 
   // 表格列定义
   const columns = [
@@ -144,6 +186,16 @@ const SessionRequests = () => {
           >
             Details
           </Button>
+          {(record.status === 'PENDING' || record.status === 'pending') && (
+            <Button 
+              type="primary" 
+              size="small"
+              onClick={() => handleWithdraw(record)}
+              style={{ backgroundColor: '#fa8c16', borderColor: '#fa8c16' }}
+            >
+              Withdraw
+            </Button>
+          )}
         </Space>
       ),
     },
@@ -298,6 +350,29 @@ const SessionRequests = () => {
             )}
           </Descriptions>
         )}
+      </Modal>
+
+      {/* 撤回确认模态框 */}
+      <Modal
+        title="Withdraw Session Request"
+        open={withdrawModalVisible}
+        onCancel={() => setWithdrawModalVisible(false)}
+        footer={[
+          <Button key="cancel" onClick={() => setWithdrawModalVisible(false)}>
+            Cancel
+          </Button>,
+          <Button 
+            key="withdraw" 
+            type="primary" 
+            danger
+            loading={isWithdrawing}
+            onClick={confirmWithdraw}
+          >
+            Withdraw
+          </Button>
+        ]}
+      >
+        <p>Are you sure you want to withdraw this session request? This action cannot be undone.</p>
       </Modal>
     </div>
   );

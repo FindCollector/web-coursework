@@ -51,6 +51,25 @@ export const memberApi = baseApi.injectEndpoints({
       providesTags: ['MemberUnreadCount', 'MemberSubscriptionRequests']
     }),
     
+    // 获取会员未读Session请求计数
+    getMemberUnreadSessionCount: builder.query({
+      query: () => ({
+        url: '/member/session/unreadRequest/count',
+        method: 'GET',
+        // 添加时间戳参数，确保不使用缓存
+        params: { _t: Date.now() }
+      }),
+      transformResponse: (response) => {
+        if (response.code === 0 && response.data) {
+          return response.data.count || 0;
+        }
+        return 0;
+      },
+      // 确保每次调用都是新的请求，不使用缓存
+      keepUnusedDataFor: 0,
+      providesTags: ['MemberUnreadSessionCount', 'MemberSessionRequests']
+    }),
+    
     // 标记会员订阅请求为已读
     markMemberRequestAsRead: builder.mutation({
       query: (requestId) => ({
@@ -92,10 +111,10 @@ export const memberApi = baseApi.injectEndpoints({
     // 标记Session请求为已读
     markSessionRequestAsRead: builder.mutation({
       query: (requestId) => ({
-        url: `/member/session/${requestId}/read`,
+        url: `/member/session/request/${requestId}/read`,
         method: 'PATCH'
       }),
-      invalidatesTags: ['MemberUnreadCount', 'MemberSessionRequests']
+      invalidatesTags: ['MemberUnreadCount', 'MemberSessionRequests', 'MemberUnreadSessionCount']
     }),
 
     // 获取会员已订阅的教练列表 (用于预约 Session)
@@ -163,6 +182,16 @@ export const memberApi = baseApi.injectEndpoints({
       // 当预约成功时，使缓存的时间槽数据和教练列表数据失效，强制重新获取
       invalidatesTags: ['SubscriptionCoaches']
     }),
+
+    // 撤回Session请求
+    withdrawSessionRequest: builder.mutation({
+      query: (requestId) => ({
+        url: `/member/withdrawRequest/${requestId}`,
+        method: 'DELETE'
+      }),
+      // 撤回成功后，使相关缓存失效，强制重新获取
+      invalidatesTags: ['MemberSessionRequests', 'MemberUnreadSessionCount']
+    }),
   }),
 });
 
@@ -177,4 +206,6 @@ export const {
   useUnsubscribeCoachMutation,
   useGetCoachAppropriateTimeListQuery,
   useBookSessionMutation,
+  useGetMemberUnreadSessionCountQuery,
+  useWithdrawSessionRequestMutation
 } = memberApi; 

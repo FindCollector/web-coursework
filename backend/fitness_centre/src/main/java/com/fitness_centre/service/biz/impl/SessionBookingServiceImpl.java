@@ -510,7 +510,7 @@ public class SessionBookingServiceImpl extends ServiceImpl<SessionBookingMapper,
                     BeanUtils.copyProperties(sessionBooking,response);
 
                     LambdaQueryWrapper<User> memberLambdaQueryWrapper = new LambdaQueryWrapper<>();
-                    memberLambdaQueryWrapper.eq(User::getId,sessionBooking.getMemberIsRead());
+                    memberLambdaQueryWrapper.eq(User::getId,sessionBooking.getMemberId());
                     response.setMemberName(userMapper.selectOne(memberLambdaQueryWrapper).getUserName());
 
                     LambdaQueryWrapper<User> coachLambdaQueryWrapper = new LambdaQueryWrapper<>();
@@ -536,7 +536,7 @@ public class SessionBookingServiceImpl extends ServiceImpl<SessionBookingMapper,
             case MEMBER -> queryWrapper.eq(SessionBooking::getMemberId,userId)
                     .eq(SessionBooking::getMemberIsRead,false);
             case COACH -> queryWrapper.eq(SessionBooking::getCoachId,userId)
-                    .eq(SessionBooking::getCoachId,false);
+                    .eq(SessionBooking::getCoachIsRead,false);
         }
         Long count = this.baseMapper.selectCount(queryWrapper);
         Map<String,Long> map = new HashMap<>();
@@ -551,12 +551,12 @@ public class SessionBookingServiceImpl extends ServiceImpl<SessionBookingMapper,
             case  MEMBER ->
                 updateWrapper.eq(SessionBooking::getMemberId,userId)
                         .eq(SessionBooking::getId,requestId)
-                        .set(SessionBooking::getMemberId,true);
+                        .set(SessionBooking::getMemberIsRead,true);
 
             case COACH ->
                 updateWrapper.eq(SessionBooking::getCoachId,userId)
                         .eq(SessionBooking::getId,requestId)
-                        .set(SessionBooking::getCoachId,true);
+                        .set(SessionBooking::getCoachIsRead,true);
             default ->
                 throw new BusinessException(ErrorCode.INVALID_PARAMETER.getCode(),"Illegal roles");
         }
@@ -572,4 +572,27 @@ public class SessionBookingServiceImpl extends ServiceImpl<SessionBookingMapper,
         }
         return new GeneralResponseResult(ErrorCode.SUCCESS);
     }
+
+    @Override
+    public GeneralResponseResult coachHandleRequest(Long requestId, Long coachId, RequestStatus status,String reply) {
+        if(Objects.isNull(reply)){
+            throw new BusinessException(ErrorCode.INVALID_PARAMETER.getCode(),"Please bring your reply");
+        }
+        LambdaUpdateWrapper<SessionBooking> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(SessionBooking::getCoachId,coachId)
+                .eq(SessionBooking::getId,requestId)
+                .set(SessionBooking::getStatus,status)
+                .set(SessionBooking::getReply,reply)
+                .set(SessionBooking::getResponseTime,LocalDateTime.now())
+                .set(SessionBooking::getCoachIsRead,true)
+                .set(SessionBooking::getMemberIsRead,false);
+
+        int rows = this.baseMapper.update(updateWrapper);
+        if(rows <= 0){
+            throw new SystemException(ErrorCode.DB_OPERATION_ERROR.getCode(),"Database connection error");
+        }
+        return new GeneralResponseResult(ErrorCode.SUCCESS);
+    }
+
+
 }

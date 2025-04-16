@@ -165,5 +165,20 @@ public class MemberController {
         return sessionBookingService.getBookingSchedule(userId,UserRole.MEMBER);
     }
 
+    @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).MEMBER.getRole())")
+    @PatchMapping("/session/request/{id}/read")
+    public GeneralResponseResult readSessionRequest(@PathVariable("id") Long requestId,Authentication authentication){
+        LoginUser loginUser = (LoginUser) authentication.getPrincipal();
+        Long userId = loginUser.getId();
+        return sessionBookingService.readRequest(requestId,userId,UserRole.MEMBER);
+    }
+
+    @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).MEMBER.getRole())")
+    @GetMapping("/session/unreadRequest/count")
+    public GeneralResponseResult countUnreadSessionRequest(Authentication authentication){
+        LoginUser loginUser = (LoginUser) authentication.getPrincipal();
+        Long userId = loginUser.getId();
+        return sessionBookingService.countUnreadRequest(userId,UserRole.MEMBER);
+    }
 
 }

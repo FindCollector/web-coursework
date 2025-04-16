@@ -100,7 +100,7 @@ const Login = () => {
         }));
         
         // 显示登录成功提示
-        message.success('登录成功');
+        message.success('Login Successful');
         
         // 使用工具函数获取重定向路径
         const redirectPath = getRedirectPath(userType);

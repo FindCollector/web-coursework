@@ -17,8 +17,10 @@ import {
 } from 'antd';
 import { 
   useGetSessionRequestsQuery, 
-  useMarkSessionRequestAsReadMutation,
-  useGetUnreadRequestsCountQuery 
+  useMarkCoachSessionRequestAsReadMutation,
+  useGetUnreadRequestsCountQuery,
+  useGetUnreadSessionCountQuery,
+  useHandleSessionRequestMutation
 } from '../../store/api/coachApi';
 import dayjs from 'dayjs';
 
@@ -35,6 +37,8 @@ const SessionRequests = () => {
   const [replyText, setReplyText] = useState('');
   // 追踪当前查看的请求是否原本是未读状态
   const [wasUnread, setWasUnread] = useState(false);
+  // 添加处理状态
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // 使用RTK Query获取数据
   const { data, isLoading, refetch } = useGetSessionRequestsQuery({
@@ -47,11 +51,17 @@ const SessionRequests = () => {
   });
 
   // 添加标记已读的mutation
-  const [markAsRead] = useMarkSessionRequestAsReadMutation();
+  const [markAsRead] = useMarkCoachSessionRequestAsReadMutation();
   
-  // 获取未读数量查询
-  const { refetch: refetchUnreadCount } = useGetUnreadRequestsCountQuery();
+  // 获取未读订阅计数查询
+  const { refetch: refetchUnreadSubscriptionCount } = useGetUnreadRequestsCountQuery();
   
+  // 获取未读Session计数查询
+  const { refetch: refetchUnreadSessionCount } = useGetUnreadSessionCountQuery();
+  
+  // 添加处理Session请求的mutation
+  const [handleSessionRequest] = useHandleSessionRequestMutation();
+
   // 当组件首次加载或被激活时刷新数据
   useEffect(() => {
     // 组件挂载或激活时立即刷新数据
@@ -189,7 +199,8 @@ const SessionRequests = () => {
         .unwrap()
         .then(() => {
           // 标记成功后主动刷新未读计数
-          refetchUnreadCount();
+          refetchUnreadSessionCount();
+          refetchUnreadSubscriptionCount();
           
           // 触发全局事件，强制刷新侧边栏计数
           window.dispatchEvent(new Event('refresh-unread-count'));
@@ -206,7 +217,8 @@ const SessionRequests = () => {
     // 只有当查看的请求之前是未读状态时，才刷新计数
     if (wasUnread) {
       // 关闭详情时刷新未读计数，确保侧边栏数字更新
-      refetchUnreadCount();
+      refetchUnreadSessionCount();
+      refetchUnreadSubscriptionCount();
       // 触发全局事件，强制刷新侧边栏计数
       window.dispatchEvent(new Event('refresh-unread-count'));
     }
@@ -230,7 +242,8 @@ const SessionRequests = () => {
         .unwrap()
         .then(() => {
           // 标记成功后主动刷新未读计数
-          refetchUnreadCount();
+          refetchUnreadSessionCount();
+          refetchUnreadSubscriptionCount();
           
           // 触发全局事件，强制刷新侧边栏计数
           window.dispatchEvent(new Event('refresh-unread-count'));
@@ -248,13 +261,47 @@ const SessionRequests = () => {
     // 只有当查看的请求之前是未读状态时，才刷新计数
     if (wasUnread) {
       // 关闭处理模态框时刷新未读计数
-      refetchUnreadCount();
+      refetchUnreadSessionCount();
+      refetchUnreadSubscriptionCount();
       // 触发全局事件，强制刷新侧边栏计数
       window.dispatchEvent(new Event('refresh-unread-count'));
     }
     
     // 重置未读状态标记
     setWasUnread(false);
+  };
+
+  // 处理请求（接受或拒绝）
+  const handleRequest = async (status) => {
+    if (!replyText.trim()) {
+      message.error('Please enter a reply');
+      return;
+    }
+
+    setIsProcessing(true);
+
+    try {
+      const response = await handleSessionRequest({
+        requestId: selectedRequest.id,
+        status: status,
+        reply: replyText.trim()
+      }).unwrap();
+
+      if (response.code === 0) {
+        message.success('Successfully processed');
+        setHandleVisible(false);
+        refetch(); // 刷新列表
+        refetchUnreadSessionCount(); // 刷新未读计数
+        refetchUnreadSubscriptionCount(); // 刷新订阅未读计数
+      } else {
+        message.error(response.msg || 'Processing failed');
+      }
+    } catch (error) {
+      console.error('处理Session请求失败:', error);
+      message.error(error.data?.msg || 'Processing failed, please try again later');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   // 确保传递给Table的dataSource始终是数组
@@ -405,16 +452,18 @@ const SessionRequests = () => {
               <Button 
                 danger 
                 type="primary"
-                onClick={() => message.info('功能待实现: 拒绝Session Request')} 
-                disabled={!replyText.trim()}
+                onClick={() => handleRequest('REJECT')}
+                disabled={!replyText.trim() || isProcessing}
+                loading={isProcessing}
                 style={{ backgroundColor: '#ff4d4f', borderColor: '#ff4d4f' }}
               >
                 Reject
               </Button>
               <Button 
                 type="primary" 
-                onClick={() => message.info('功能待实现: 接受Session Request')} 
-                disabled={!replyText.trim()}
+                onClick={() => handleRequest('ACCEPT')}
+                disabled={!replyText.trim() || isProcessing}
+                loading={isProcessing}
                 className="bg-green-500 hover:bg-green-600 border-green-500 hover:border-green-600"
               >
                 Accept

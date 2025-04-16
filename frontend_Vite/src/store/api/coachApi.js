@@ -173,7 +173,7 @@ export const coachApi = baseApi.injectEndpoints({
     // 获取未读订阅请求计数
     getUnreadRequestsCount: builder.query({
       query: () => ({
-        url: '/coach/unreadRequest/count',
+        url: '/coach/subscription/unreadRequest/count',
         method: 'GET',
         // 添加时间戳参数，确保不使用缓存
         params: { _t: Date.now() }
@@ -187,6 +187,25 @@ export const coachApi = baseApi.injectEndpoints({
       // 确保每次调用都是新的请求，不使用缓存
       keepUnusedDataFor: 0,
       providesTags: (result) => ['UnreadCount', 'SubscriptionRequests']
+    }),
+    
+    // 获取未读Session请求计数
+    getUnreadSessionCount: builder.query({
+      query: () => ({
+        url: '/coach/session/unreadRequest/count',
+        method: 'GET',
+        // 添加时间戳参数，确保不使用缓存
+        params: { _t: Date.now() }
+      }),
+      transformResponse: (response) => {
+        if (response.code === 0 && response.data) {
+          return response.data.count || 0;
+        }
+        return 0;
+      },
+      // 确保每次调用都是新的请求，不使用缓存
+      keepUnusedDataFor: 0,
+      providesTags: ['UnreadSessionCount', 'SessionRequests']
     }),
     
     // 标记订阅请求为已读
@@ -296,12 +315,22 @@ export const coachApi = baseApi.injectEndpoints({
     }),
     
     // 标记Session请求为已读
-    markSessionRequestAsRead: builder.mutation({
+    markCoachSessionRequestAsRead: builder.mutation({
       query: (requestId) => ({
-        url: `/coach/session/${requestId}/read`,
+        url: `/coach/session/request/${requestId}/read`,
         method: 'PATCH'
       }),
-      invalidatesTags: ['UnreadCount', 'SessionRequests']
+      invalidatesTags: ['UnreadCount', 'SessionRequests', 'UnreadSessionCount']
+    }),
+    
+    // 处理Session请求（接受或拒绝）
+    handleSessionRequest: builder.mutation({
+      query: ({ requestId, status, reply }) => ({
+        url: `/coach/session/request/${requestId}/handle`,
+        method: 'PATCH',
+        body: { status, reply }
+      }),
+      invalidatesTags: ['UnreadCount', 'SessionRequests', 'UnreadSessionCount']
     })
   })
 });
@@ -329,5 +358,7 @@ export const {
   useDeleteAvailabilityMutation,
   useUpdateAvailabilityMutation,
   useGetSessionRequestsQuery,
-  useMarkSessionRequestAsReadMutation
+  useMarkCoachSessionRequestAsReadMutation,
+  useHandleSessionRequestMutation,
+  useGetUnreadSessionCountQuery
 } = coachApi;

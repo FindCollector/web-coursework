@@ -14,7 +14,10 @@ import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { logout as logoutAction } from '../../store/authSlice';
 import { useLogoutMutation } from '../../store/api/authApi';
-import { useGetMemberUnreadRequestsCountQuery } from '../../store/api/memberApi';
+import { 
+  useGetMemberUnreadRequestsCountQuery,
+  useGetMemberUnreadSessionCountQuery 
+} from '../../store/api/memberApi';
 import SubscriptionRequests from './SubscriptionRequests';
 import SessionRequests from './SessionRequests';
 import BookingSession from './BookingSession';
@@ -33,24 +36,43 @@ const MemberDashboard = () => {
   const [logout, { isLoading: isLoggingOut }] = useLogoutMutation();
   
   // 获取未读订阅请求数量
-  const { data: unreadCount = 0, refetch: refetchUnreadCount } = useGetMemberUnreadRequestsCountQuery(null, {
+  const { 
+    data: unreadSubscriptionCount = 0, 
+    refetch: refetchUnreadSubscriptionCount 
+  } = useGetMemberUnreadRequestsCountQuery(null, {
+    pollingInterval: 60000, // 每60秒轮询一次
+    refetchOnMountOrArgChange: true, // 组件挂载时始终重新获取
+    refetchOnFocus: true, // 窗口获得焦点时刷新
+    refetchOnReconnect: true, // 网络重连时刷新
+  });
+  
+  // 获取未读Session请求数量
+  const { 
+    data: unreadSessionCount = 0, 
+    refetch: refetchUnreadSessionCount 
+  } = useGetMemberUnreadSessionCountQuery(null, {
     pollingInterval: 60000, // 每60秒轮询一次
     refetchOnMountOrArgChange: true, // 组件挂载时始终重新获取
     refetchOnFocus: true, // 窗口获得焦点时刷新
     refetchOnReconnect: true, // 网络重连时刷新
   });
 
+  // 计算总未读消息数
+  const totalUnreadCount = unreadSubscriptionCount + unreadSessionCount;
+
   useEffect(() => {
     console.log('Current user state:', auth);
     
     // 组件挂载时立即刷新未读计数
-    refetchUnreadCount();
-  }, [auth, refetchUnreadCount]);
+    refetchUnreadSubscriptionCount();
+    refetchUnreadSessionCount();
+  }, [auth, refetchUnreadSubscriptionCount, refetchUnreadSessionCount]);
   
   // 添加刷新未读计数的事件监听器
   useEffect(() => {
     const handleRefreshUnreadCount = () => {
-      refetchUnreadCount();
+      refetchUnreadSubscriptionCount();
+      refetchUnreadSessionCount();
       
       // 如果当前在请求页面，自动刷新请求列表
       if (activeMenu === 'subscription-requests' || activeMenu === 'session-requests') {
@@ -67,16 +89,16 @@ const MemberDashboard = () => {
     return () => {
       window.removeEventListener('refresh-unread-count', handleRefreshUnreadCount);
     };
-  }, [refetchUnreadCount, activeMenu]);
+  }, [refetchUnreadSubscriptionCount, refetchUnreadSessionCount, activeMenu]);
   
   // 监听未读计数变化，如果当前在请求页面且有未读消息，自动刷新请求列表
   useEffect(() => {
-    if (activeMenu === 'subscription-requests' && unreadCount > 0) {
+    if (activeMenu === 'subscription-requests' && unreadSubscriptionCount > 0) {
       window.dispatchEvent(new Event('refresh-requests'));
-    } else if (activeMenu === 'session-requests' && unreadCount > 0) {
+    } else if (activeMenu === 'session-requests' && unreadSessionCount > 0) {
       window.dispatchEvent(new Event('refresh-session-requests'));
     }
-  }, [unreadCount, activeMenu]);
+  }, [unreadSubscriptionCount, unreadSessionCount, activeMenu]);
 
   const handleLogout = async () => {
     try {
@@ -107,7 +129,7 @@ const MemberDashboard = () => {
     {
       key: 'requests',
       icon: (
-        <Badge dot={unreadCount > 0} size="small">
+        <Badge dot={totalUnreadCount > 0} size="small">
           <BellOutlined />
         </Badge>
       ),
@@ -118,9 +140,9 @@ const MemberDashboard = () => {
           label: (
             <span>
               Subscription
-              {unreadCount > 0 && (
+              {unreadSubscriptionCount > 0 && (
                 <Badge 
-                  count={unreadCount} 
+                  count={unreadSubscriptionCount} 
                   size="small" 
                   style={{ 
                     marginLeft: 6, 
@@ -137,7 +159,25 @@ const MemberDashboard = () => {
         },
         {
           key: 'session-requests',
-          label: 'Session',
+          label: (
+            <span>
+              Session
+              {unreadSessionCount > 0 && (
+                <Badge 
+                  count={unreadSessionCount} 
+                  size="small" 
+                  style={{ 
+                    marginLeft: 6, 
+                    fontSize: '10px', 
+                    padding: '0 4px',
+                    height: '16px',
+                    lineHeight: '16px',
+                    boxShadow: 'none' 
+                  }} 
+                />
+              )}
+            </span>
+          ),
         }
       ]
     },
@@ -179,11 +219,11 @@ const MemberDashboard = () => {
     if (key === 'subscription-requests') {
       window.dispatchEvent(new Event('refresh-requests'));
       // 同时刷新未读计数
-      refetchUnreadCount();
+      refetchUnreadSubscriptionCount();
     } else if (key === 'session-requests') {
       window.dispatchEvent(new Event('refresh-session-requests'));
       // 同时刷新未读计数
-      refetchUnreadCount();
+      refetchUnreadSessionCount();
     }
   };
 
