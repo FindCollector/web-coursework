@@ -94,13 +94,17 @@ const CoachSchedule = () => {
 
   // Update calendar size when view or week tab changes
   useEffect(() => {
+    // Only handle tab changes here, initial render handled by viewDidMount
     if (activeViewTab === 'calendar' && calendarRef.current) {
+      const calendarApi = calendarRef.current.getApi();
+      const targetDate = activeWeekTab === 'current' ? currentWeekStartDate : nextWeekStartDate;
+      // Use a minimal delay to ensure API is ready after tab switch if needed,
+      // but prioritize viewDidMount for initial load.
       setTimeout(() => {
-        const calendarApi = calendarRef.current.getApi();
-        const targetDate = activeWeekTab === 'current' ? currentWeekStartDate : nextWeekStartDate;
-        calendarApi.gotoDate(targetDate.toDate());
-        calendarApi.updateSize();
-      }, 50);
+          calendarApi.gotoDate(targetDate.toDate());
+          // updateSize might still be useful here after gotoDate if layout shifts
+          calendarApi.updateSize();
+      }, 50); // Keep a small delay for tab changes
     }
   }, [activeViewTab, activeWeekTab, currentWeekStartDate, nextWeekStartDate]);
 
@@ -234,6 +238,15 @@ const CoachSchedule = () => {
                 eventTimeFormat={{ hour: '2-digit', minute: '2-digit', hour12: false }}
                 slotLabelFormat={{ hour: '2-digit', minute: '2-digit', hour12: false }}
                 eventClick={handleEventClick}
+                viewDidMount={(args) => { // Add viewDidMount callback
+                  const calendarApi = args.view.calendar;
+                  const targetDate = activeWeekTab === 'current' ? currentWeekStartDate : nextWeekStartDate;
+                  // Delay slightly to ensure layout stabilizes after initial render
+                  setTimeout(() => {
+                    calendarApi.gotoDate(targetDate.toDate());
+                    calendarApi.updateSize();
+                  }, 50); // Minimal delay
+                }}
                 eventContent={(eventInfo) => (
                   <div className="p-1 overflow-hidden text-xs leading-tight">
                     <div className="font-semibold truncate">{eventInfo.event.extendedProps.memberName}</div>
