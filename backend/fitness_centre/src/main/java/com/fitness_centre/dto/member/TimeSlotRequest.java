@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 /**
@@ -17,9 +19,11 @@ import java.time.LocalTime;
 @AllArgsConstructor
 @NoArgsConstructor
 public class TimeSlotRequest {
-    @JsonFormat(pattern = "HH:mm") // 控制 JSON 输出格式为 HH:mm
+    @JsonFormat(pattern = "HH:mm")
     private LocalTime start;
 
-    @JsonFormat(pattern = "HH:mm") // 控制 JSON 输出格式为 HH:mm
+    @JsonFormat(pattern = "HH:mm")
     private LocalTime end;
+
+    private LocalDate date;
 }

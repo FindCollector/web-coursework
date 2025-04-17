@@ -3,6 +3,7 @@ import { Card, Modal, Spin, Tag, Alert, Empty, Avatar, Row, Col, Space, Button, 
 import { useGetSubscriptionCoachListQuery, useUnsubscribeCoachMutation, useGetCoachAppropriateTimeListQuery, useBookSessionMutation } from '../../store/api/memberApi';
 import { UserOutlined, EnvironmentOutlined, MailOutlined, TagOutlined, CalendarOutlined, DisconnectOutlined, ClockCircleOutlined, MessageOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
+import NoticeModal from '../../components/common/NoticeModal';
 
 const { Title } = Typography; // Import Typography.Title
 const { TextArea } = Input;
@@ -100,6 +101,11 @@ const BookingSession = () => {
   const [bookingMessage, setBookingMessage] = useState('');
   const [selectedTimeSlot, setSelectedTimeSlot] = useState(null);
   const [selectedDay, setSelectedDay] = useState(null);
+  
+  // State and handlers for the Notice Modal
+  const [isNoticeModalVisible, setIsNoticeModalVisible] = useState(false);
+  const showNoticeModal = () => setIsNoticeModalVisible(true);
+  const handleCloseNoticeModal = () => setIsNoticeModalVisible(false);
   
   // 通过 lazy 方式加载教练的可用时间数据，只有在需要时才加载
   const { data: timeSlots, isLoading: isLoadingTimeSlots, error: timeSlotsError, refetch: refetchTimeSlots } = useGetCoachAppropriateTimeListQuery(
@@ -283,6 +289,19 @@ const BookingSession = () => {
           My Subscribed Coaches
         </Title>
       </div>
+
+      {/* Add the Alert for important notice */}
+      <Alert
+        message={(
+          <Button type="link" onClick={showNoticeModal} style={{ padding: 0, height: 'auto', lineHeight: 'inherit' }}>
+            Important Notice for Booking - Click to view details
+          </Button>
+        )}
+        description="Please review the terms regarding session booking before selecting a time slot."
+        type="info"
+        showIcon
+        className="mb-6" // Add margin below the alert
+      />
 
       <Row gutter={[24, 24]}>
         {coachList.map((coach) => (
@@ -471,7 +490,7 @@ const BookingSession = () => {
                       <List.Item>
                         <List.Item.Meta
                           avatar={<ClockCircleOutlined style={{ fontSize: '18px', color: '#1890ff' }} />}
-                          title={`${slot.start} - ${slot.end}`}
+                          title={`${slot.date} ${slot.start} - ${slot.end}`}
                           description="Available"
                         />
                         <Button 
@@ -518,7 +537,7 @@ const BookingSession = () => {
             <div className="mb-4">
               <p><strong>Coach:</strong> {selectedCoachForBooking.coachName}</p>
               <p><strong>Day:</strong> {getDayName(selectedDay)}</p>
-              <p><strong>Time:</strong> {selectedTimeSlot.start} - {selectedTimeSlot.end}</p>
+              <p><strong>Time:</strong> {`${selectedTimeSlot.date} ${selectedTimeSlot.start} - ${selectedTimeSlot.end}`}</p>
             </div>
             <Form.Item 
               label={
@@ -547,6 +566,35 @@ const BookingSession = () => {
           </Form>
         )}
       </Modal>
+
+      {/* Render the reusable NoticeModal */}
+      <NoticeModal
+        isVisible={isNoticeModalVisible}
+        onClose={handleCloseNoticeModal}
+        title="Booking Important Notice"
+      >
+        {/* Updated content for BookingSession notice */}
+        <p>Please read the following notes carefully before booking a session:</p>
+        <ul>
+          <li>
+            <strong>Plan Ahead:</strong> To allow coaches adequate time for preparation and venue coordination, sessions can only be booked for the <strong>following week</strong>.
+          </li>
+          <li>
+            <strong>No Sunday Bookings:</strong> Please note that sessions cannot be booked for Sundays.
+          </li>
+          <li>
+            <strong>Await Confirmation:</strong> After submitting your booking request, please wait for the coach to review and accept it. Your session is not confirmed until accepted.
+          </li>
+          <li>
+            <strong>Avoid Time Conflicts:</strong> Bookings that overlap with your existing accepted sessions or other pending requests are not permitted.
+          </li>
+          <li>
+            <strong>Resolving Conflicts:</strong> If you encounter a time conflict with a new booking, you must first cancel the existing accepted session or withdraw the conflicting pending request before proceeding.
+          </li>
+        </ul>
+        <p>Thank you for your cooperation.</p>
+      </NoticeModal>
+
     </PageWrapper>
   );
 };

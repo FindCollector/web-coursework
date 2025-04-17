@@ -211,7 +211,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new AuthException(ErrorCode.EMAIL_VERIFICATION_FAILED);
         }
         if(!code.equals(verifyCode)){
-            System.out.println(code);
             throw new AuthException(ErrorCode.EMAIL_VERIFICATION_FAILED.getCode(),"Verification code error");
         }
 

@@ -36,4 +36,5 @@ public interface SessionBookingService extends IService<SessionBooking> {
     GeneralResponseResult readRequest(Long requestId,Long userId,UserRole role);
 
     GeneralResponseResult coachHandleRequest(Long requestId,Long coachId,RequestStatus status,String reply);
+    
 }

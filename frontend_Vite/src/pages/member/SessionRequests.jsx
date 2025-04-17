@@ -77,7 +77,6 @@ const SessionRequests = () => {
     { label: 'Accepted', value: 'ACCEPT' },
     { label: 'Rejected', value: 'REJECT' },
     { label: 'Cancelled', value: 'CANCEL' },
-    { label: 'Withdrawn', value: 'WITHDRAWN' }
   ];
 
   // 处理撤回请求
@@ -149,7 +148,6 @@ const SessionRequests = () => {
           ACCEPT: 'green',
           REJECT: 'red',
           CANCEL: 'grey',
-          WITHDRAWN: 'purple'
         };
         
         // 获取颜色，如果状态不在映射中则使用灰色
@@ -330,7 +328,6 @@ const SessionRequests = () => {
                   ACCEPT: 'green',
                   REJECT: 'red',
                   CANCEL: 'grey',
-                  WITHDRAWN: 'purple'
                 };
                 const color = colorMap[selectedRequest.status] || 'default';
                 return <Tag color={color}>{selectedRequest.status}</Tag>;
