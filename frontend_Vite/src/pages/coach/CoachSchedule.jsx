@@ -16,33 +16,95 @@ import { useGetCoachSessionScheduleQuery } from '../../store/api/coachApi'; // �
 import FullCalendar from '@fullcalendar/react';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import dayjs from 'dayjs';
+import isoWeek from 'dayjs/plugin/isoWeek'; // Import isoWeek plugin
+import utc from 'dayjs/plugin/utc'; // Import utc plugin
+import timezone from 'dayjs/plugin/timezone'; // Import timezone plugin
+
+dayjs.extend(isoWeek); // Extend dayjs with isoWeek support
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 const { Title } = Typography;
 
+// Helper function to prepare calendar events for a specific week's data
+// Now accepts weekStartDate (a dayjs object)
+const prepareCalendarEventsForWeek = (weekData, getDayText, weekStartDate) => {
+  if (!weekData || !weekData.calendarView || !weekStartDate) {
+    return [];
+  }
+  const calendarView = weekData.calendarView;
+  const events = [];
+
+  Object.keys(calendarView).forEach(dayOfWeekStr => {
+    const dayOfWeek = parseInt(dayOfWeekStr, 10);
+
+    if (!Array.isArray(calendarView[dayOfWeekStr])) {
+      return;
+    }
+
+    calendarView[dayOfWeekStr].forEach(slot => {
+      if (!slot || typeof slot.startTime !== 'string' || typeof slot.endTime !== 'string') {
+        return;
+      }
+
+      const targetDate = weekStartDate.isoWeekday(dayOfWeek);
+      const startDateTime = targetDate.format('YYYY-MM-DD') + 'T' + slot.startTime;
+      const endDateTime = targetDate.format('YYYY-MM-DD') + 'T' + slot.endTime;
+
+      events.push({
+        id: slot.id,
+        start: startDateTime,
+        end: endDateTime,
+        backgroundColor: '#52c41a', // Coach color
+        borderColor: '#52c41a',
+        textColor: '#ffffff',
+        extendedProps: {
+          coachName: slot.coachName,
+          memberName: slot.memberName,
+          startTime: slot.startTime, // Keep original time for display
+          endTime: slot.endTime,   // Keep original time for display
+          message: slot.message,
+          dayOfWeek: dayOfWeek
+        }
+      });
+    });
+  });
+  return events;
+};
+
 const CoachSchedule = () => {
-  const [activeTab, setActiveTab] = useState('1');
+  const [activeViewTab, setActiveViewTab] = useState('list'); // 'list' or 'calendar'
+  const [activeWeekTab, setActiveWeekTab] = useState('current'); // 'current' or 'next'
   const calendarRef = useRef(null);
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
   const [selectedEventDetails, setSelectedEventDetails] = useState(null);
 
   // 使用 coach 的 hook 获取日程数据
-  const { 
-    data: scheduleData, 
-    isLoading, 
-    error, 
-    refetch 
-  } = useGetCoachSessionScheduleQuery(); 
+  const {
+    data: scheduleData, // Contains { currentWeek: {...}, nextWeek: {...} }
+    isLoading,
+    error,
+    refetch
+  } = useGetCoachSessionScheduleQuery();
 
-  // --- (useEffect hooks 保持不变, 与 MemberSchedule 类似) ---
+  // Calculate start dates
+  const today = dayjs();
+  const currentWeekStartDate = today.startOf('isoWeek');
+  const nextWeekStartDate = currentWeekStartDate.add(1, 'week');
+
+  // Update calendar size when view or week tab changes
   useEffect(() => {
-    if (activeTab === '2' && calendarRef.current) {
+    if (activeViewTab === 'calendar' && calendarRef.current) {
       setTimeout(() => {
         const calendarApi = calendarRef.current.getApi();
+        const targetDate = activeWeekTab === 'current' ? currentWeekStartDate : nextWeekStartDate;
+        calendarApi.gotoDate(targetDate.toDate());
         calendarApi.updateSize();
-      }, 0);
+      }, 50);
     }
-  }, [activeTab]);
+  }, [activeViewTab, activeWeekTab, currentWeekStartDate, nextWeekStartDate]);
 
+  // --- (existing useEffect hooks for resize and refetch) ---
   useEffect(() => {
     const handleResize = () => {
       if (calendarRef.current) {
@@ -59,7 +121,7 @@ const CoachSchedule = () => {
   }, [refetch]);
   // --- (useEffect hooks 结束) ---
 
-  // --- (dayOptions, getDayText 保持不变) ---
+  // --- (existing dayOptions, getDayText) ---
   const dayOptions = [
     { value: 1, label: 'Monday' },
     { value: 2, label: 'Tuesday' },
@@ -77,7 +139,7 @@ const CoachSchedule = () => {
   };
   // --- (dayOptions, getDayText 结束) ---
 
-  // 列表视图列定义 - 显示 Member Name，移除 Action 列
+  // --- (existing columns definition) ---
   const columns = [
     {
       title: 'Day',
@@ -95,42 +157,12 @@ const CoachSchedule = () => {
     },
     { title: 'Member Message', dataIndex: 'message', key: 'message', ellipsis: true }, // 明确是 Member Message
   ];
+  // --- (columns 结束) ---
 
-  // 准备日历视图事件数据 - Title 显示 Member Name
-  const prepareCalendarEvents = () => {
-    if (!scheduleData || !scheduleData.calenderView) { 
-      return [];
-    }
-    const calendarView = scheduleData.calenderView;
-    const events = [];
-    Object.keys(calendarView).forEach(dayOfWeek => {
-      if (!Array.isArray(calendarView[dayOfWeek])) return;
-      calendarView[dayOfWeek].forEach(slot => {
-        if (!slot || typeof slot.startTime !== 'string' || typeof slot.endTime !== 'string') return;
-        const fcDayOfWeek = parseInt(dayOfWeek) % 7;
-        events.push({
-          id: slot.id,
-          daysOfWeek: [fcDayOfWeek],
-          startTime: slot.startTime,
-          endTime: slot.endTime,
-          backgroundColor: '#52c41a', // 使用不同颜色 (例如绿色)
-          borderColor: '#52c41a',
-          textColor: '#ffffff',
-          extendedProps: {
-            coachName: slot.coachName, // 可能仍然有用，保留
-            memberName: slot.memberName, // 核心信息
-            startTime: slot.startTime,
-            endTime: slot.endTime,
-            message: slot.message,
-            dayOfWeek: parseInt(dayOfWeek, 10)
-          }
-        });
-      });
-    });
-    return events;
-  };
+  // No longer need a single prepareCalendarEvents, use helper function
+  // const prepareCalendarEvents = () => { ... } // REMOVED
 
-  // 处理日历事件点击 - 显示 Member 相关信息
+  // --- (existing handleEventClick) ---
   const handleEventClick = (clickInfo) => {
     const eventDetails = {
       memberName: clickInfo.event.extendedProps.memberName, // 显示 Member Name
@@ -142,67 +174,93 @@ const CoachSchedule = () => {
     setSelectedEventDetails(eventDetails);
     setIsDetailModalVisible(true);
   };
+  // --- (handleEventClick 结束) ---
 
+  // --- (existing handleCloseDetailModal) ---
   const handleCloseDetailModal = () => {
     setIsDetailModalVisible(false);
     setSelectedEventDetails(null);
   };
+  // --- (handleCloseDetailModal 结束) ---
 
-  // 渲染列表视图
-  const renderListView = () => {
-    const listData = scheduleData?.listView || [];
+  // Render function for the content of a specific week (list or calendar)
+  const renderWeekContent = (weekData, weekStartDate) => {
+    if (!weekData) {
+      return <Card className="mt-6"><Empty description="No schedule data available for this week." /></Card>;
+    }
+
+    const listData = weekData.listView || [];
+    const calendarEvents = prepareCalendarEventsForWeek(weekData, getDayText, weekStartDate);
+
+    const viewItems = [
+      {
+        key: 'list',
+        label: <span><UnorderedListOutlined /> List View</span>,
+        children: (
+          <Card title="Session List" className="max-w-4xl mx-auto mt-4">
+            {listData.length > 0 ? (
+              <Table
+                dataSource={listData}
+                columns={columns}
+                rowKey="id"
+                pagination={false}
+                size="small"
+              />
+            ) : (
+              <Empty description="No sessions scheduled" />
+            )}
+          </Card>
+        )
+      },
+      {
+        key: 'calendar',
+        label: <span><CalendarOutlined /> Calendar View</span>,
+        children: (
+          <Card title="Weekly Session Calendar" className="mt-4">
+            {calendarEvents.length > 0 ? (
+              <FullCalendar
+                ref={calendarRef}
+                plugins={[timeGridPlugin]}
+                initialView="timeGridWeek"
+                headerToolbar={false}
+                firstDay={1}
+                dayHeaderFormat={{ weekday: 'short' }}
+                allDaySlot={false}
+                slotMinTime="08:00:00"
+                slotMaxTime="23:00:00"
+                height="auto"
+                expandRows={true}
+                events={calendarEvents}
+                eventTimeFormat={{ hour: '2-digit', minute: '2-digit', hour12: false }}
+                slotLabelFormat={{ hour: '2-digit', minute: '2-digit', hour12: false }}
+                eventClick={handleEventClick}
+                eventContent={(eventInfo) => (
+                  <div className="p-1 overflow-hidden text-xs leading-tight">
+                    <div className="font-semibold truncate">{eventInfo.event.extendedProps.memberName}</div>
+                  </div>
+                )}
+              />
+            ) : (
+              <Empty description="No sessions found in calendar view for this week." />
+            )}
+          </Card>
+        )
+      },
+    ];
+
     return (
-      <Card title="My Session Schedule List" className="max-w-4xl mx-auto">
-        {listData.length > 0 ? (
-          <Table 
-            dataSource={listData} 
-            columns={columns} // 使用教练的 columns
-            rowKey="id" 
-            pagination={false} 
-          />
-        ) : (
-          <Empty description="No sessions scheduled" />
-        )}
-      </Card>
+      <Tabs
+        activeKey={activeViewTab}
+        onChange={setActiveViewTab}
+        type="card"
+        size="small"
+        items={viewItems}
+        className="mt-0"
+      />
     );
   };
 
-  // 渲染日历视图 - eventContent 显示 Member Name 和时间
-  const renderCalendarView = () => {
-    const events = prepareCalendarEvents();
-    return (
-      <Card title="Weekly Session Schedule" className="mt-6">
-        <FullCalendar
-          ref={calendarRef}
-          plugins={[timeGridPlugin]}
-          initialView="timeGridWeek"
-          headerToolbar={false}
-          todayHighlight={false}
-          dayHeaderFormat={{ weekday: 'long' }}
-          allDaySlot={false}
-          slotMinTime="08:00:00"
-          slotMaxTime="23:00:00"
-          height="auto"
-          expandRows={true}
-          firstDay={1}
-          events={events}
-          eventTimeFormat={{ hour: '2-digit', minute: '2-digit', hour12: false }}
-          slotLabelFormat={{ hour: '2-digit', minute: '2-digit', hour12: false }}
-          eventClick={handleEventClick}
-          eventContent={(eventInfo) => { // 自定义事件显示内容
-            return (
-              <div className="p-1 overflow-hidden text-xs leading-tight"> 
-                <div className="font-semibold truncate">{eventInfo.event.extendedProps.memberName}</div> {/* 显示 Member Name */}
-                <div>{`${eventInfo.event.extendedProps.startTime} - ${eventInfo.event.extendedProps.endTime}`}</div>
-              </div>
-            );
-          }}
-        />
-      </Card>
-    );
-  };
-  
-  // 渲染详情模态框 - 显示 Member 相关信息
+  // --- (existing renderDetailsModal) ---
   const renderDetailsModal = () => (
     <Modal
       title="Session Details"
@@ -220,8 +278,9 @@ const CoachSchedule = () => {
       )}
     </Modal>
   );
+  // --- (renderDetailsModal 结束) ---
 
-  // --- (Loading/Error states and return structure 保持不变) ---
+  // --- (existing Loading/Error states) ---
   if (isLoading) {
     return <div className="flex justify-center items-center h-full p-8"><Spin size="large" tip="Loading your schedule..." /></div>;
   }
@@ -229,24 +288,31 @@ const CoachSchedule = () => {
   if (error) {
     return <div className="p-8"><Alert message="Error loading schedule" description="Could not load schedule. Please try again." type="error" showIcon /></div>;
   }
+  // --- (Loading/Error states 结束) ---
 
   return (
     <div className="p-6">
-      <Title level={2} className="mb-6">My Schedule</Title> {/* 标题调整 */}
+      <Title level={2} className="mb-6">My Schedule</Title>
       <Tabs
-        activeKey={activeTab}
-        onChange={setActiveTab}
-        className="pl-4" 
-        tabBarStyle={{ paddingLeft: '12px' }} 
+        activeKey={activeWeekTab}
+        onChange={setActiveWeekTab}
+        type="line"
         items={[
-          { key: '1', label: <span><UnorderedListOutlined /> List View</span>, children: renderListView() },
-          { key: '2', label: <span><CalendarOutlined /> Calendar View</span>, children: renderCalendarView() },
+          {
+            key: 'current',
+            label: 'This Week',
+            children: renderWeekContent(scheduleData?.currentWeek, currentWeekStartDate)
+          },
+          {
+            key: 'next',
+            label: 'Next Week',
+            children: renderWeekContent(scheduleData?.nextWeek, nextWeekStartDate)
+          },
         ]}
       />
       {renderDetailsModal()}
     </div>
   );
-  // --- (Loading/Error states and return structure 结束) ---
 };
 
 export default CoachSchedule; 

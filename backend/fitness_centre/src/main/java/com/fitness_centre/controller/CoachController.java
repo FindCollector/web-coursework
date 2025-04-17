@@ -18,6 +18,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.security.PublicKey;
 import java.util.List;
 import java.util.Map;
 
@@ -198,5 +199,14 @@ public class CoachController {
         LoginUser loginUser = (LoginUser) authentication.getPrincipal();
         Long userId = loginUser.getId();
         return sessionBookingService.getBookingSchedule(userId,UserRole.COACH);
+    }
+
+    //--------------------------------------- 添加member课程历史 --------------------------------------------
+    @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).COACH.getRole())")
+    @PostMapping("/session/history")
+    public GeneralResponseResult addSessionHistory(Authentication authentication,@RequestBody Map<String,Object> dataMap){
+        LoginUser loginUser = (LoginUser) authentication.getPrincipal();
+        Long userId = loginUser.getId();
+        return null;
     }
 }
