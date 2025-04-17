@@ -28,8 +28,7 @@ import {
   DeleteOutlined,
   ExclamationCircleOutlined
 } from '@ant-design/icons';
-import { useQuery, useMutation, useQueryClient, useIsMutating } from '@tanstack/react-query';
-import { getUserList, updateUserStatus, deleteUser } from '../../api/userApi';
+import { useGetUserListQuery, useUpdateUserStatusMutation, useDeleteUserMutation, useGetUserConfigQuery } from '../../store/api/userApi';
 import enUS from 'antd/lib/locale/en_US';
 
 const { Option } = Select;
@@ -44,25 +43,37 @@ const UserManagement = () => {
   });
   const [filters, setFilters] = useState({});
   const [sorter, setSorter] = useState({});
-  const queryClient = useQueryClient();
+  const [skip, setSkip] = useState(false);
 
   // --- State for custom delete modal ---
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
   // --- End State ---
 
-  // Get user list data
-  const { data, isLoading, refetch } = useQuery({
-    queryKey: ['users', pagination.current, pagination.pageSize, filters, sorter],
-    queryFn: () => getUserList({
-      pageNow: pagination.current,
-      pageSize: pagination.pageSize,
-      ...filters,
-      sortField: sorter.field ? [sorter.field] : [],
-      sortOrder: sorter.order ? [sorter.order === 'ascend' ? 'asc' : 'desc'] : []
-    }),
-    keepPreviousData: true,
+  // 使用RTK Query hooks替换React Query
+  const { data, isLoading, refetch } = useGetUserListQuery({
+    pageNow: pagination.current,
+    pageSize: pagination.pageSize,
+    ...filters,
+    sortField: sorter.field ? [sorter.field] : [],
+    sortOrder: sorter.order ? [sorter.order === 'ascend' ? 'asc' : 'desc'] : []
+  }, {
+    skip,
+    refetchOnMountOrArgChange: true
   });
+
+  // 获取用户配置
+  const { data: userConfig } = useGetUserConfigQuery();
+  const [roleOptions, setRoleOptions] = useState([]);
+  const [statusOptions, setStatusOptions] = useState([]);
+
+  // 当配置数据加载完成后，更新选项
+  useEffect(() => {
+    if (userConfig) {
+      setRoleOptions(userConfig.roles || []);
+      setStatusOptions(userConfig.statuses || []);
+    }
+  }, [userConfig]);
 
   // Process data source to ensure consistency
   const getUserData = () => {
@@ -100,15 +111,12 @@ const UserManagement = () => {
   // Fetch user data on component load
   useEffect(() => {
     // Check if token exists
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     if (token) {
-      console.log('Found token in localStorage, preparing to fetch user data');
+      console.log('Found token in sessionStorage, preparing to fetch user data');
     } else {
-      console.warn('No token found in localStorage, authentication may fail');
+      console.warn('No token found in sessionStorage, authentication may fail');
     }
-    
-    // Automatically fetch all user data when component mounts
-    refetch();
   }, []);
 
   // Update pagination information
@@ -121,53 +129,9 @@ const UserManagement = () => {
     }
   }, [data]);
 
-  // Update user status
-  const updateStatusMutation = useMutation({
-    mutationFn: ({ userId, status }) => updateUserStatus(userId, status),
-    onMutate: () => {
-      // Show loading indicator when request starts
-      console.log('Starting to update user status...');
-    }
-    // Success and error handling moved to caller
-  });
-
-  // Delete user
-  const deleteUserMutation = useMutation({
-    mutationFn: (numericUserId) => {
-      console.log('[UserManagement.jsx] deleteUserMutation - mutationFn - Calling userApi.deleteUser, ID:', numericUserId);
-      return deleteUser(numericUserId);
-    },
-    onMutate: (variables) => {
-      console.log('[UserManagement.jsx] deleteUserMutation - onMutate - Started', variables);
-    },
-    onSuccess: (data, variables, context) => {
-      console.log('[UserManagement.jsx] deleteUserMutation - onSuccess', { data, variables });
-      // Close modal and reset state
-      setIsDeleteModalVisible(false);
-      setUserToDelete(null);
-      
-      if (data.code === 0) {
-        message.success('User deleted successfully');
-        refetch();
-      } else {
-        message.error(data.msg || 'Failed to delete user (Backend)');
-        console.error('[UserManagement.jsx] deleteUserMutation - onSuccess - Backend Failed:', data);
-        Modal.error({ title: 'Delete Failed', content: data.msg || 'Unknown backend error' });
-      }
-    },
-    onError: (error, variables, context) => {
-      console.error('[UserManagement.jsx] deleteUserMutation - onError', { error, variables });
-      // Close modal and reset state
-      setIsDeleteModalVisible(false);
-      setUserToDelete(null);
-      
-      message.error('Failed to delete user: ' + (error.message || 'Unknown error'));
-      Modal.error({ title: 'Delete Failed', content: error.message || 'Unknown error' });
-    },
-    onSettled: (data, error, variables, context) => {
-      console.log('[UserManagement.jsx] deleteUserMutation - onSettled', { data, error, variables });
-    }
-  });
+  // 使用RTK Query的mutation hooks
+  const [updateUserStatus, updateStatusResult] = useUpdateUserStatusMutation();
+  const [deleteUser, deleteUserResult] = useDeleteUserMutation();
 
   // Handle table changes (pagination, sorting, filtering)
   const handleTableChange = (pagination, filters, sorter) => {
@@ -197,12 +161,17 @@ const UserManagement = () => {
     const formattedFilters = {};
     
     if (role) formattedFilters.role = role;
-    if (status !== undefined) formattedFilters.status = status;
+    if (status !== undefined) formattedFilters.status = parseInt(status);
     if (userName) formattedFilters.userName = userName;
     if (email) formattedFilters.email = email;
     
     setFilters(formattedFilters);
-    setPagination(prev => ({ ...prev, current: 1 })); // Reset to first page
+    
+    // Reset to first page when searching
+    setPagination(prev => ({
+      ...prev,
+      current: 1
+    }));
   };
 
   // Handle select change
@@ -216,52 +185,90 @@ const UserManagement = () => {
     handleSearch(newValues);
   };
 
+  // 添加useEffect来监听数据变化
+  useEffect(() => {
+    if (!skip && data) {
+      console.log('Data received:', data);
+    }
+  }, [data, skip]);
+
   // Reset filters
   const resetFilters = () => {
+    // 重置表单
     searchForm.resetFields();
+    
+    // 显示加载提示
+    const loadingMessage = message.loading('Loading data...', 0);
+
+    // 重置状态
     setFilters({});
     setSorter({});
-    setPagination(prev => ({ ...prev, current: 1 }));
+    setPagination({
+      current: 1,
+      pageSize: 10
+    });
+
+    // 直接调用refetch强制刷新数据
+    refetch()
+      .then(() => {
+        loadingMessage();
+        message.success('Data refreshed successfully');
+      })
+      .catch(() => {
+        loadingMessage();
+        message.error('Failed to refresh data');
+      });
   };
 
-  // Approve user
+  // 监听状态变化
+  useEffect(() => {
+    console.log('[UserManagement] 状态变化:', {
+      pagination,
+      filters,
+      sorter
+    });
+  }, [pagination, filters, sorter]);
+
+  // 监听数据变化
+  useEffect(() => {
+    if (data) {
+      console.log('[UserManagement] 收到新数据:', data);
+    }
+  }, [data]);
+
   const approveUser = (userId) => {
     // Show loading message
     const loadingMessage = message.loading('Processing...', 0);
     
     // Call API to update user status
-    updateStatusMutation.mutate(
-      { userId, status: 0 },
-      {
-        onSuccess: (data) => {
-          // Close loading message
-          loadingMessage();
-          
-          if (data.code === 0) {
-            message.success('User approved successfully');
-            refetch(); // Refresh data
-          } else {
-            message.error(data.msg || 'Operation failed, please try again');
-            console.error('Failed to approve user:', data);
-          }
-        },
-        onError: (error) => {
-          // Close loading message
-          loadingMessage();
-          
-          message.error('Operation failed: ' + (error.message || 'Unknown error'));
-          console.error('Error approving user:', error);
-          
-          // Show more specific prompt for network errors
-          if (error.message && (error.message.includes('Network Error') || error.message.includes('CORS'))) {
-            Modal.error({
-              title: 'Network Error',
-              content: 'A CORS or network issue occurred. Please contact your administrator.'
-            });
-          }
+    updateUserStatus({ userId, status: 0 })
+      .unwrap()
+      .then((data) => {
+        // Close loading message
+        loadingMessage();
+        
+        if (data.code === 0) {
+          message.success('User approved successfully');
+        } else {
+          message.error(data.msg || 'Operation failed, please try again');
+          console.error('Failed to approve user:', data);
         }
-      }
-    );
+      })
+      .catch((error) => {
+        // Close loading message
+        loadingMessage();
+        
+        message.error('Operation failed: ' + (error.message || 'Unknown error'));
+        console.error('Error approving user:', error);
+        
+        // Show more specific prompt for network errors
+        if (error.message && (error.message.includes('Network Error') || error.message.includes('CORS'))) {
+          Modal.error({
+            title: 'Network Error',
+            content: 'A CORS or network issue occurred. Please contact your administrator.'
+          });
+        }
+      });
   };
 
   // Ban user
@@ -270,30 +277,26 @@ const UserManagement = () => {
     const loadingMessage = message.loading('Processing...', 0);
     
     // Call API to update user status
-    updateStatusMutation.mutate(
-      { userId, status: 2 },
-      {
-        onSuccess: (data) => {
-          // Close loading message
-          loadingMessage();
-          
-          if (data.code === 0) {
-            message.success('User banned successfully');
-            refetch(); // Refresh data
-          } else {
-            message.error(data.msg || 'Operation failed, please try again');
-            console.error('Failed to ban user:', data);
-          }
-        },
-        onError: (error) => {
-          // Close loading message
-          loadingMessage();
-          
-          message.error('Operation failed: ' + (error.message || 'Unknown error'));
-          console.error('Error banning user:', error);
+    updateUserStatus({ userId, status: 2 })
+      .unwrap()
+      .then((data) => {
+        // Close loading message
+        loadingMessage();
+        
+        if (data.code === 0) {
+          message.success('User banned successfully');
+        } else {
+          message.error(data.msg || 'Operation failed, please try again');
+          console.error('Failed to ban user:', data);
         }
-      }
-    );
+      })
+      .catch((error) => {
+        // Close loading message
+        loadingMessage();
+        
+        message.error('Operation failed: ' + (error.message || 'Unknown error'));
+        console.error('Error banning user:', error);
+      });
   };
 
   // --- Renamed function to show the modal ---
@@ -302,33 +305,41 @@ const UserManagement = () => {
       message.error('Cannot delete: Missing user ID');
       return;
     }
-    const numericUserId = parseInt(userId, 10);
-    if (isNaN(numericUserId)) {
-      console.error('Cannot convert user ID to number:', userId);
-      message.error('Invalid user ID format');
-      return;
-    }
-    console.log('[UserManagement.jsx] showDeleteConfirm - Opening modal, ID:', numericUserId);
-    setUserToDelete(numericUserId);
+    console.log('[UserManagement.jsx] showDeleteConfirm - Opening modal, ID:', userId);
+    setUserToDelete(userId);
     setIsDeleteModalVisible(true);
   };
-  // --- End renamed function ---
 
-  // --- Handlers for the custom modal ---
+  // 处理删除用户确认
   const handleDeleteOk = async () => {
-    console.log(`[UserManagement.jsx] handleDeleteOk - Clicked OK. UserToDelete: ${userToDelete}`);
-    if (userToDelete !== null) {
-      console.log('[UserManagement.jsx] handleDeleteOk - BEFORE calling mutate');
-      try {
-        await deleteUserMutation.mutateAsync(userToDelete);
-        console.log('[UserManagement.jsx] handleDeleteOk - AFTER calling mutate');
-      } catch (e) {
-        console.error('[UserManagement.jsx] handleDeleteOk - Error during mutate call:', e);
-      }
-    } else {
-      console.error('[UserManagement.jsx] handleDeleteOk - userToDelete is null!');
+    if (!userToDelete) {
+      message.error('No user selected for deletion');
+      setIsDeleteModalVisible(false);
+      return;
+    }
+    
+    try {
+      console.log('[UserManagement.jsx] handleDeleteOk - Attempting to delete user ID:', userToDelete);
+      
+      const result = await deleteUser(userToDelete).unwrap();
+      
       setIsDeleteModalVisible(false);
       setUserToDelete(null);
+      
+      if (result.code === 0) {
+        message.success('User deleted successfully');
+      } else {
+        message.error(result.msg || 'Failed to delete user (Backend)');
+        console.error('[UserManagement.jsx] deleteUser - Backend Failed:', result);
+        Modal.error({ title: 'Delete Failed', content: result.msg || 'Unknown backend error' });
+      }
+    } catch (error) {
+      console.error('[UserManagement.jsx] deleteUser error:', error);
+      setIsDeleteModalVisible(false);
+      setUserToDelete(null);
+      
+      message.error('Failed to delete user: ' + (error.message || 'Unknown error'));
+      Modal.error({ title: 'Delete Failed', content: error.message || 'Unknown error' });
     }
   };
 
@@ -337,34 +348,17 @@ const UserManagement = () => {
     setIsDeleteModalVisible(false); 
     setUserToDelete(null);
   };
-  // --- End Handlers ---
 
   // Render user status tag
-  const renderStatusTag = (status) => {
-    switch (status) {
-      case 0:
-        return <Tag color="success">Active</Tag>;
-      case 1:
-        return <Tag color="warning">Pending</Tag>;
-      case 2:
-        return <Tag color="error">Banned</Tag>;
-      default:
-        return <Tag>Unknown</Tag>;
-    }
+  const renderStatusTag = (statusValue) => {
+    const status = statusOptions.find(s => s.value === (typeof statusValue === 'string' ? parseInt(statusValue) : statusValue));
+    return status ? <Tag color={status.color}>{status.label}</Tag> : <Tag>Unknown</Tag>;
   };
 
   // Render user role tag
-  const renderRoleTag = (role) => {
-    switch (role) {
-      case 'admin':
-        return <Tag color="purple">Admin</Tag>;
-      case 'member':
-        return <Tag color="blue">Member</Tag>;
-      case 'coach':
-        return <Tag color="green">Coach</Tag>;
-      default:
-        return <Tag>Unknown</Tag>;
-    }
+  const renderRoleTag = (roleValue) => {
+    const role = roleOptions.find(r => r.value === roleValue);
+    return role ? <Tag color={role.color}>{role.label}</Tag> : <Tag>Unknown</Tag>;
   };
 
   // Define table columns
@@ -481,10 +475,6 @@ const UserManagement = () => {
     },
   ];
 
-  // --- Check if the specific mutation is loading --- 
-  const isDeleting = useIsMutating({ mutationKey: deleteUserMutation.mutationKey }) > 0;
-  console.log('[UserManagement.jsx] Render - isDeleting:', isDeleting, 'Mutation status:', deleteUserMutation.status);
-
   return (
     <ConfigProvider locale={enUS}>
       <div>
@@ -502,9 +492,11 @@ const UserManagement = () => {
                     allowClear
                     onChange={(value) => handleSelectChange(value, 'role')}
                   >
-                    <Option value="admin">Admin</Option>
-                    <Option value="member">Member</Option>
-                    <Option value="coach">Coach</Option>
+                    {roleOptions.map(role => (
+                      <Option key={role.value} value={role.value}>
+                        <Tag color={role.color}>{role.label}</Tag>
+                      </Option>
+                    ))}
                   </Select>
                 </Form.Item>
               </Col>
@@ -515,9 +507,11 @@ const UserManagement = () => {
                     allowClear
                     onChange={(value) => handleSelectChange(value, 'status')}
                   >
-                    <Option value={0}>Active</Option>
-                    <Option value={1}>Pending</Option>
-                    <Option value={2}>Banned</Option>
+                    {statusOptions.map(status => (
+                      <Option key={status.value} value={status.value}>
+                        <Tag color={status.color}>{status.label}</Tag>
+                      </Option>
+                    ))}
                   </Select>
                 </Form.Item>
               </Col>
@@ -577,7 +571,7 @@ const UserManagement = () => {
           okText="Delete"
           cancelText="Cancel"
           okButtonProps={{ danger: true }}
-          confirmLoading={deleteUserMutation.status === 'pending'} 
+          confirmLoading={deleteUserResult.status === 'pending'} 
         >
           <p>{`This action cannot be undone. Are you sure you want to delete user with ID: ${userToDelete}?`}</p>
         </Modal>
@@ -585,12 +579,12 @@ const UserManagement = () => {
         {/* Error Modal */}
         <Modal
           title="Error"
-          open={!!deleteUserMutation.error}
-          onOk={() => deleteUserMutation.reset()}
+          open={!!deleteUserResult.error}
+          onOk={() => deleteUserResult.reset()}
           okText="OK"
           cancelButtonProps={{ style: { display: 'none' } }}
         >
-          <p>{deleteUserMutation.error?.message || 'An error occurred'}</p>
+          <p>{deleteUserResult.error?.message || 'An error occurred'}</p>
         </Modal>
 
       </div>

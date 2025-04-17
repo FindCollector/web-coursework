@@ -1,6 +1,6 @@
 package com.fitness_centre.schedule;
 
-import com.fitness_centre.service.UserService;
+import com.fitness_centre.service.biz.interfaces.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;

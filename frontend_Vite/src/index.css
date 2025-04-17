@@ -72,3 +72,16 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+/* Hide disabled time options in Ant Design TimePicker dropdowns */
+.ant-picker-time-panel-column .ant-picker-time-panel-cell-disabled {
+  display: none;
+}
+
+/* Removed weekend highlighting to fix Wednesday issue */
+/* 
+.fc-day-sat,
+.fc-day-sun {
+  background-color: #fffacd; 
+}
+*/

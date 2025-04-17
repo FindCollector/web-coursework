@@ -1,8 +1,8 @@
 package com.fitness_centre.domain;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -26,24 +26,35 @@ public class User implements Serializable {
     private static final long serialVersionUID = -40356785423868312L;
 
     @TableId(type = IdType.ASSIGN_ID)
-    private Integer id;
+    @JsonSerialize(using = ToStringSerializer.class)
+    private Long id;
 
+    @TableField(updateStrategy = FieldStrategy.NOT_NULL)
     private String email;
 
+    @TableField(updateStrategy = FieldStrategy.NOT_NULL)
     private String password;
 
+
+    @TableField(updateStrategy = FieldStrategy.NOT_NULL)
     private String role;
 
+    @TableField(updateStrategy = FieldStrategy.NOT_NULL)
     private Integer gender;
 
+    @TableField(updateStrategy = FieldStrategy.NOT_NULL)
     private LocalDate birthday;
 
+    @TableField(updateStrategy = FieldStrategy.NOT_NULL)
     private String address;
 
+    @TableField(updateStrategy = FieldStrategy.NOT_NULL)
     private LocalDateTime registerTime;
 
+    @TableField(updateStrategy = FieldStrategy.NOT_NULL)
     private Integer status;
 
+    @TableField(updateStrategy = FieldStrategy.NOT_NULL)
     private String userName;
 
 }

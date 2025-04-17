@@ -61,7 +61,6 @@ public class RecapchaAspect {
         if(!verify(recaptchaToken,minScore,action)){
             throw new AuthException(ErrorCode.CAPTCHA_ERROR);
         }
-        System.out.println("4");
         // 如果验证通过，就执行原方法：
         return joinPoint.proceed();
     }
@@ -133,9 +132,6 @@ public class RecapchaAspect {
             }
         }
         if (expectedAction != null && !expectedAction.equals(action)) {
-            System.out.println("1");
-            System.out.println(action);
-            System.out.println(expectedAction);
             return false;
         }
         return true;

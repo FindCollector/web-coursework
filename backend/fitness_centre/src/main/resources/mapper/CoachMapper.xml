@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.fitness_centre.mapper.CoachMapper">
+
+    <select id="selectCoachPage"
+            resultType="com.fitness_centre.dto.member.CoachDetailsResponse">
+        SELECT
+        c.id AS coachId,
+        u.user_name AS userName,
+        TIMESTAMPDIFF(YEAR, u.birthday, CURDATE()) AS age,
+        u.email AS email,
+        c.photo AS photo,
+        c.intro AS intro,
+
+        -- 将多个 tag_name 用逗号拼接
+        GROUP_CONCAT(DISTINCT t.tag_name) AS groupTagNames,
+        -- 将多个 location_name 用逗号拼接
+        GROUP_CONCAT(DISTINCT l.location_name) AS groupLocationNames,
+
+        -- 只要存在任何一条 pending，就返回 'pending'
+        CASE
+        WHEN SUM(CASE WHEN mc.status='pending' THEN 1 ELSE 0 END) > 0
+        THEN 'pending'
+        ELSE 'Normal'
+        END AS status
+
+        FROM sys_user u
+        JOIN coach_info c ON c.id = u.id
+        -- member_coach 表，看是否存在status='pending'
+        LEFT JOIN subscription mc ON mc.coach_id = c.id AND mc.member_id = #{memberId}
+
+        -- coach_tag &amp; tag
+        LEFT JOIN coach_tag ct ON ct.coach_id = c.id
+        LEFT JOIN tag t ON t.id = ct.tag_id
+
+        -- coach_location &amp; location
+        LEFT JOIN coach_location cl ON cl.coach_id = c.id
+        LEFT JOIN location l ON l.id = cl.location_id
+
+        <where>
+            <if test="request.userName != null and request.userName.trim() != ''">
+                AND u.user_name LIKE CONCAT('%', #{request.userName}, '%')
+            </if>
+
+            <if test="request.tagIds != null and request.tagIds.size() > 0">
+                AND c.id IN (
+                SELECT coach_id FROM coach_tag
+                WHERE tag_id IN
+                <foreach collection="request.tagIds"
+                         item="tagId"
+                         open="(" separator="," close=")">
+                    #{tagId}
+                </foreach>
+                )
+            </if>
+
+            <if test="request.locationIds != null and request.locationIds.size() > 0">
+                AND c.id IN (
+                SELECT coach_id FROM coach_location
+                WHERE location_id IN
+                <foreach collection="request.locationIds"
+                         item="locId"
+                         open="(" separator="," close=")">
+                    #{locId}
+                </foreach>
+                )
+            </if>
+        </where>
+
+        -- 使用 GROUP BY 避免多条重复行
+        GROUP BY c.id
+    </select>
+
+</mapper>

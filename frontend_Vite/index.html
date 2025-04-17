@@ -5,6 +5,14 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Vite + React</title>
+    <script>
+      window.initMap = function() {
+        window.googleMapsLoaded = true;
+      };
+    </script>
+    <script async
+      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDkGZwzeqoVwtFNHfvKfSnEktdg16oqK3E&callback=initMap&libraries=maps,marker&v=beta&language=en">
+    </script>
     <style>
       html, body {
         margin: 0;
@@ -13,6 +21,11 @@
         height: 100%;
         background-color: #E3F2FD;
         overflow-x: hidden;
+      }
+      gmp-map {
+        height: 100%;
+        width: 100%;
+        border-radius: 8px;
       }
     </style>
   </head>

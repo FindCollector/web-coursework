@@ -1,0 +1,169 @@
+import { baseApi } from './baseApi';
+
+// 扩展基础API，添加用户相关的端点
+export const userApi = baseApi.injectEndpoints({
+  endpoints: (builder) => ({
+    // 获取用户列表
+    getUserList: builder.query({
+      query: (params) => {
+        const {
+          role,
+          status,
+          userName,
+          email,
+          sortField,
+          sortOrder,
+          pageNow = 1,
+          pageSize = 10
+        } = params || {};
+      
+        // 构建查询参数
+        const queryParams = new URLSearchParams();
+        
+        // 只添加有值的参数
+        if (role) queryParams.append('role', role);
+        if (status !== undefined && status !== null) queryParams.append('status', status);
+        if (userName) queryParams.append('userName', userName);
+        if (email) queryParams.append('email', email);
+        
+        // 处理排序参数
+        if (Array.isArray(sortField) && Array.isArray(sortOrder) && sortField.length > 0) {
+          sortField.forEach(field => queryParams.append('sortField', field));
+          sortOrder.forEach(order => queryParams.append('sortOrder', order));
+        }
+        
+        // 分页参数总是添加
+        queryParams.append('pageNow', pageNow);  
+        queryParams.append('pageSize', pageSize);   
+        
+        // 添加时间戳防止缓存
+        queryParams.append('_t', Date.now());
+        
+        console.log('[userApi] 准备发送请求:', {
+          url: `/user/list?${queryParams.toString()}`,
+          params: Object.fromEntries(queryParams.entries()),
+          token: sessionStorage.getItem('token')
+        });
+        
+        return {
+          url: `/user/list?${queryParams.toString()}`,
+          method: 'GET'
+        };
+      },
+      // 禁用缓存
+      keepUnusedDataFor: 0,
+      // 确保每次都重新获取数据
+      forceRefetch: () => true,
+      // 处理响应转换
+      transformResponse: (response) => {
+        // 确保即使后端返回数据格式不完整也能正常显示
+        const defaultResponse = {
+          code: 0,
+          msg: 'success',
+          records: [],
+          total: 0,
+          current: 1,
+          size: 10,
+          pages: 1
+        };
+        
+        return response || defaultResponse;
+      },
+      // 为了确保缓存失效和重新获取正常工作
+      providesTags: ['User'],
+      async onQueryStarted(arg, { queryFulfilled }) {
+        try {
+          console.log('[userApi] 开始发送请求');
+          const result = await queryFulfilled;
+          console.log('[userApi] 请求成功:', result);
+        } catch (error) {
+          console.error('[userApi] 请求失败:', error);
+        }
+      },
+    }),
+
+    // 更新用户状态
+    updateUserStatus: builder.mutation({
+      query: ({ userId, status }) => ({
+        url: `/user/${userId}`,
+        method: 'PATCH',
+        body: { status }
+      }),
+      // 使缓存失效，触发重新获取
+      invalidatesTags: ['User'],
+      // 与旧API保持一致的错误处理
+      onQueryStarted: async (arg, { dispatch, queryFulfilled, getCacheEntry }) => {
+        try {
+          await queryFulfilled;
+        } catch (error) {
+          console.error(`更新用户状态失败:`, error);
+        }
+      },
+    }),
+
+    // 删除用户
+    deleteUser: builder.mutation({
+      query: (userId) => {
+        console.log(`[userApi.js] deleteUser function started, received ID: ${userId}`, typeof userId);
+        
+        // Verify ID exists
+        if (!userId) {
+          console.error('[userApi.js] Error: No user ID provided to deleteUser!');
+          throw new Error('Internal error: Missing user ID');
+        }
+        
+        return {
+          url: `/user/${userId}`,
+          method: 'DELETE'
+        };
+      },
+      // 使缓存失效，触发重新获取
+      invalidatesTags: ['User'],
+    }),
+
+    // 获取用户配置（角色和状态）
+    getUserConfig: builder.query({
+      query: () => ({
+        url: '/user/filter',
+        method: 'GET'
+      }),
+      transformResponse: (response) => {
+        if (response.code === 0 && response.data) {
+          // 转换角色数据
+          const roles = Object.entries(response.data.role).map(([value, label]) => ({
+            value,
+            label,
+            // 为不同角色设置不同的颜色
+            color: value === 'admin' ? 'purple' : value === 'coach' ? 'green' : 'blue'
+          }));
+
+          // 转换状态数据
+          const statuses = Object.entries(response.data.status).map(([value, label]) => ({
+            value: parseInt(value),
+            label,
+            // 为不同状态设置不同的颜色
+            color: value === '0' ? 'success' : value === '1' ? 'warning' : 'error'
+          }));
+
+          return {
+            roles,
+            statuses
+          };
+        }
+        return {
+          roles: [],
+          statuses: []
+        };
+      },
+      providesTags: ['UserConfig']
+    }),
+  }),
+});
+
+// 导出自动生成的hooks
+export const {
+  useGetUserListQuery,
+  useUpdateUserStatusMutation,
+  useDeleteUserMutation,
+  useGetUserConfigQuery
+} = userApi; 

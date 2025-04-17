@@ -67,6 +67,7 @@ public class LoginUser implements UserDetails {
     public boolean isAccountNonLocked() {
         Integer status = user.getStatus();
         if(status.equals(UserStatus.BLOCKED.getStatus())){
+            System.out.println("账号封禁");
             return false;
         }
         return true;
@@ -86,6 +87,10 @@ public class LoginUser implements UserDetails {
             return false;
         }
         return true;
+    }
+
+    public Long getId(){
+        return user.getId();
     }
 
     public String getRole(){

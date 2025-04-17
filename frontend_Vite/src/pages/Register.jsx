@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useMutation } from '@tanstack/react-query';
+import { useSendVerificationCodeMutation } from '../store/api/authApi';
 import { Form, Input, Button, Card, Typography, Select, DatePicker, Modal } from 'antd';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import dayjs from 'dayjs'; // 导入dayjs，Ant Design v5使用的日期库
 
-import { sendVerificationCode } from '../api/authApi';
 import PageTransition from '../components/PageTransition';
 
 const { Title, Text } = Typography;
@@ -66,16 +65,38 @@ const Register = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const navigate = useNavigate();
 
+  // 使用RTK Query hooks
+  const [sendVerificationCode, sendCodeResult] = useSendVerificationCodeMutation();
+  
+  // 添加按钮加载状态
+  const [isLoading, setIsLoading] = useState(false);
+
   // Load reCAPTCHA Enterprise script
   useEffect(() => {
+    // 检查是否已经加载了脚本
+    if (document.querySelector('script[src*="recaptcha/enterprise.js"]')) {
+      console.log('reCAPTCHA script already loaded in Register page, skipping...');
+      return;
+    }
+    
+    console.log('Loading reCAPTCHA script in Register page...');
     const script = document.createElement('script');
     script.src = 'https://www.google.com/recaptcha/enterprise.js?render=6Lcq_e4qAAAAAEJYKkGw-zQ6CN74yjbiWByLBo6Y';
     script.async = true;
+    script.id = 'recaptcha-script';
+    script.onload = () => {
+      console.log('reCAPTCHA script loaded successfully in Register page.');
+    };
+    script.onerror = (error) => {
+      console.error('Error loading reCAPTCHA script in Register page:', error);
+    };
     document.body.appendChild(script);
     
     return () => {
-      // Cleanup function
-      document.body.removeChild(script);
+      // 不要在卸载组件时移除脚本，因为验证码页面会使用
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('Register component unmounted, reCAPTCHA script remains for other components');
+      }
     };
   }, []);
 
@@ -94,38 +115,15 @@ const Register = () => {
     }
   });
 
-  // Send verification code request
-  const sendCodeMutation = useMutation({
-    mutationFn: sendVerificationCode,
-    onSuccess: (data) => {
-      console.log('API Response:', data);
-      if (data.code === 0) {
-        navigate('/verify-code', { 
-          state: { 
-            email: data.data?.email || control._formValues.email,
-            userName: control._formValues.userName,
-            role: control._formValues.role
-          } 
-        });
-      } else {
-        setErrorMessage(data.msg);
-        setIsModalVisible(true);
-      }
-    },
-    onError: (error) => {
-      console.error('API Error:', error); // 调试日志
-      let errorMessage = 'Registration failed';
-      if (error.response && error.response.data) {
-        errorMessage = error.response.data.msg || errorMessage;
-      }
-      setErrorMessage(errorMessage);
-      setIsModalVisible(true);
-    }
-  });
-
   // Handle form submission
   const onSubmit = async (formData) => {
     console.log('Form submitted', formData);
+    
+    // 先检查是否已经在处理中，避免重复提交
+    if (isLoading || sendCodeResult.isPending) {
+      console.log('Request already in progress, ignoring');
+      return;
+    }
     
     if (!window.grecaptcha?.enterprise) {
       console.error('reCAPTCHA not loaded');
@@ -135,14 +133,35 @@ const Register = () => {
     }
     
     try {
+      // 设置加载状态
+      setIsLoading(true);
+      
       console.log('Getting reCAPTCHA token...');
       
-      const recaptchaToken = await window.grecaptcha.enterprise.execute(
-        '6Lcq_e4qAAAAAEJYKkGw-zQ6CN74yjbiWByLBo6Y',
-        { action: 'sendCode' }
-      );
-      
-      console.log('Token received', recaptchaToken.substring(0, 10) + '...');
+      // 增加超时处理
+      let recaptchaToken;
+      try {
+        // 给reCAPTCHA调用增加一个超时限制
+        const tokenPromise = window.grecaptcha.enterprise.execute(
+          '6Lcq_e4qAAAAAEJYKkGw-zQ6CN74yjbiWByLBo6Y',
+          { action: 'sendCode' }
+        );
+        
+        // 创建一个超时Promise
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('reCAPTCHA token request timed out')), 10000);
+        });
+        
+        // 使用Promise.race来处理可能的超时
+        recaptchaToken = await Promise.race([tokenPromise, timeoutPromise]);
+        console.log('Token received', recaptchaToken.substring(0, 10) + '...');
+      } catch (error) {
+        console.error('Failed to get reCAPTCHA token:', error);
+        setErrorMessage('Failed to verify human presence. Please try again.');
+        setIsModalVisible(true);
+        setIsLoading(false);
+        return;
+      }
       
       let formattedBirthday = '';
       if (formData.birthday) {
@@ -186,16 +205,70 @@ const Register = () => {
       };
       
       console.log('Sending data to API...', submitData);
-      sendCodeMutation.mutate(submitData);
+      
+      // 使用RTK Query mutation，添加更好的错误处理
+      try {
+        const data = await sendVerificationCode(submitData).unwrap();
+        console.log('API Response:', data);
+        
+        if (data.code === 0) {
+          // 添加调试日志
+          console.log('跳转到验证码页面，传递数据:', { 
+            email: data.data?.email || control._formValues.email,
+            userName: control._formValues.userName,
+            role: control._formValues.role
+          });
+          
+          // 确保页面state参数正确传递
+          const email = data.data?.email || control._formValues.email;
+          const userName = control._formValues.userName;
+          const role = control._formValues.role;
+          
+          // 添加短暂延迟，确保状态更新和API请求都已完成
+          setTimeout(() => {
+            // 使用replace而非push，防止后退
+            navigate('/verify-code', { 
+              state: { email, userName, role },
+              replace: true
+            });
+            // 重置状态
+            setIsLoading(false);
+          }, 500);
+        } else {
+          setErrorMessage(data.msg || 'Registration failed');
+          setIsModalVisible(true);
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error('API Error:', error);
+        let errorMessage = 'Registration failed';
+        if (error.data) {
+          errorMessage = error.data.msg || errorMessage;
+        } else if (error.response && error.response.data) {
+          errorMessage = error.response.data.msg || errorMessage;
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        setErrorMessage(errorMessage);
+        setIsModalVisible(true);
+        setIsLoading(false); // 重置加载状态
+      }
     } catch (error) {
-      console.error('reCAPTCHA error:', error);
-      setErrorMessage('Human verification failed, please refresh the page and try again');
+      console.error('Unexpected error:', error);
+      setErrorMessage('An unexpected error occurred. Please try again.');
       setIsModalVisible(true);
+      setIsLoading(false); // 重置加载状态
     }
+  };
+  
+  // 在Modal关闭时重置加载状态
+  const handleModalClose = () => {
+    setIsModalVisible(false);
+    setIsLoading(false);
   };
 
   return (
-    <PageTransition isVisible={isLoginPage}>
+    <PageTransition isVisible={!isLoginPage}>
       <div style={styles.container}>
         <div style={styles.leftPanel}>
           <Title level={2} style={styles.title}>Join the Fitness Revolution</Title>
@@ -343,7 +416,8 @@ const Register = () => {
                   type="primary"
                   htmlType="submit"
                   style={styles.registerButton}
-                  loading={sendCodeMutation.isPending}
+                  loading={isLoading || sendCodeResult.isPending}
+                  disabled={isLoading || sendCodeResult.isPending}
                 >
                   Register
                 </Button>
@@ -356,6 +430,7 @@ const Register = () => {
                 type="link" 
                 onClick={() => navigate('/login')} 
                 style={styles.loginLink}
+                disabled={isLoading || sendCodeResult.isPending}
               >
                 Login
               </Button>
@@ -366,8 +441,8 @@ const Register = () => {
         <Modal
           title="Registration Failed"
           open={isModalVisible}
-          onOk={() => setIsModalVisible(false)}
-          onCancel={() => setIsModalVisible(false)}
+          onOk={handleModalClose}
+          onCancel={handleModalClose}
           cancelButtonProps={{ style: { display: 'none' } }}
           okText="Retry"
         >

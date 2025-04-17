@@ -3,10 +3,10 @@ package com.fitness_centre.controller;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fitness_centre.domain.User;
 import com.fitness_centre.dto.GeneralResponseResult;
-import com.fitness_centre.service.impl.UserServiceImpl;
+import com.fitness_centre.dto.admin.UserListQueryRequest;
+import com.fitness_centre.service.biz.impl.UserServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -15,7 +15,7 @@ import java.util.Map;
 /**
  * @author
  * @Classname AdminController
- * @Description TODO
+ * @Description DONE
  * @date 24/03/2025
  */
 @RestController
@@ -24,32 +24,29 @@ public class AdminController {
     @Autowired
     private UserServiceImpl userService;
 
-    @PreAuthorize("hasRole('admin')")
+    @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).ADMIN.getRole())")
     @GetMapping("/list")
-    public Page<User> userList(
-            @RequestParam(required = false) String role,
-            @RequestParam(required = false) Integer status,
-            @RequestParam(required = false) String userName,
-            @RequestParam(required = false) String email,
-            @RequestParam(required = false) List<String> sortField,
-            @RequestParam(required = false) List<String> sortOrder,
-            @RequestParam(defaultValue = "1") int pageNow,
-            @RequestParam(defaultValue = "10")int pageSize
-    ){
-        Page<User> pageResult = userService.pageQueryUser(role,status,userName,email,sortField,sortOrder,pageNow,pageSize);
+    public Page<User> userList(@ModelAttribute UserListQueryRequest queryRequest){
+        Page<User> pageResult = userService.pageQueryUser(queryRequest);
         return pageResult;
     }
 
+    @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).ADMIN.getRole())")
+    @GetMapping("/filter")
+    public GeneralResponseResult userFilter(){
+        return userService.userFilter();
+    }
+
     @DeleteMapping("/{id}")
-    public GeneralResponseResult deleteUser(@PathVariable Integer id){
+    @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).ADMIN.getRole())")
+    public GeneralResponseResult deleteUser(@PathVariable Long id){
         return userService.deleteById(id);
     }
 
     @PatchMapping("/{id}")
-    public GeneralResponseResult updateStatus(@PathVariable Integer id,@RequestBody Map<String, Object> requestBody){
+    @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).ADMIN.getRole())")
+    public GeneralResponseResult updateStatus(@PathVariable Long id,@RequestBody Map<String, Object> requestBody){
         Integer status = (Integer) requestBody.get("status");
         return userService.updateStatus(id,status);
     }
-
-
 }

@@ -1,15 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useMutation } from '@tanstack/react-query';
-import { Form, Input, Button, Card, Typography, Modal } from 'antd';
+import { useLoginMutation } from '../store/api/authApi';
+import { Form, Input, Button, Card, Typography, message } from 'antd';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
+import { useReCaptcha, useButtonLoading } from '../hooks';
 
-import { login } from '../api/authApi';
 import { loginStart, loginSuccess, loginFailure } from '../store/authSlice';
-import { getRedirectPath, getUserTypeFromData } from '../utils/routeUtils';
+import { getRedirectPath, getUserTypeFromData, isUserAuthenticated } from '../utils/routeUtils';
 import PageTransition from '../components/PageTransition';
 
 const { Title } = Typography;
@@ -23,24 +23,20 @@ const schema = yup.object({
 const Login = () => {
   const location = useLocation();
   const isRegisterPage = location.pathname === '/register';
-  console.log("Login component rendering");
-  const [isModalVisible, setIsModalVisible] = useState(false);
+  
+  // 使用自定义 hooks
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { loading, error } = useSelector((state) => state.auth);
   
-  // Load reCAPTCHA Enterprise script
-  useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://www.google.com/recaptcha/enterprise.js?render=6Lcq_e4qAAAAAEJYKkGw-zQ6CN74yjbiWByLBo6Y';
-    script.async = true;
-    document.body.appendChild(script);
-    
-    return () => {
-      // Cleanup function
-      document.body.removeChild(script);
-    };
-  }, []);
+  // 使用RTK Query的hook
+  const [login, loginResult] = useLoginMutation();
+  
+  // 使用自定义按钮加载状态 hook
+  const [isLoading, setLoading, withLoading] = useButtonLoading(false);
+
+  // 使用自定义 reCAPTCHA hook
+  const { executeReCaptcha, isScriptLoaded, isInitialized, error: recaptchaError } = useReCaptcha('6Lcq_e4qAAAAAEJYKkGw-zQ6CN74yjbiWByLBo6Y');
   
   // Form control
   const { control, handleSubmit, formState: { errors } } = useForm({
@@ -51,88 +47,123 @@ const Login = () => {
     }
   });
 
-  // Login request
-  const loginMutation = useMutation({
-    mutationFn: login,
-    onMutate: () => {
-      dispatch(loginStart());
-    },
-    onSuccess: (data) => {
-      if (data.code === 0) {
-        // 获取用户信息，适应新的数据结构
-        const userInfo = data.data.userInfo || {};
-        console.log('Login successful, received user info:', userInfo);
-        
-        // 从userInfo中获取token和角色
-        const token = userInfo.token;
-        const userType = userInfo.role || 'admin';
-        const userName = userInfo.userName || 'Admin';
-        
-        // 分发登录成功action
-        dispatch(loginSuccess({
-          token: token,
-          userType: userType,
-          userName: userName
-        }));
-        
-        // 额外确认token已保存到localStorage
-        console.log('Token saved to localStorage:', localStorage.getItem('token') ? 'Yes' : 'No');
-        console.log('User name saved:', userName);
-        
-        // Redirect based on user type
-        const redirectPath = getRedirectPath(userType);
-        navigate(redirectPath);
-      } else {
-        // 确保使用后端返回的错误消息
-        const errorMessage = data.msg || 'Login failed, please try again later';
-        dispatch(loginFailure(errorMessage));
-        setIsModalVisible(true);
-      }
-    },
-    onError: (error) => {
-      let errorMessage = 'Login failed';
-      if (error.response && error.response.data) {
-        errorMessage = error.response.data.msg || errorMessage;
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      dispatch(loginFailure(errorMessage));
-      setIsModalVisible(true);
-    }
-  });
-
   // Handle form submission
   const onSubmit = async (formData) => {
-    if (!window.grecaptcha?.enterprise) {
-      dispatch(loginFailure('reCAPTCHA is not ready, please wait...'));
+    if (!isScriptLoaded || !isInitialized) {
+      dispatch(loginFailure(recaptchaError || 'reCAPTCHA 未准备好，请刷新页面重试'));
+      // 显示reCAPTCHA错误
+      message.error(recaptchaError || 'reCAPTCHA 未准备好，请刷新页面重试');
       return;
     }
     
     try {
-      // Get reCAPTCHA token
-      const recaptchaToken = await window.grecaptcha.enterprise.execute(
-        '6Lcq_e4qAAAAAEJYKkGw-zQ6CN74yjbiWByLBo6Y',
-        { action: 'login' }
-      );
+      // 手动设置加载状态
+      setLoading(true);
       
-      loginMutation.mutate({
+      // Get reCAPTCHA token
+      const recaptchaToken = await executeReCaptcha('login');
+      
+      // 调用RTK Query的login mutation
+      dispatch(loginStart());
+      
+      const data = await login({
         ...formData,
         headers: {
           'X-Recaptcha-Token': recaptchaToken,
           'X-Action': 'login'
         }
-      });
+      }).unwrap();
+      
+      console.log('登录响应完整数据:', data);
+      
+      if (data.code === 0) {
+        // 获取用户信息，适应新的数据结构
+        const userInfo = data.data?.userInfo || {};
+        
+        // 从userInfo中获取token和角色
+        const token = userInfo.token;
+        const userType = userInfo.role;
+        const userName = userInfo.userName || 'Admin';
+        
+        if (!token) {
+          const errorMsg = '登录成功但未获取到凭证，请联系管理员';
+          dispatch(loginFailure(errorMsg));
+          message.error(errorMsg);
+          return;
+        }
+        
+        // 分发登录成功action
+        dispatch(loginSuccess({
+          token,
+          userType,
+          userName
+        }));
+        
+        // 显示登录成功提示
+        message.success('Login Successful');
+        
+        // 使用工具函数获取重定向路径
+        const redirectPath = getRedirectPath(userType);
+        console.log('登录成功，准备跳转到:', redirectPath, {
+          token,
+          userType,
+          userName
+        });
+        
+        // 直接跳转，不使用setTimeout
+        navigate(redirectPath, { replace: true });
+      } else {
+        // 确保使用后端返回的错误消息
+        const errorMessage = data.msg || 'Login failed, please try again later';
+        console.log('业务逻辑错误，使用错误消息:', errorMessage);
+        
+        dispatch(loginFailure(errorMessage));
+        
+        // 显示错误信息
+        message.error(errorMessage);
+      }
     } catch (error) {
-      console.error('reCAPTCHA error:', error);
-      dispatch(loginFailure('Human verification failed, please refresh the page and try again'));
+      console.error('登录错误:', error);
+      // 添加详细的错误结构日志
+      console.error('错误对象结构:', {
+        error,
+        data: error.data,
+        message: error.message,
+        response: error.response,
+        stack: error.stack
+      });
+      
+      let errorMessage = 'Login failed';
+      
+      // 检查错误对象的不同可能的结构
+      if (error.data) {
+        errorMessage = error.data.msg || errorMessage;
+        console.log('从error.data中提取的错误消息:', error.data.msg);
+      } else if (error.response && error.response.data) {
+        errorMessage = error.response.data.msg || errorMessage;
+        console.log('从error.response.data中提取的错误消息:', error.response.data.msg);
+      } else if (error.message) {
+        errorMessage = error.message;
+        console.log('从error.message中提取的错误消息:', error.message);
+      }
+      
+      console.log('最终使用的错误消息:', errorMessage);
+      
+      // 只更新Redux状态
+      dispatch(loginFailure(errorMessage));
+      
+      // 显示错误信息
+      message.error(errorMessage);
+    } finally {
+      // 完成后重置加载状态
+      setLoading(false);
     }
   };
 
   return (
     <PageTransition isVisible={isRegisterPage}>
       <div className="flex justify-center items-center min-h-screen" style={styles.container}>
-        {console.log("Rendering login form")}
-        <Card className="w-full max-w-md shadow-md" style={{...styles.box, border: '1px solid red'}}>
+        <Card className="w-full max-w-md shadow-md" style={styles.box}>
           <div className="text-center mb-6">
             <Title level={2} style={styles.title}>Sign In</Title>
           </div>
@@ -171,32 +202,26 @@ const Login = () => {
                   width: '80%',
                   margin: '0 auto',
                 }}
-                loading={loading}
+                loading={isLoading || loginResult.isLoading}
+                disabled={isLoading || loginResult.isLoading || !isScriptLoaded || !isInitialized}
               >
-                Sign In
+                {!isScriptLoaded || !isInitialized ? 'reCAPTCHA Loading...' : 'Sign In'}
               </Button>
             </Form.Item>
           </Form>
           
           <div style={styles.footerText}>
             <span>Don't have an account? </span>
-            <Button type="link" onClick={() => navigate('/register')} style={styles.signUpLink}>
+            <Button 
+              type="link" 
+              onClick={() => navigate('/register')} 
+              style={styles.signUpLink}
+              disabled={isLoading || loginResult.isLoading}
+            >
               Sign Up
             </Button>
           </div>
         </Card>
-        
-        {/* Login failure modal */}
-        <Modal
-          title="Login Failed"
-          open={isModalVisible}
-          onOk={() => setIsModalVisible(false)}
-          onCancel={() => setIsModalVisible(false)}
-          cancelButtonProps={{ style: { display: 'none' } }}
-          okText="Retry"
-        >
-          <p style={{ fontSize: '16px' }}>{error || 'Wrong email or password, please try again.'}</p>
-        </Modal>
       </div>
     </PageTransition>
   );

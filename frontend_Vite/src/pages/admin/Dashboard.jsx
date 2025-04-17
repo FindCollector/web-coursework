@@ -12,7 +12,7 @@ import {
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { logout as logoutAction } from '../../store/authSlice';
-import { logout as logoutApi } from '../../api/authApi';
+import { useLogoutMutation } from '../../store/api/authApi';
 
 // Import user management component
 import UserManagement from './UserManagement';
@@ -37,11 +37,14 @@ const AdminDashboard = () => {
     console.log('Displaying user name:', userName);
   }, []);
 
+  // Replace with RTK Query mutation hook
+  const [logout, { isLoading: isLoggingOut }] = useLogoutMutation();
+
   // Handle logout operation
   const handleLogout = async () => {
     try {
-      // Call logout API
-      const response = await logoutApi();
+      // Call RTK Query logout mutation
+      const response = await logout().unwrap();
       
       // If logout successful
       if (response.code === 0) {
@@ -58,7 +61,9 @@ const AdminDashboard = () => {
       // Handle API call error
       console.error('Logout failed:', error);
       let errorMessage = 'Logout failed, please try again';
-      if (error.response && error.response.data) {
+      if (error.data) {
+        errorMessage = error.data.msg || errorMessage;
+      } else if (error.response && error.response.data) {
         errorMessage = error.response.data.msg || errorMessage;
       }
       setErrorMessage(errorMessage);

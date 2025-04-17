@@ -39,6 +39,7 @@ public class AuthenticationProviderImpl implements AuthenticationProvider {
             throw new UsernameNotFoundException("User not found");
         }
 
+
         // 3) 再检查密码是否正确
         if (!passwordEncoder.matches(rawPassword, userDetails.getPassword())) {
             throw new BadCredentialsException("Wrong email or password");

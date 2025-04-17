@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.fitness_centre.mapper.SubscriptionMapper">
+
+    <select id="findSubscriptionByCoachId" resultType="com.fitness_centre.dto.subscription.SubscriptionListResponse">
+        SELECT
+        s.id,
+        s.status,
+        s.request_time,
+        s.response_time,
+        s.message,
+        s.reply,
+        s.coach_is_read,
+        s.member_is_read,
+        m.user_name AS memberName,
+        c.user_name AS coachName
+        FROM subscription s
+        LEFT JOIN sys_user m ON s.member_id = m.id
+        LEFT JOIN sys_user c ON s.coach_id = c.id
+        WHERE s.coach_id = #{coachId} AND s.status != 'CANCEL'
+        <if test="statusList != null and statusList.size() > 0">
+            AND s.status IN
+            <foreach item="st" collection="statusList" open="(" separator="," close=")">
+                #{st}
+            </foreach>
+        </if>
+        ORDER BY s.response_time DESC, s.request_time DESC
+    </select>
+
+    <select id="findSubscriptionByMemberId" resultType="com.fitness_centre.dto.subscription.SubscriptionListResponse">
+        SELECT
+        s.id,
+        s.status,
+        s.request_time,
+        s.response_time,
+        s.message,
+        s.reply,
+        s.coach_is_read,
+        s.member_is_read,
+        m.user_name AS memberName,
+        c.user_name AS coachName
+        FROM subscription s
+        LEFT JOIN sys_user m ON s.member_id = m.id
+        LEFT JOIN sys_user c ON s.coach_id = c.id
+        WHERE s.member_id = #{memberId} AND s.status != 'CANCEL'
+        <if test="statusList != null and statusList.size() > 0">
+            AND s.status IN
+            <foreach item="st" collection="statusList" open="(" separator="," close=")">
+                #{st}
+            </foreach>
+        </if>
+        ORDER BY s.response_time DESC, s.request_time DESC
+    </select>
+
+</mapper>
