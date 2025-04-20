@@ -247,6 +247,88 @@ export const coachApi = baseApi.injectEndpoints({
       invalidatesTags: ['UnreadCount', 'SubscriptionRequests']
     }),
 
+    // 获取未记录的 Session 列表
+    getUnrecordedSessions: builder.query({
+      query: (params = {}) => {
+        const { pageNow = 1, pageSize = 10 } = params;
+        const queryParams = new URLSearchParams();
+        queryParams.append('pageNow', pageNow);
+        queryParams.append('pageSize', pageSize);
+        queryParams.append('_t', Date.now()); // 防止缓存
+        
+        return {
+          url: `/coach/session/unrecord?${queryParams.toString()}`,
+          method: 'GET'
+        };
+      },
+      transformResponse: (response) => {
+        if (response.code === 0 && response.data) {
+          // 转换时间格式，如果需要的话
+          // response.data.records = response.data.records.map(record => ({ ...record, startTime: dayjs(record.startTime), endTime: dayjs(record.endTime) }));
+          return response.data; // 返回 data 部分，包含 records, total, size, current, pages
+        }
+        return { records: [], total: 0, size: 10, current: 1, pages: 0 }; // 返回默认空结构
+      },
+      providesTags: (result, error, arg) => 
+        result
+          ? [...result.records.map(({ id }) => ({ type: 'UnrecordedSession', id })), { type: 'UnrecordedSession', id: 'LIST' }]
+          : [{ type: 'UnrecordedSession', id: 'LIST' }],
+      keepUnusedDataFor: 5 // 缓存5秒
+    }),
+
+    // 获取未记录 Session 计数
+    getUnrecordedSessionCountData: builder.query({
+      query: () => ({
+        url: '/coach/session/unrecord/count',
+        method: 'GET',
+        // 添加时间戳参数，确保不使用缓存
+        params: { _t: Date.now() }
+      }),
+      transformResponse: (response) => {
+        if (response.code === 0 && response.data) {
+          return response.data.count || 0;
+        }
+        return 0;
+      },
+      // 确保每次调用都是新的请求，不使用缓存
+      keepUnusedDataFor: 0,
+      providesTags: ['UnrecordedSessionCount'] // 添加唯一 Tag
+    }),
+
+    // 获取教练所有可用标签
+    getCoachTags: builder.query({
+      query: () => '/coach/tags',
+      transformResponse: (response) => {
+        if (response.code === 0 && response.data) {
+          // 将 { id: name } 格式转换为 [{ value: id, label: name }] 格式
+          return Object.entries(response.data).map(([id, name]) => ({
+            value: id, // 使用 ID 作为 value
+            label: name, // 使用名称作为 label
+          }));
+        }
+        return []; // 返回空数组以防出错
+      },
+      providesTags: ['CoachTags'] // 添加 Tag
+    }),
+
+    // 记录 Session 历史反馈和标签
+    recordSessionHistory: builder.mutation({
+      query: ({ sessionId, feedback, tagList }) => ({
+        url: '/coach/training/history',
+        method: 'POST',
+        body: {
+          sessionId: String(sessionId), // 确保 sessionId 是字符串或数字，根据后端需要调整
+          feedback,
+          tagList: tagList.map(tagId => Number(tagId)) // 确保 tagList 包含的是数字 ID
+        }
+      }),
+      invalidatesTags: (result, error, arg) => [
+        { type: 'UnrecordedSession', id: 'LIST' }, // 使未记录 Session 列表失效
+        { type: 'UnrecordedSession', id: arg.sessionId }, // 使特定 Session 失效 (如果提供)
+        'UnrecordedSessionCount' // 使未记录 Session 计数失效
+      ] 
+    }),
+
     // 添加教练空闲时间
     addAvailability: builder.mutation({
       query: (availability) => ({
@@ -374,6 +456,10 @@ export const {
   useHandleSubscriptionRequestMutation,
   useAcceptSubscriptionRequestMutation,
   useRejectSubscriptionRequestMutation,
+  useGetUnrecordedSessionsQuery,
+  useGetUnrecordedSessionCountDataQuery,
+  useGetCoachTagsQuery,
+  useRecordSessionHistoryMutation,
   useAddAvailabilityMutation,
   useGetAvailabilityQuery,
   useDeleteAvailabilityMutation,

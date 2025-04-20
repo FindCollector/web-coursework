@@ -16,12 +16,14 @@ import { logout as logoutAction } from '../../store/authSlice';
 import { useLogoutMutation } from '../../store/api/authApi';
 import { 
   useGetMemberUnreadRequestsCountQuery,
-  useGetMemberUnreadSessionCountQuery 
+  useGetMemberUnreadSessionCountQuery,
+  useGetMemberUnreadTrainingHistoryCountQuery
 } from '../../store/api/memberApi';
 import SubscriptionRequests from './SubscriptionRequests';
 import SessionRequests from './SessionRequests';
 import BookingSession from './BookingSession';
 import MemberSchedule from './MemberSchedule';
+import TrainingHistory from './TrainingHistory';
 
 // Note: We are using Header from Layout, but positioning it manually outside the main Layout flow.
 const { Content, Sider, Header } = Layout;
@@ -36,30 +38,19 @@ const MemberDashboard = () => {
   const userName = auth?.userName || 'Member';
   const [logout, { isLoading: isLoggingOut }] = useLogoutMutation();
   
-  // 获取未读订阅请求数量
-  const { 
-    data: unreadSubscriptionCount = 0, 
-    refetch: refetchUnreadSubscriptionCount 
-  } = useGetMemberUnreadRequestsCountQuery(null, {
-    pollingInterval: 60000, // 每60秒轮询一次
-    refetchOnMountOrArgChange: true, // 组件挂载时始终重新获取
-    refetchOnFocus: true, // 窗口获得焦点时刷新
-    refetchOnReconnect: true, // 网络重连时刷新
-  });
-  
-  // 获取未读Session请求数量
-  const { 
-    data: unreadSessionCount = 0, 
-    refetch: refetchUnreadSessionCount 
-  } = useGetMemberUnreadSessionCountQuery(null, {
-    pollingInterval: 60000, // 每60秒轮询一次
-    refetchOnMountOrArgChange: true, // 组件挂载时始终重新获取
-    refetchOnFocus: true, // 窗口获得焦点时刷新
-    refetchOnReconnect: true, // 网络重连时刷新
-  });
+  // 获取未读数量
+  const { data: unreadSubscriptionData, refetch: refetchUnreadSubscriptionCount } = useGetMemberUnreadRequestsCountQuery();
+  const { data: unreadSessionData, refetch: refetchUnreadSessionCount } = useGetMemberUnreadSessionCountQuery();
+  const { data: unreadTrainingHistoryData, refetch: refetchUnreadTrainingHistoryCount } = useGetMemberUnreadTrainingHistoryCountQuery();
 
-  // 计算总未读消息数
-  const totalUnreadCount = unreadSubscriptionCount + unreadSessionCount;
+  // 计算未读数量
+  const unreadSubscriptionCount = unreadSubscriptionData?.data || 0;
+  const unreadSessionCount = unreadSessionData?.data || 0;
+  const unreadTrainingHistoryCount = unreadTrainingHistoryData || 0;
+  // 请求相关的未读消息总数（不包含训练历史）
+  const requestsUnreadCount = unreadSubscriptionCount + unreadSessionCount;
+  // 所有未读消息总数
+  const totalUnreadCount = requestsUnreadCount + unreadTrainingHistoryCount;
 
   useEffect(() => {
     console.log('Current user state:', auth);
@@ -67,13 +58,15 @@ const MemberDashboard = () => {
     // 组件挂载时立即刷新未读计数
     refetchUnreadSubscriptionCount();
     refetchUnreadSessionCount();
-  }, [auth, refetchUnreadSubscriptionCount, refetchUnreadSessionCount]);
+    refetchUnreadTrainingHistoryCount();
+  }, [auth, refetchUnreadSubscriptionCount, refetchUnreadSessionCount, refetchUnreadTrainingHistoryCount]);
   
-  // 添加刷新未读计数的事件监听器
+  // 监听刷新未读计数事件
   useEffect(() => {
     const handleRefreshUnreadCount = () => {
       refetchUnreadSubscriptionCount();
       refetchUnreadSessionCount();
+      refetchUnreadTrainingHistoryCount();
       
       // 如果当前在请求页面，自动刷新请求列表
       if (activeMenu === 'subscription-requests' || activeMenu === 'session-requests') {
@@ -90,7 +83,7 @@ const MemberDashboard = () => {
     return () => {
       window.removeEventListener('refresh-unread-count', handleRefreshUnreadCount);
     };
-  }, [refetchUnreadSubscriptionCount, refetchUnreadSessionCount, activeMenu]);
+  }, [refetchUnreadSubscriptionCount, refetchUnreadSessionCount, refetchUnreadTrainingHistoryCount, activeMenu]);
   
   // 监听未读计数变化，如果当前在请求页面且有未读消息，自动刷新请求列表
   useEffect(() => {
@@ -130,7 +123,7 @@ const MemberDashboard = () => {
     {
       key: 'requests',
       icon: (
-        <Badge dot={totalUnreadCount > 0} size="small">
+        <Badge dot={requestsUnreadCount > 0} size="small">
           <BellOutlined />
         </Badge>
       ),
@@ -194,8 +187,30 @@ const MemberDashboard = () => {
     },
     {
       key: 'history',
-      icon: <HistoryOutlined />,
-      label: 'Training History',
+      icon: (
+        <Badge dot={unreadTrainingHistoryCount > 0} size="small">
+          <HistoryOutlined />
+        </Badge>
+      ),
+      label: (
+        <span>
+          Training History
+          {unreadTrainingHistoryCount > 0 && (
+            <Badge 
+              count={unreadTrainingHistoryCount} 
+              size="small" 
+              style={{ 
+                marginLeft: 6, 
+                fontSize: '10px', 
+                padding: '0 4px',
+                height: '16px',
+                lineHeight: '16px',
+                boxShadow: 'none' 
+              }} 
+            />
+          )}
+        </span>
+      ),
     },
   ];
 
@@ -225,6 +240,10 @@ const MemberDashboard = () => {
       window.dispatchEvent(new Event('refresh-session-requests'));
       // 同时刷新未读计数
       refetchUnreadSessionCount();
+    } else if (key === 'history') {
+      window.dispatchEvent(new Event('refresh-training-history'));
+      // 同时刷新未读计数
+      refetchUnreadTrainingHistoryCount();
     }
   };
 
@@ -240,8 +259,9 @@ const MemberDashboard = () => {
         return <SessionRequests />;
       case 'schedule':
         return <MemberSchedule />;
-      case 'favorites':
       case 'history':
+        return <TrainingHistory />;
+      case 'favorites':
       default:
         return (
           <div className="p-8 text-center">

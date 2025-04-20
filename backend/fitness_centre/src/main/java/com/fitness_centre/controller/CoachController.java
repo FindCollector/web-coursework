@@ -1,17 +1,19 @@
 package com.fitness_centre.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.fitness_centre.constant.ErrorCode;
 import com.fitness_centre.constant.RequestStatus;
 import com.fitness_centre.constant.UserRole;
+import com.fitness_centre.domain.Tag;
+import com.fitness_centre.domain.TrainingHistory;
+import com.fitness_centre.dto.AddHistoryRequest;
 import com.fitness_centre.dto.coach.AvailabilitySetRequest;
 import com.fitness_centre.dto.coach.CoachInfoUpdateRequest;
 import com.fitness_centre.dto.GeneralResponseResult;
 import com.fitness_centre.dto.subscription.SubscriptionListResponse;
 import com.fitness_centre.security.LoginUser;
-import com.fitness_centre.service.biz.interfaces.AvailabilityService;
-import com.fitness_centre.service.biz.interfaces.CoachService;
-import com.fitness_centre.service.biz.interfaces.SessionBookingService;
-import com.fitness_centre.service.biz.interfaces.SubscriptionService;
+import com.fitness_centre.service.biz.interfaces.*;
+import org.ietf.jgss.GSSName;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -42,6 +44,12 @@ public class CoachController {
 
     @Autowired
     private SessionBookingService sessionBookingService;
+
+    @Autowired
+    private TrainingHistoryService trainingHistoryService;
+
+    @Autowired
+    private TagService tagService;
 
     //上传文件
     @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).COACH.getRole())")
@@ -203,10 +211,37 @@ public class CoachController {
 
     //--------------------------------------- 添加member课程历史 --------------------------------------------
     @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).COACH.getRole())")
-    @PostMapping("/session/history")
-    public GeneralResponseResult addSessionHistory(Authentication authentication,@RequestBody Map<String,Object> dataMap){
+    @PostMapping("/training/history")
+    public GeneralResponseResult addSessionHistory(Authentication authentication, @RequestBody AddHistoryRequest request){
         LoginUser loginUser = (LoginUser) authentication.getPrincipal();
         Long userId = loginUser.getId();
-        return null;
+        Long sessionId = request.getSessionId();
+        String feedback = request.getFeedback();
+        List<Long> tagList = request.getTagList();
+        return trainingHistoryService.addTrainingHistory(userId,sessionId,feedback,tagList);
+    }
+
+    @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).COACH.getRole())")
+    @GetMapping("/session/unrecord")
+    public GeneralResponseResult getUnRecordSession(Authentication authentication,
+                                                    @RequestParam(defaultValue = "1")int pageNow,
+                                                    @RequestParam(defaultValue = "10") int pageSize){
+        LoginUser loginUser = (LoginUser) authentication.getPrincipal();
+        Long userId = loginUser.getId();
+        return sessionBookingService.coachGetUnRecordSession(userId,pageNow,pageSize);
+    }
+
+    @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).COACH.getRole())")
+    @GetMapping("/session/unrecord/count")
+    public GeneralResponseResult countUnRecordsession(Authentication authentication){
+        LoginUser loginUser = (LoginUser) authentication.getPrincipal();
+        Long userId = loginUser.getId();
+        return sessionBookingService.countUnRecordSession(userId);
+    }
+
+    @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).COACH.getRole())")
+    @GetMapping("/tags")
+    public GeneralResponseResult getAllTags(){
+        return new GeneralResponseResult(ErrorCode.SUCCESS,tagService.getAllTags());
     }
 }

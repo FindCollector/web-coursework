@@ -15,7 +15,7 @@ import java.util.List;
 /**
  * @author
  * @Classname SessionBookingService
- * @Description TODO
+ * @Description DONE
  * @date 12/04/2025
  */
 public interface SessionBookingService extends IService<SessionBooking> {
@@ -36,5 +36,9 @@ public interface SessionBookingService extends IService<SessionBooking> {
     GeneralResponseResult readRequest(Long requestId,Long userId,UserRole role);
 
     GeneralResponseResult coachHandleRequest(Long requestId,Long coachId,RequestStatus status,String reply);
+
+    GeneralResponseResult coachGetUnRecordSession(Long coachId,int pageNow,int pageSize);
+
+    GeneralResponseResult countUnRecordSession(Long coachId);
     
 }

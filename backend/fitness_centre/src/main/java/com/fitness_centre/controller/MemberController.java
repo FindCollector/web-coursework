@@ -13,10 +13,13 @@ import com.fitness_centre.dto.subscription.SubscriptionRequest;
 import com.fitness_centre.security.LoginUser;
 import com.fitness_centre.service.biz.interfaces.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +47,9 @@ public class MemberController {
 
     @Autowired
     private SessionBookingService sessionBookingService;
+
+    @Autowired
+    private TrainingHistoryService trainingHistoryService;
 
     @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).MEMBER.getRole())")
     @GetMapping("/coachList")
@@ -179,6 +185,36 @@ public class MemberController {
         LoginUser loginUser = (LoginUser) authentication.getPrincipal();
         Long userId = loginUser.getId();
         return sessionBookingService.countUnreadRequest(userId,UserRole.MEMBER);
+    }
+
+    //--------------------------------------- 训练历史 --------------------------------------------
+    @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).MEMBER.getRole())")
+    @GetMapping("/training/history")
+    public GeneralResponseResult viewTrainingHistory(Authentication authentication,
+                                                     @RequestParam(defaultValue = "1")int pageNow,
+                                                     @RequestParam(defaultValue = "10") int pageSize,
+                                                     @DateTimeFormat(pattern = "yyyy/MM/dd") @RequestParam LocalDate startDate,
+                                                     @DateTimeFormat(pattern = "yyyy/MM/dd") @RequestParam LocalDate endDate){
+        LoginUser loginUser = (LoginUser) authentication.getPrincipal();
+        Long userId = loginUser.getId();
+        return trainingHistoryService.viewTrainingHistory(userId,pageNow,pageSize,startDate,endDate);
+    }
+
+    @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).MEMBER.getRole())")
+    @GetMapping("/training/unreadHistory/count")
+    public GeneralResponseResult countUnreadHistory(Authentication authentication){
+        LoginUser loginUser = (LoginUser) authentication.getPrincipal();
+        Long userId = loginUser.getId();
+        return trainingHistoryService.countUnReadTrainingHistory(userId);
+    }
+
+    @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).MEMBER.getRole())")
+    @PatchMapping("/training/history/{id}/read")
+    public GeneralResponseResult readTrainingHistoryNotification(Authentication authentication,
+                                                                 @PathVariable("id") Long id){
+        LoginUser loginUser = (LoginUser) authentication.getPrincipal();
+        Long userId = loginUser.getId();
+        return trainingHistoryService.readTrainingHistory(userId,id);
     }
 
 }

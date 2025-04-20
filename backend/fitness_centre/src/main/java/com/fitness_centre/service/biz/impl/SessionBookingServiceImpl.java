@@ -2,15 +2,13 @@ package com.fitness_centre.service.biz.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fitness_centre.constant.ErrorCode;
 import com.fitness_centre.constant.RequestStatus;
 import com.fitness_centre.constant.UserRole;
-import com.fitness_centre.domain.Availability;
-import com.fitness_centre.domain.SessionBooking;
-import com.fitness_centre.domain.Subscription;
-import com.fitness_centre.domain.User;
+import com.fitness_centre.domain.*;
 import com.fitness_centre.dto.GeneralResponseResult;
 import com.fitness_centre.dto.member.BookingRequest;
 import com.fitness_centre.dto.session.ScheduleListResponse;
@@ -18,10 +16,7 @@ import com.fitness_centre.dto.session.SessionListResponse;
 import com.fitness_centre.dto.member.TimeSlotRequest;
 import com.fitness_centre.exception.BusinessException;
 import com.fitness_centre.exception.SystemException;
-import com.fitness_centre.mapper.AvailabilityMapper;
-import com.fitness_centre.mapper.SessionBookingMapper;
-import com.fitness_centre.mapper.SubscriptionMapper;
-import com.fitness_centre.mapper.UserMapper;
+import com.fitness_centre.mapper.*;
 import com.fitness_centre.service.biz.interfaces.SessionBookingService;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -51,6 +46,9 @@ public class SessionBookingServiceImpl extends ServiceImpl<SessionBookingMapper,
 
     @Autowired
     private UserMapper userMapper;
+
+    @Autowired
+    private TrainingHistoryMapper historyMapper;
 
     //检查可用时间的步长
     private static final int BOOKING_STEP_MINUTES = 15;
@@ -377,6 +375,7 @@ public class SessionBookingServiceImpl extends ServiceImpl<SessionBookingMapper,
         sessionBooking.setMessage(request.getMessage());
         sessionBooking.setCoachIsRead(false);
         sessionBooking.setMemberIsRead(true);
+        sessionBooking.setIsRecord(false);
 
         int row = this.baseMapper.insert(sessionBooking);
         if(row <= 0){
@@ -562,21 +561,7 @@ public class SessionBookingServiceImpl extends ServiceImpl<SessionBookingMapper,
         // 分页查询
         bookingPage = this.baseMapper.selectPage(bookingPage, queryWrapper);
 
-        List<SessionListResponse> responseList = bookingPage.getRecords().stream()
-                .map(sessionBooking -> {
-                    SessionListResponse response = new SessionListResponse();
-                    BeanUtils.copyProperties(sessionBooking,response);
-
-                    LambdaQueryWrapper<User> memberLambdaQueryWrapper = new LambdaQueryWrapper<>();
-                    memberLambdaQueryWrapper.eq(User::getId,sessionBooking.getMemberId());
-                    response.setMemberName(userMapper.selectOne(memberLambdaQueryWrapper).getUserName());
-
-                    LambdaQueryWrapper<User> coachLambdaQueryWrapper = new LambdaQueryWrapper<>();
-                    coachLambdaQueryWrapper.eq(User::getId,sessionBooking.getCoachId());
-                    response.setCoachName(userMapper.selectOne(coachLambdaQueryWrapper).getUserName());
-
-                    return response;
-                }).collect(Collectors.toList());
+        List<SessionListResponse> responseList = sessionToSessionResponse(bookingPage);
 
 //        Map<LocalDateTime, List<SessionListResponse>> dataMap = responseList.stream()
 //                .collect(Collectors.groupingBy(
@@ -593,6 +578,26 @@ public class SessionBookingServiceImpl extends ServiceImpl<SessionBookingMapper,
 
 
         return new GeneralResponseResult(ErrorCode.SUCCESS,responsePage);
+    }
+
+    public List<SessionListResponse> sessionToSessionResponse(Page<SessionBooking> bookingPage){
+        List<SessionListResponse> responseList = bookingPage.getRecords().stream()
+                .map(sessionBooking -> {
+                    SessionListResponse response = new SessionListResponse();
+                    BeanUtils.copyProperties(sessionBooking,response);
+
+                    LambdaQueryWrapper<User> memberLambdaQueryWrapper = new LambdaQueryWrapper<>();
+                    memberLambdaQueryWrapper.eq(User::getId,sessionBooking.getMemberId());
+                    response.setMemberName(userMapper.selectOne(memberLambdaQueryWrapper).getUserName());
+
+                    LambdaQueryWrapper<User> coachLambdaQueryWrapper = new LambdaQueryWrapper<>();
+                    coachLambdaQueryWrapper.eq(User::getId,sessionBooking.getCoachId());
+                    response.setCoachName(userMapper.selectOne(coachLambdaQueryWrapper).getUserName());
+
+                    return response;
+                }).collect(Collectors.toList());
+
+        return responseList;
     }
 
     public GeneralResponseResult countUnreadRequest(Long userId, UserRole role){
@@ -678,6 +683,33 @@ public class SessionBookingServiceImpl extends ServiceImpl<SessionBookingMapper,
         return new GeneralResponseResult(ErrorCode.SUCCESS);
     }
 
+    @Override
+    public GeneralResponseResult coachGetUnRecordSession(Long coachId,int pageNow,int pageSize) {
+        LambdaQueryWrapper<SessionBooking> sessionBookingLambdaQueryWrapper = new LambdaQueryWrapper<>();
+        sessionBookingLambdaQueryWrapper.le(SessionBooking::getEndTime,LocalDateTime.now())
+                .eq(SessionBooking::getIsRecord,false);
+        Page<SessionBooking> bookingPage = new Page<>(pageNow, pageSize);
+        bookingPage= this.baseMapper.selectPage(bookingPage,sessionBookingLambdaQueryWrapper);
+        List<SessionListResponse> responseList = sessionToSessionResponse(bookingPage);
+        Page<SessionListResponse> responsePage = new Page<>();
+        responsePage.setCurrent(bookingPage.getCurrent());
+        responsePage.setSize(bookingPage.getSize());
+        responsePage.setTotal(bookingPage.getTotal());
+        responsePage.setRecords(responseList);
+        return new GeneralResponseResult(ErrorCode.SUCCESS,responsePage);
+
+    }
+
+    @Override
+    public GeneralResponseResult countUnRecordSession(Long coachId) {
+        LambdaQueryWrapper<SessionBooking> sessionQueryWrapper = new LambdaQueryWrapper<>();
+        sessionQueryWrapper.eq(SessionBooking::getCoachId,coachId)
+                .eq(SessionBooking::getIsRecord,false);
+        Long count = this.baseMapper.selectCount(sessionQueryWrapper);
+        Map<String,Long> dataMap = new HashMap<>();
+        dataMap.put("count",count);
+        return new GeneralResponseResult(ErrorCode.SUCCESS,dataMap);
+    }
 
 
 }

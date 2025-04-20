@@ -6,14 +6,19 @@ import {
   TeamOutlined, 
   SettingOutlined,
   DashboardOutlined,
-  BellOutlined
+  BellOutlined,
+  HistoryOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout as logoutAction } from '../../store/authSlice';
 import { setActiveMenu } from '../../store/navSlice';
 import { useLogoutMutation } from '../../store/api/authApi';
-import { useGetUnreadRequestsCountQuery, useGetUnreadSessionCountQuery } from '../../store/api/coachApi';
+import { 
+  useGetUnreadRequestsCountQuery, 
+  useGetUnreadSessionCountQuery, 
+  useGetUnrecordedSessionCountDataQuery
+} from '../../store/api/coachApi';
 import { Modal, message } from 'antd';
 
 const { Sider } = Layout;
@@ -56,18 +61,31 @@ const CoachSidebar = ({ colorToken, onCollapse }) => {
     refetchOnReconnect: true, // 网络重连时刷新
   });
   
-  // 计算总未读消息数
-  const totalUnreadCount = unreadSubscriptionCount + unreadSessionCount;
+  // 获取未记录Session计数
+  const { 
+    data: unrecordedSessionCount = 0, 
+    refetch: refetchUnrecordedSessionCount 
+  } = useGetUnrecordedSessionCountDataQuery(null, {
+    pollingInterval: 60000, // 每60秒轮询一次
+    refetchOnMountOrArgChange: true,
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
+  });
+  
+  // 计算总未读消息数 (Requests)
+  const totalUnreadRequestsCount = unreadSubscriptionCount + unreadSessionCount;
   
   // 组件挂载或激活时刷新未读计数
   useEffect(() => {
     refetchUnreadSubscriptionCount();
     refetchUnreadSessionCount();
+    refetchUnrecordedSessionCount();
     
     // 注册事件监听器，用于强制刷新计数
     const refreshHandler = () => {
       refetchUnreadSubscriptionCount();
       refetchUnreadSessionCount();
+      refetchUnrecordedSessionCount();
       
       // 如果当前在订阅请求页面，自动刷新请求列表
       if (activeMenu === 'subscription-requests') {
@@ -82,7 +100,7 @@ const CoachSidebar = ({ colorToken, onCollapse }) => {
     return () => {
       window.removeEventListener('refresh-unread-count', refreshHandler);
     };
-  }, [refetchUnreadSubscriptionCount, refetchUnreadSessionCount, activeMenu]);
+  }, [refetchUnreadSubscriptionCount, refetchUnreadSessionCount, refetchUnrecordedSessionCount, activeMenu]);
   
   // 监听未读计数变化，如果当前在请求页面且有未读消息，自动刷新请求列表
   useEffect(() => {
@@ -141,7 +159,7 @@ const CoachSidebar = ({ colorToken, onCollapse }) => {
       window.dispatchEvent(new Event('refresh-coach-session-requests'));
     }
     
-    if (key === 'dashboard' || key === 'subscription-requests' || key === 'session-requests' || key === 'schedule' || key === 'members' || key === 'settings' || key === 'availability') {
+    if (key === 'dashboard' || key === 'subscription-requests' || key === 'session-requests' || key === 'schedule' || key === 'members' || key === 'settings' || key === 'availability' || key === 'unrecorded-sessions') {
       navigate('/coach/dashboard');
       return;
     }
@@ -205,7 +223,7 @@ const CoachSidebar = ({ colorToken, onCollapse }) => {
           {
             key: 'requests',
             icon: (
-              <Badge dot={totalUnreadCount > 0}>
+              <Badge dot={totalUnreadRequestsCount > 0}>
                 <BellOutlined />
               </Badge>
             ),
@@ -261,6 +279,29 @@ const CoachSidebar = ({ colorToken, onCollapse }) => {
             key: 'availability',
             icon: <CalendarOutlined />,
             label: 'Availability',
+          },
+          {
+            key: 'unrecorded-sessions',
+            icon: <HistoryOutlined />,
+            label: (
+              <span>
+                Unrecorded
+                {unrecordedSessionCount > 0 && (
+                  <Badge 
+                    count={unrecordedSessionCount} 
+                    size="small" 
+                    style={{ 
+                      marginLeft: 6, 
+                      fontSize: '10px', 
+                      padding: '0 4px',
+                      height: '16px',
+                      lineHeight: '16px',
+                      boxShadow: 'none' 
+                    }} 
+                  />
+                )}
+              </span>
+            ),
           },
           {
             key: 'settings',

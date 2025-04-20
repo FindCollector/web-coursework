@@ -38,6 +38,7 @@ import SessionRequests from './SessionRequests';
 import CoachSidebar from '../../components/layout/CoachSidebar';
 import Availability from './Availability';
 import CoachSchedule from './CoachSchedule';
+import UnrecordedSessions from './UnrecordedSessions';
 
 const { Title, Text } = Typography;
 const { Header, Content } = Layout;
@@ -136,6 +137,8 @@ const CoachDashboard = () => {
         return <Availability />;
       case 'schedule':
         return <CoachSchedule />;
+      case 'unrecorded-sessions':
+        return <UnrecordedSessions />;
       default:
         return (
           <div className="flex flex-col items-center justify-center h-64">
@@ -286,6 +289,7 @@ const CoachDashboard = () => {
               {activeMenu === 'subscription-requests' && 'Subscription Requests'}
               {activeMenu === 'session-requests' && 'Session Requests'}
               {activeMenu === 'availability' && 'Availability Management'}
+              {activeMenu === 'unrecorded-sessions' && 'Unrecorded Sessions'}
               {activeMenu === 'settings' && 'Settings'}
             </div>
             <div style={{ display: 'flex', alignItems: 'center' }}>

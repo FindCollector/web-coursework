@@ -222,6 +222,58 @@ export const memberApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['MemberSessionSchedule']
     }),
+
+    // 获取会员训练历史记录
+    getMemberTrainingHistory: builder.query({
+      query: (params) => {
+        const { pageNow = 1, pageSize = 10, startDate, endDate } = params;
+        
+        // 确保startDate和endDate存在
+        if (!startDate || !endDate) {
+          throw new Error('startDate and endDate are required');
+        }
+        
+        return {
+          url: '/member/training/history',
+          method: 'GET',
+          params: {
+            pageNow,
+            pageSize,
+            startDate, // 格式应为 yyyy/MM/dd
+            endDate    // 格式应为 yyyy/MM/dd
+          }
+        };
+      },
+      providesTags: ['MemberTrainingHistory']
+    }),
+
+    // 标记训练历史为已读
+    markTrainingHistoryAsRead: builder.mutation({
+      query: (id) => ({
+        url: `/member/training/history/${id}/read`,
+        method: 'PATCH'
+      }),
+      invalidatesTags: ['MemberTrainingHistory']
+    }),
+
+    // 获取会员未读训练历史数量
+    getMemberUnreadTrainingHistoryCount: builder.query({
+      query: () => ({
+        url: '/member/training/unreadHistory/count',
+        method: 'GET',
+        // 添加时间戳参数，确保不使用缓存
+        params: { _t: Date.now() }
+      }),
+      transformResponse: (response) => {
+        if (response.code === 0 && response.data) {
+          return response.data.count || 0;
+        }
+        return 0;
+      },
+      // 确保每次调用都是新的请求，不使用缓存
+      keepUnusedDataFor: 0,
+      providesTags: ['MemberTrainingHistory']
+    }),
   }),
 });
 
@@ -239,5 +291,8 @@ export const {
   useGetMemberUnreadSessionCountQuery,
   useWithdrawSessionRequestMutation,
   useGetMemberSessionScheduleQuery,
-  useCancelMemberSessionMutation
+  useCancelMemberSessionMutation,
+  useGetMemberTrainingHistoryQuery,
+  useMarkTrainingHistoryAsReadMutation,
+  useGetMemberUnreadTrainingHistoryCountQuery
 } = memberApi; 
