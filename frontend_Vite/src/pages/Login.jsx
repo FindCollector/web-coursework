@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLoginMutation } from '../store/api/authApi';
 import { Form, Input, Button, Card, Typography, message } from 'antd';
+import { ExclamationCircleFilled } from '@ant-design/icons';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
@@ -23,6 +24,9 @@ const schema = yup.object({
 const Login = () => {
   const location = useLocation();
   const isRegisterPage = location.pathname === '/register';
+  
+  // 状态管理
+  const [expiredError, setExpiredError] = useState(false);
   
   // 使用自定义 hooks
   const dispatch = useDispatch();
@@ -160,9 +164,42 @@ const Login = () => {
     }
   };
 
+  // 检查是否是因为会话过期而被重定向到登录页
+  useEffect(() => {
+    // 先检查是否需要显示过期提示
+    const shouldShowExpiredAlert = 
+      (location.state && location.state.expired) || 
+      sessionStorage.getItem('tokenExpirationHandled') === 'true';
+    
+    if (shouldShowExpiredAlert) {
+      // 显示过期提示
+      setExpiredError(true);
+      
+      // 清除状态和标记，避免重复显示
+      if (location.state && location.state.expired) {
+        navigate(location.pathname, { replace: true, state: {} });
+      }
+      sessionStorage.removeItem('tokenExpirationHandled');
+      
+      // 5秒后自动关闭提示
+      const timer = setTimeout(() => {
+        setExpiredError(false);
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [location, navigate]);
+
   return (
     <PageTransition isVisible={isRegisterPage}>
       <div className="flex justify-center items-center min-h-screen" style={styles.container}>
+        {expiredError && (
+          <div style={styles.errorToast}>
+            <ExclamationCircleFilled style={{ color: '#ff4d4f', marginRight: '8px' }} />
+            Your session has expired. Please login again.
+          </div>
+        )}
+        
         <Card className="w-full max-w-md shadow-md" style={styles.box}>
           <div className="text-center mb-6">
             <Title level={2} style={styles.title}>Sign In</Title>
@@ -290,6 +327,20 @@ const styles = {
       transform: 'scale(1.1)',
     }
   },
+  errorToast: {
+    position: 'absolute',
+    top: '30px',
+    display: 'flex',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    padding: '8px 16px',
+    borderRadius: '20px',
+    boxShadow: '0 3px 6px rgba(0, 0, 0, 0.16)',
+    zIndex: 1000,
+    fontSize: '14px',
+    fontWeight: 'normal',
+    animation: 'fadeInDown 0.3s ease'
+  },
 };
 
 // Add global CSS for button hover effects (since inline styles can't capture :hover)
@@ -310,6 +361,17 @@ styleElement.innerHTML = `
   
   .ant-btn-link:hover {
     transform: scale(1.1) !important;
+  }
+  
+  @keyframes fadeInDown {
+    from {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 `;
 document.head.appendChild(styleElement);

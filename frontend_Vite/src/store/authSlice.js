@@ -7,31 +7,31 @@ const getStorageKey = (key) => {
   return key;
 };
 
-// 从sessionStorage获取值的安全方法
+// 从localStorage获取值的安全方法
 const safeGetItem = (key) => {
   try {
-    return sessionStorage.getItem(getStorageKey(key));
+    return localStorage.getItem(getStorageKey(key));
   } catch (error) {
-    console.error('从sessionStorage获取数据失败:', error);
+    console.error('从localStorage获取数据失败:', error);
     return null;
   }
 };
 
-// 向sessionStorage设置值的安全方法
+// 向localStorage设置值的安全方法
 const safeSetItem = (key, value) => {
   try {
-    sessionStorage.setItem(getStorageKey(key), value);
+    localStorage.setItem(getStorageKey(key), value);
   } catch (error) {
-    console.error('向sessionStorage设置数据失败:', error);
+    console.error('保存数据到localStorage失败:', error);
   }
 };
 
-// 从sessionStorage移除值的安全方法
+// 从localStorage移除值的安全方法
 const safeRemoveItem = (key) => {
   try {
-    sessionStorage.removeItem(getStorageKey(key));
+    localStorage.removeItem(getStorageKey(key));
   } catch (error) {
-    console.error('从sessionStorage移除数据失败:', error);
+    console.error('从localStorage删除数据失败:', error);
   }
 };
 
@@ -60,15 +60,15 @@ const authSlice = createSlice({
       state.loading = false;
       state.error = null;
       
-      // 保存到sessionStorage
+      // 保存到localStorage
       safeSetItem('token', action.payload.token);
       safeSetItem('userType', action.payload.userType);
       safeSetItem('userName', action.payload.userName || 'Admin');
       
       // 调试日志，确认token已保存
-      console.log('登录成功: Auth token stored in Redux and sessionStorage');
+      console.log('登录成功: Auth token stored in Redux and localStorage');
       console.log('保存的密钥:', getStorageKey('token'));
-      console.log('保存后所有sessionStorage键:', Object.keys(sessionStorage));
+      console.log('保存后所有localStorage键:', Object.keys(localStorage));
     },
     loginFailure: (state, action) => {
       state.loading = false;
@@ -80,7 +80,7 @@ const authSlice = createSlice({
       state.userName = null;
       state.isAuthenticated = false;
       
-      // 清除sessionStorage中的认证信息
+      // 清除localStorage中的认证信息
       safeRemoveItem('token');
       safeRemoveItem('userType');
       safeRemoveItem('userName');

@@ -1,11 +1,16 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { useSelector, useDispatch } from 'react-redux';
 import { useState, useEffect, lazy, Suspense } from 'react'
 import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
+import { logout } from './store/authSlice';
+import { message } from 'antd';
+// 不再需要导入token验证服务
+// import { startTokenValidation, stopTokenValidation } from './utils/authUtils';
 
 // 懒加载页面组件
+const LandingPage = lazy(() => import('./pages/LandingPage'));
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const VerifyCode = lazy(() => import('./pages/VerifyCode'));
@@ -76,12 +81,98 @@ const ProtectedRoute = ({ children, requiredUserType = null }) => {
   return children;
 };
 
-// 占位页面组件
-const Home = () => <div className="p-6">Home</div>;
-
 function App() {
   const [count, setCount] = useState(0)
-
+  const { isAuthenticated } = useSelector((state) => state.auth);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  
+  // 添加全局fetch拦截器来捕获token过期
+  useEffect(() => {
+    // 只有在用户已登录时才添加拦截器
+    if (isAuthenticated) {
+      console.log('Setting up global fetch interceptor for token expiration detection');
+      
+      // 添加一个标记到sessionStorage，避免重复处理
+      const tokenExpirationKey = 'tokenExpirationHandled';
+      sessionStorage.removeItem(tokenExpirationKey);
+      
+      const originalFetch = window.fetch;
+      window.fetch = async function(...args) {
+        // 已经处理过过期，不再检查新请求
+        if (sessionStorage.getItem(tokenExpirationKey) === 'true') {
+          return originalFetch.apply(this, args);
+        }
+        
+        try {
+          const response = await originalFetch.apply(this, args);
+          
+          // 已经处理过过期，不需要检查响应
+          if (sessionStorage.getItem(tokenExpirationKey) === 'true') {
+            return response;
+          }
+          
+          // 克隆响应以便检查内容而不消耗原始响应
+          const clonedResponse = response.clone();
+          
+          // 尝试解析JSON响应
+          clonedResponse.json().then(data => {
+            // 检查是否是token过期错误
+            if (data && data.code === 3000 && data.msg === 'Not logged in or login expired') {
+              console.log('Global interceptor caught token expiration:', data);
+              
+              // 检查是否已经处理过
+              if (sessionStorage.getItem(tokenExpirationKey) === 'true') {
+                console.log('Token expiration already handled, skipping');
+                return;
+              }
+              
+              // 设置处理标志防止重复处理
+              sessionStorage.setItem(tokenExpirationKey, 'true');
+              
+              // 清除localStorage
+              localStorage.removeItem('token');
+              localStorage.removeItem('userType');
+              localStorage.removeItem('userName');
+              
+              // 触发Redux登出action
+              dispatch(logout());
+              
+              // 只使用一种提示方式，不创建自定义DOM元素
+              console.log('Token expired, redirecting to login page');
+              
+              // 只有当前不在登录页面时才导航到登录页
+              if (!window.location.pathname.includes('/login')) {
+                console.log('Redirecting to login page due to token expiration');
+                
+                // 使用React Router导航，将过期消息传递给登录页面
+                navigate('/login', { 
+                  replace: true,
+                  state: { 
+                    expired: true
+                  }
+                });
+              }
+            }
+          }).catch(err => {
+            // 忽略非JSON响应解析错误
+            console.log('Response is not JSON, ignoring');
+          });
+          
+          return response;
+        } catch (error) {
+          return Promise.reject(error);
+        }
+      };
+      
+      // 组件卸载时清除拦截器
+      return () => {
+        window.fetch = originalFetch;
+        console.log('Global fetch interceptor removed');
+      };
+    }
+  }, [isAuthenticated, dispatch, navigate]);
+  
   return (
     <DndProvider backend={HTML5Backend}>
       <Routes>
@@ -101,7 +192,11 @@ function App() {
             <Register />
           </Suspense>
         } />
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={
+          <Suspense fallback={<LoadingComponent />}>
+            <LandingPage />
+          </Suspense>
+        } />
         
         {/* 调试页面 - 仅在开发环境中显示 */}
         {process.env.NODE_ENV !== 'production' && (
@@ -135,6 +230,66 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/member/coaches"
+          element={
+            <ProtectedRoute requiredUserType="member">
+              <Suspense fallback={<LoadingComponent />}>
+                <MemberDashboard initialActiveMenu="coaches" />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/member/booking"
+          element={
+            <ProtectedRoute requiredUserType="member">
+              <Suspense fallback={<LoadingComponent />}>
+                <MemberDashboard initialActiveMenu="booking" />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/member/subscription-requests"
+          element={
+            <ProtectedRoute requiredUserType="member">
+              <Suspense fallback={<LoadingComponent />}>
+                <MemberDashboard initialActiveMenu="subscription-requests" />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/member/session-requests"
+          element={
+            <ProtectedRoute requiredUserType="member">
+              <Suspense fallback={<LoadingComponent />}>
+                <MemberDashboard initialActiveMenu="session-requests" />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/member/schedule"
+          element={
+            <ProtectedRoute requiredUserType="member">
+              <Suspense fallback={<LoadingComponent />}>
+                <MemberDashboard initialActiveMenu="schedule" />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/member/history"
+          element={
+            <ProtectedRoute requiredUserType="member">
+              <Suspense fallback={<LoadingComponent />}>
+                <MemberDashboard initialActiveMenu="history" />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
 
         {/* 教练路由 */}
         <Route
@@ -153,6 +308,75 @@ function App() {
             <ProtectedRoute requiredUserType="coach">
               <Suspense fallback={<LoadingComponent />}>
                 <CoachDetails />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        {/* 添加教练Session请求路由 */}
+        <Route
+          path="/coach/session-requests"
+          element={
+            <ProtectedRoute requiredUserType="coach">
+              <Suspense fallback={<LoadingComponent />}>
+                <CoachDashboard initialActiveMenu="session-requests" />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        {/* 添加教练Subscription请求路由 */}
+        <Route
+          path="/coach/subscription-requests"
+          element={
+            <ProtectedRoute requiredUserType="coach">
+              <Suspense fallback={<LoadingComponent />}>
+                <CoachDashboard initialActiveMenu="subscription-requests" />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        {/* 添加教练Requests总路由 */}
+        <Route
+          path="/coach/requests"
+          element={
+            <ProtectedRoute requiredUserType="coach">
+              <Suspense fallback={<LoadingComponent />}>
+                <CoachDashboard initialActiveMenu="requests" />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        
+        {/* 添加教练Schedule路由 */}
+        <Route
+          path="/coach/schedule"
+          element={
+            <ProtectedRoute requiredUserType="coach">
+              <Suspense fallback={<LoadingComponent />}>
+                <CoachDashboard initialActiveMenu="schedule" />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        
+        {/* 添加教练Availability路由 */}
+        <Route
+          path="/coach/availability"
+          element={
+            <ProtectedRoute requiredUserType="coach">
+              <Suspense fallback={<LoadingComponent />}>
+                <CoachDashboard initialActiveMenu="availability" />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        
+        {/* 添加教练Unrecorded Sessions路由 */}
+        <Route
+          path="/coach/unrecorded-sessions"
+          element={
+            <ProtectedRoute requiredUserType="coach">
+              <Suspense fallback={<LoadingComponent />}>
+                <CoachDashboard initialActiveMenu="unrecorded-sessions" />
               </Suspense>
             </ProtectedRoute>
           }

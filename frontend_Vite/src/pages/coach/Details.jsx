@@ -644,7 +644,7 @@ const CoachDetails = () => {
 
   if (isLoadingDetails) {
     return (
-      <PageTransition isVisible={true}>
+      <PageTransition isVisible={true} noAnimation={true}>
         <div className="flex justify-center items-center h-screen" style={{
           background: 'linear-gradient(150deg, #e6f7ff 0%, #e3f2fd 50%, #bbdefb 100%)'
         }}>
@@ -661,7 +661,7 @@ const CoachDetails = () => {
   
   if (isErrorDetails) {
     return (
-      <PageTransition isVisible={true}>
+      <PageTransition isVisible={true} noAnimation={true}>
         <div className="flex flex-col justify-center items-center h-screen" style={{
           background: 'linear-gradient(150deg, #e6f7ff 0%, #e3f2fd 50%, #bbdefb 100%)',
           padding: '20px'
@@ -694,7 +694,7 @@ const CoachDetails = () => {
   }
   
   return (
-    <PageTransition isVisible={true}>
+    <PageTransition isVisible={true} noAnimation={true}>
       <style>{scrollbarStyles}</style>
       <DndProvider backend={HTML5Backend}>
         <Layout style={{ minHeight: '100vh' }}>

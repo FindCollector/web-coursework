@@ -29,9 +29,9 @@ import TrainingHistory from './TrainingHistory';
 const { Content, Sider, Header } = Layout;
 const { Title } = Typography;
 
-const MemberDashboard = () => {
+const MemberDashboard = ({ initialActiveMenu }) => {
   const [collapsed, setCollapsed] = useState(false);
-  const [activeMenu, setActiveMenu] = useState('coaches');
+  const [activeMenu, setActiveMenu] = useState(initialActiveMenu || 'coaches');
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const auth = useSelector((state) => state.auth);
@@ -60,6 +60,13 @@ const MemberDashboard = () => {
     refetchUnreadSessionCount();
     refetchUnreadTrainingHistoryCount();
   }, [auth, refetchUnreadSubscriptionCount, refetchUnreadSessionCount, refetchUnreadTrainingHistoryCount]);
+  
+  // 监听initialActiveMenu变化
+  useEffect(() => {
+    if (initialActiveMenu) {
+      setActiveMenu(initialActiveMenu);
+    }
+  }, [initialActiveMenu]);
   
   // 监听刷新未读计数事件
   useEffect(() => {
@@ -181,11 +188,6 @@ const MemberDashboard = () => {
       label: 'My Schedule',
     },
     {
-      key: 'favorites',
-      icon: <HeartOutlined />,
-      label: 'My Favorites',
-    },
-    {
       key: 'history',
       icon: (
         <Badge dot={unreadTrainingHistoryCount > 0} size="small">
@@ -231,19 +233,60 @@ const MemberDashboard = () => {
   const handleMenuChange = (key) => {
     setActiveMenu(key);
     
-    // 当切换到请求页面时，触发请求刷新事件
+    // 导航到相应的URL路径
+    if (key === 'coaches') {
+      navigate('/member/coaches');
+      return;
+    }
+    
+    if (key === 'booking') {
+      navigate('/member/booking');
+      return;
+    }
+    
     if (key === 'subscription-requests') {
       window.dispatchEvent(new Event('refresh-requests'));
       // 同时刷新未读计数
       refetchUnreadSubscriptionCount();
-    } else if (key === 'session-requests') {
+      navigate('/member/subscription-requests');
+      return;
+    }
+    
+    if (key === 'session-requests') {
       window.dispatchEvent(new Event('refresh-session-requests'));
       // 同时刷新未读计数
       refetchUnreadSessionCount();
-    } else if (key === 'history') {
+      navigate('/member/session-requests');
+      return;
+    }
+    
+    if (key === 'schedule') {
+      navigate('/member/schedule');
+      return;
+    }
+    
+    if (key === 'history') {
       window.dispatchEvent(new Event('refresh-training-history'));
       // 同时刷新未读计数
       refetchUnreadTrainingHistoryCount();
+      navigate('/member/history');
+      return;
+    }
+    
+    if (key === 'requests') {
+      // 默认导航到subscription-requests子菜单
+      if (unreadSubscriptionCount > 0) {
+        setActiveMenu('subscription-requests');
+        navigate('/member/subscription-requests');
+      } else if (unreadSessionCount > 0) {
+        setActiveMenu('session-requests');
+        navigate('/member/session-requests');
+      } else {
+        // 如果两者都没有未读消息，默认导航到subscription
+        setActiveMenu('subscription-requests');
+        navigate('/member/subscription-requests');
+      }
+      return;
     }
   };
 
@@ -261,7 +304,6 @@ const MemberDashboard = () => {
         return <MemberSchedule />;
       case 'history':
         return <TrainingHistory />;
-      case 'favorites':
       default:
         return (
           <div className="p-8 text-center">

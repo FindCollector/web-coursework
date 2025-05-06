@@ -18,6 +18,7 @@ public class JwtUtil {
 
     //Validity period
     public static final Long JWT_TTL = 24 * 60 * 60 *1000L;// one day
+//    public  static final Long JWT_TTL = 10 * 1000L;
     //Setting the secret key plaintext
     public static final String JWT_KEY = "hjg2+6IvkaspMPC5ffNGyAssXiUt0rmZcj3VOKU6hro=";
 

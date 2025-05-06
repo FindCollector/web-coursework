@@ -7,7 +7,8 @@ import {
   SettingOutlined,
   DashboardOutlined,
   BellOutlined,
-  HistoryOutlined
+  HistoryOutlined,
+  ScheduleOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
@@ -146,21 +147,59 @@ const CoachSidebar = ({ colorToken, onCollapse }) => {
       return;
     }
     
-    // 如果点击的是订阅请求菜单项，强制刷新未读计数
     if (key === 'subscription-requests') {
       // 强制刷新未读计数
       refetchUnreadSubscriptionCount();
       // 触发订阅请求列表刷新事件
       window.dispatchEvent(new Event('refresh-subscription-requests'));
-    } else if (key === 'session-requests') {
+      navigate('/coach/subscription-requests');
+      return;
+    }
+    
+    if (key === 'session-requests') {
       // 强制刷新未读计数
       refetchUnreadSessionCount();
       // 触发会话请求列表刷新事件
       window.dispatchEvent(new Event('refresh-coach-session-requests'));
+      navigate('/coach/session-requests');
+      return;
     }
     
-    if (key === 'dashboard' || key === 'subscription-requests' || key === 'session-requests' || key === 'schedule' || key === 'members' || key === 'settings' || key === 'availability' || key === 'unrecorded-sessions') {
+    if (key === 'schedule') {
+      navigate('/coach/schedule');
+      return;
+    }
+    
+    if (key === 'availability') {
+      navigate('/coach/availability');
+      return;
+    }
+    
+    if (key === 'unrecorded-sessions') {
+      navigate('/coach/unrecorded-sessions');
+      return;
+    }
+    
+    // 导航到dashboard 只包含仍然需要导向dashboard的菜单项
+    if (key === 'dashboard' || key === 'members' || key === 'settings') {
       navigate('/coach/dashboard');
+      return;
+    }
+    
+    // 处理requests父菜单项点击 - 如果用户点击了父菜单项而不是子菜单项
+    if (key === 'requests') {
+      // 默认导航到subscription-requests子菜单
+      if (unreadSubscriptionCount > 0) {
+        dispatch(setActiveMenu('subscription-requests'));
+        navigate('/coach/subscription-requests');
+      } else if (unreadSessionCount > 0) {
+        dispatch(setActiveMenu('session-requests'));
+        navigate('/coach/session-requests');
+      } else {
+        // 如果两者都没有未读消息，默认导航到subscription
+        dispatch(setActiveMenu('subscription-requests'));
+        navigate('/coach/subscription-requests');
+      }
       return;
     }
   };
@@ -171,6 +210,125 @@ const CoachSidebar = ({ colorToken, onCollapse }) => {
     if (onCollapse) {
       onCollapse(value);
     }
+  };
+  
+  // 获取菜单项
+  const getMenuItems = ({ unreadSubscriptionCount = 0, unreadSessionCount = 0, unreadTrainingHistoryCount = 0 }) => {
+
+    // 计算请求总数
+    const totalRequestsCount = unreadSubscriptionCount + unreadSessionCount;
+
+    // 创建导航菜单项目
+    return [
+      // {
+      //   key: 'dashboard',
+      //   icon: <DashboardOutlined />,
+      //   label: 'Dashboard',
+      // },
+      {
+        key: 'profile',
+        icon: <UserOutlined />,
+        label: 'Profile',
+      },
+      {
+        key: 'requests',
+        icon: (
+          <Badge count={totalRequestsCount} size="small" offset={[2, 0]}>
+            <BellOutlined />
+          </Badge>
+        ),
+        label: 'Requests',
+        children: [
+          {
+            key: 'subscription-requests',
+            label: (
+              <span>
+                Subscription
+                {unreadSubscriptionCount > 0 && (
+                  <Badge 
+                    count={unreadSubscriptionCount} 
+                    size="small" 
+                    style={{ 
+                      marginLeft: 6, 
+                      fontSize: '10px', 
+                      padding: '0 4px',
+                      height: '16px',
+                      lineHeight: '16px',
+                      boxShadow: 'none' 
+                    }} 
+                  />
+                )}
+              </span>
+            ),
+          },
+          {
+            key: 'session-requests',
+            label: (
+              <span>
+                Session
+                {unreadSessionCount > 0 && (
+                  <Badge 
+                    count={unreadSessionCount} 
+                    size="small" 
+                    style={{ 
+                      marginLeft: 6, 
+                      fontSize: '10px', 
+                      padding: '0 4px',
+                      height: '16px',
+                      lineHeight: '16px',
+                      boxShadow: 'none' 
+                    }} 
+                  />
+                )}
+              </span>
+            ),
+          }
+        ]
+      },
+      {
+        key: 'schedule',
+        icon: <CalendarOutlined />,
+        label: 'Schedule',
+      },
+      // {
+      //   key: 'members',
+      //   icon: <TeamOutlined />,
+      //   label: 'My Members',
+      // },
+      {
+        key: 'availability',
+        icon: <CalendarOutlined />,
+        label: 'Availability',
+      },
+      {
+        key: 'unrecorded-sessions',
+        icon: <HistoryOutlined />,
+        label: (
+          <span>
+            Unrecorded
+            {unrecordedSessionCount > 0 && (
+              <Badge 
+                count={unrecordedSessionCount} 
+                size="small" 
+                style={{ 
+                  marginLeft: 6, 
+                  fontSize: '10px', 
+                  padding: '0 4px',
+                  height: '16px',
+                  lineHeight: '16px',
+                  boxShadow: 'none' 
+                }} 
+              />
+            )}
+          </span>
+        ),
+      },
+      // {
+      //   key: 'settings',
+      //   icon: <SettingOutlined />,
+      //   label: 'Settings',
+      // }
+    ];
   };
   
   return (
@@ -199,116 +357,7 @@ const CoachSidebar = ({ colorToken, onCollapse }) => {
         selectedKeys={[activeMenu]}
         defaultOpenKeys={['requests']}
         onClick={handleMenuItemClick}
-        items={[
-          {
-            key: 'dashboard',
-            icon: <DashboardOutlined />,
-            label: 'Dashboard',
-          },
-          {
-            key: 'profile',
-            icon: <UserOutlined />,
-            label: 'Profile',
-          },
-          {
-            key: 'schedule',
-            icon: <CalendarOutlined />,
-            label: 'Schedule',
-          },
-          {
-            key: 'members',
-            icon: <TeamOutlined />,
-            label: 'My Members',
-          },
-          {
-            key: 'requests',
-            icon: (
-              <Badge dot={totalUnreadRequestsCount > 0}>
-                <BellOutlined />
-              </Badge>
-            ),
-            label: 'Requests',
-            children: [
-              {
-                key: 'subscription-requests',
-                label: (
-                  <span>
-                    Subscription
-                    {unreadSubscriptionCount > 0 && (
-                      <Badge 
-                        count={unreadSubscriptionCount} 
-                        size="small" 
-                        style={{ 
-                          marginLeft: 6, 
-                          fontSize: '10px', 
-                          padding: '0 4px',
-                          height: '16px',
-                          lineHeight: '16px',
-                          boxShadow: 'none' 
-                        }} 
-                      />
-                    )}
-                  </span>
-                ),
-              },
-              {
-                key: 'session-requests',
-                label: (
-                  <span>
-                    Session
-                    {unreadSessionCount > 0 && (
-                      <Badge 
-                        count={unreadSessionCount} 
-                        size="small" 
-                        style={{ 
-                          marginLeft: 6, 
-                          fontSize: '10px', 
-                          padding: '0 4px',
-                          height: '16px',
-                          lineHeight: '16px',
-                          boxShadow: 'none' 
-                        }} 
-                      />
-                    )}
-                  </span>
-                ),
-              }
-            ]
-          },
-          {
-            key: 'availability',
-            icon: <CalendarOutlined />,
-            label: 'Availability',
-          },
-          {
-            key: 'unrecorded-sessions',
-            icon: <HistoryOutlined />,
-            label: (
-              <span>
-                Unrecorded
-                {unrecordedSessionCount > 0 && (
-                  <Badge 
-                    count={unrecordedSessionCount} 
-                    size="small" 
-                    style={{ 
-                      marginLeft: 6, 
-                      fontSize: '10px', 
-                      padding: '0 4px',
-                      height: '16px',
-                      lineHeight: '16px',
-                      boxShadow: 'none' 
-                    }} 
-                  />
-                )}
-              </span>
-            ),
-          },
-          {
-            key: 'settings',
-            icon: <SettingOutlined />,
-            label: 'Settings',
-          }
-        ]}
+        items={getMenuItems({ unreadSubscriptionCount, unreadSessionCount, unrecordedSessionCount })}
       />
     </Sider>
   );

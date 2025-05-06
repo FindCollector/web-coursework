@@ -338,9 +338,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
 
-    @Override
-    public int cleanupInactiveUsers() {
-        return this.baseMapper.deleteInactiveUsers();
-    }
+
 
 }

@@ -704,6 +704,7 @@ public class SessionBookingServiceImpl extends ServiceImpl<SessionBookingMapper,
     public GeneralResponseResult countUnRecordSession(Long coachId) {
         LambdaQueryWrapper<SessionBooking> sessionQueryWrapper = new LambdaQueryWrapper<>();
         sessionQueryWrapper.eq(SessionBooking::getCoachId,coachId)
+                .le(SessionBooking::getEndTime,LocalDateTime.now())
                 .eq(SessionBooking::getIsRecord,false);
         Long count = this.baseMapper.selectCount(sessionQueryWrapper);
         Map<String,Long> dataMap = new HashMap<>();

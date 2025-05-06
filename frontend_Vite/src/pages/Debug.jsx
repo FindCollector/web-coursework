@@ -37,9 +37,9 @@ const DebugPage = () => {
   // 加载存储的认证状态
   useEffect(() => {
     // 读取认证状态
-    const token = sessionStorage.getItem(getStorageKey('token'));
-    const userType = sessionStorage.getItem(getStorageKey('userType'));
-    const userName = sessionStorage.getItem(getStorageKey('userName'));
+    const token = localStorage.getItem(getStorageKey('token'));
+    const userType = localStorage.getItem(getStorageKey('userType'));
+    const userName = localStorage.getItem(getStorageKey('userName'));
     
     if (token) {
       setAuthState({
@@ -53,7 +53,7 @@ const DebugPage = () => {
   // 测试直接登录
   const handleDirectLogin = async () => {
     try {
-      console.log('测试直接登录:', email, password);
+      console.log('测试登录:', email, password);
       
       const response = await fetch('http://localhost:8080/auth/login', {
         method: 'POST',
@@ -69,9 +69,9 @@ const DebugPage = () => {
       setResponseData(data);
       
       if (data.code === 0 && data.data?.userInfo?.token) {
-        sessionStorage.setItem(getStorageKey('token'), data.data.userInfo.token);
-        sessionStorage.setItem(getStorageKey('userType'), data.data.userInfo.role || 'user');
-        sessionStorage.setItem(getStorageKey('userName'), data.data.userInfo.userName || 'User');
+        localStorage.setItem(getStorageKey('token'), data.data.userInfo.token);
+        localStorage.setItem(getStorageKey('userType'), data.data.userInfo.role || 'user');
+        localStorage.setItem(getStorageKey('userName'), data.data.userInfo.userName || 'User');
         
         setAuthState({
           token: data.data.userInfo.token,
@@ -79,14 +79,14 @@ const DebugPage = () => {
           userName: data.data.userInfo.userName || 'User'
         });
         
-        message.success('登录成功!');
+        message.success('Login successful!');
       } else {
-        message.error('登录失败: ' + (data.msg || '未知错误'));
+        message.error('Login failed: ' + (data.msg || 'Unknown error'));
       }
     } catch (err) {
       console.error('登录请求错误:', err);
       setResponseData({ error: err.message });
-      message.error('请求错误: ' + err.message);
+      message.error('Request error: ' + err.message);
     }
   };
   
@@ -98,14 +98,14 @@ const DebugPage = () => {
       setResponseData(result);
       
       if (result.code === 0) {
-        message.success('RTK Query登录成功!');
+        message.success('RTK Query login successful!');
         // localStorage会由authSlice处理
         
         // 刷新显示的认证状态
         setTimeout(() => {
-          const token = sessionStorage.getItem(getStorageKey('token'));
-          const userType = sessionStorage.getItem(getStorageKey('userType'));
-          const userName = sessionStorage.getItem(getStorageKey('userName'));
+          const token = localStorage.getItem(getStorageKey('token'));
+          const userType = localStorage.getItem(getStorageKey('userType'));
+          const userName = localStorage.getItem(getStorageKey('userName'));
           
           setAuthState({
             token: token,
@@ -114,19 +114,19 @@ const DebugPage = () => {
           });
         }, 500);
       } else {
-        message.error('RTK Query登录失败: ' + (result.msg || '未知错误'));
+        message.error('RTK Query login failed: ' + (result.msg || 'Unknown error'));
       }
     } catch (err) {
       console.error('RTK Query登录错误:', err);
       setResponseData({ error: err.message || JSON.stringify(err) });
-      message.error('RTK Query请求错误: ' + (err.message || JSON.stringify(err)));
+      message.error('RTK Query request error: ' + (err.message || JSON.stringify(err)));
     }
   };
   
   // 发送验证码测试
   const handleSendCode = async () => {
     if (!email || !userName) {
-      message.error('请输入邮箱和用户名');
+      message.error('Please enter email and username');
       return;
     }
     
@@ -147,22 +147,22 @@ const DebugPage = () => {
       setResponseData(result);
       
       if (result.code === 0) {
-        message.success('验证码发送成功!');
+        message.success('Verification code sent successfully!');
       } else {
-        message.error('验证码发送失败: ' + (result.msg || '未知错误'));
+        message.error('Failed to send verification code: ' + (result.msg || 'Unknown error'));
       }
     } catch (err) {
       console.error('发送验证码错误:', err);
       setResponseData({ error: err.message || JSON.stringify(err) });
-      message.error('发送验证码请求错误: ' + (err.message || JSON.stringify(err)));
+      message.error('Verification code request error: ' + (err.message || JSON.stringify(err)));
     }
   };
   
   // 清除令牌
   const handleClearToken = () => {
-    sessionStorage.removeItem(getStorageKey('token'));
-    sessionStorage.removeItem(getStorageKey('userType'));
-    sessionStorage.removeItem(getStorageKey('userName'));
+    localStorage.removeItem(getStorageKey('token'));
+    localStorage.removeItem(getStorageKey('userType'));
+    localStorage.removeItem(getStorageKey('userName'));
     
     setAuthState({
       token: null,
@@ -170,16 +170,16 @@ const DebugPage = () => {
       userName: null
     });
     
-    message.success('令牌已清除');
+    message.success('Token cleared');
   };
   
   // 检查认证状态
   const handleCheckAuth = () => {
     logAuthState();
     
-    const token = sessionStorage.getItem(getStorageKey('token'));
-    const userType = sessionStorage.getItem(getStorageKey('userType'));
-    const userName = sessionStorage.getItem(getStorageKey('userName'));
+    const token = localStorage.getItem(getStorageKey('token'));
+    const userType = localStorage.getItem(getStorageKey('userType'));
+    const userName = localStorage.getItem(getStorageKey('userName'));
     
     setAuthState({
       token: token,
@@ -187,14 +187,14 @@ const DebugPage = () => {
       userName: userName
     });
     
-    message.info('已刷新认证状态');
+    message.info('Authentication status refreshed');
   };
   
   const checkAuth = () => {
     // 实时读取认证状态
-    const token = sessionStorage.getItem(getStorageKey('token'));
-    const userType = sessionStorage.getItem(getStorageKey('userType'));
-    const userName = sessionStorage.getItem(getStorageKey('userName'));
+    const token = localStorage.getItem(getStorageKey('token'));
+    const userType = localStorage.getItem(getStorageKey('userType'));
+    const userName = localStorage.getItem(getStorageKey('userName'));
     
     const currentState = {
       token,
@@ -205,16 +205,16 @@ const DebugPage = () => {
     setResponseData(currentState);
     
     message.info(token 
-      ? `认证成功，角色: ${userType || '未知'}, 用户名: ${userName || '未知'}`
-      : '未认证'
+      ? `Authentication successful, Role: ${userType || 'Unknown'}, Username: ${userName || 'Unknown'}`
+      : 'Not authenticated'
     );
   };
   
   const handleLogout = () => {
     // 清除认证状态
-    sessionStorage.removeItem(getStorageKey('token'));
-    sessionStorage.removeItem(getStorageKey('userType'));
-    sessionStorage.removeItem(getStorageKey('userName'));
+    localStorage.removeItem(getStorageKey('token'));
+    localStorage.removeItem(getStorageKey('userType'));
+    localStorage.removeItem(getStorageKey('userName'));
     
     setAuthState({
       token: null,
@@ -222,78 +222,78 @@ const DebugPage = () => {
       userName: null
     });
     
-    message.success('已注销!');
+    message.success('Logged out!');
   };
   
   const handleCheckLocalAuth = () => {
     // 检查认证状态
-    const token = sessionStorage.getItem(getStorageKey('token'));
-    const userType = sessionStorage.getItem(getStorageKey('userType'));
-    const userName = sessionStorage.getItem(getStorageKey('userName'));
+    const token = localStorage.getItem(getStorageKey('token'));
+    const userType = localStorage.getItem(getStorageKey('userType'));
+    const userName = localStorage.getItem(getStorageKey('userName'));
     
     if (token) {
-      message.success(`已认证，角色: ${userType || '未知'}, 用户名: ${userName || '未知'}`);
+      message.success(`Authenticated, Role: ${userType || 'Unknown'}, Username: ${userName || 'Unknown'}`);
     } else {
-      message.error('未认证');
+      message.error('Not authenticated');
     }
   };
   
   return (
     <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
-      <Card title={<Title level={3}>API调试页面</Title>}>
+      <Card title={<Title level={3}>API Debug Page</Title>}>
         <Alert 
-          message="开发者工具" 
-          description="此页面仅用于开发阶段调试和排查API问题，不应在生产环境中使用。" 
+          message="Developer Tools" 
+          description="This page is intended for debugging and troubleshooting API issues during development only and should not be used in production." 
           type="warning" 
           showIcon 
           style={{ marginBottom: '20px' }} 
         />
         
         <Tabs defaultActiveKey="1">
-          <TabPane tab="认证状态" key="1">
-            <Card type="inner" title="当前认证状态">
+          <TabPane tab="Authentication Status" key="1">
+            <Card type="inner" title="Current Authentication Status">
               <Paragraph>
-                <Text strong>令牌: </Text>
+                <Text strong>Token: </Text>
                 {authState.token ? (
-                  <Tag color="green">已设置</Tag>
+                  <Tag color="green">Set</Tag>
                 ) : (
-                  <Tag color="red">未设置</Tag>
+                  <Tag color="red">Not set</Tag>
                 )}
               </Paragraph>
               
               {authState.token && (
                 <Paragraph>
-                  <Text strong>令牌值: </Text>
+                  <Text strong>Token Value: </Text>
                   <Text code>{authState.token.substring(0, 20)}...</Text>
                 </Paragraph>
               )}
               
               <Paragraph>
-                <Text strong>用户类型: </Text>
+                <Text strong>User Type: </Text>
                 {authState.userType ? (
                   <Tag color="blue">{authState.userType}</Tag>
                 ) : (
-                  <Tag color="red">未设置</Tag>
+                  <Tag color="red">Not set</Tag>
                 )}
               </Paragraph>
               
               <Paragraph>
-                <Text strong>用户名: </Text>
+                <Text strong>Username: </Text>
                 {authState.userName ? (
                   <Text>{authState.userName}</Text>
                 ) : (
-                  <Tag color="red">未设置</Tag>
+                  <Tag color="red">Not set</Tag>
                 )}
               </Paragraph>
               
               <Space>
-                <Button onClick={handleCheckAuth}>刷新状态</Button>
-                <Button danger onClick={handleClearToken}>清除令牌</Button>
+                <Button onClick={handleCheckAuth}>Refresh Status</Button>
+                <Button danger onClick={handleClearToken}>Clear Token</Button>
               </Space>
             </Card>
           </TabPane>
           
-          <TabPane tab="登录测试" key="2">
+          <TabPane tab="Login Test" key="2">
             <Space direction="vertical" style={{ width: '100%' }}>
               <Input 
                 placeholder="Email" 
@@ -309,17 +309,17 @@ const DebugPage = () => {
               
               <Space>
                 <Button type="primary" onClick={handleDirectLogin}>
-                  原生Fetch登录
+                  Native Fetch Login
                 </Button>
                 
                 <Button type="primary" onClick={handleRtkLogin}>
-                  RTK Query登录
+                  RTK Query Login
                 </Button>
               </Space>
             </Space>
           </TabPane>
           
-          <TabPane tab="注册测试" key="3">
+          <TabPane tab="Registration Test" key="3">
             <Space direction="vertical" style={{ width: '100%' }}>
               <Input 
                 placeholder="Email" 
@@ -334,13 +334,13 @@ const DebugPage = () => {
               />
               
               <Input.Password 
-                placeholder="Password (可选)" 
+                placeholder="Password (Optional)" 
                 value={password} 
                 onChange={e => setPassword(e.target.value)} 
               />
               
               <Button type="primary" onClick={handleSendCode}>
-                发送验证码
+                Send Verification Code
               </Button>
             </Space>
           </TabPane>
@@ -348,7 +348,7 @@ const DebugPage = () => {
         
         <Divider />
         
-        <Title level={4}>API响应</Title>
+        <Title level={4}>API Response</Title>
         <pre style={{ 
           background: '#f0f0f0', 
           padding: '10px', 
@@ -356,7 +356,7 @@ const DebugPage = () => {
           maxHeight: '300px',
           overflow: 'auto'
         }}>
-          {responseData ? JSON.stringify(responseData, null, 2) : '等待API响应...'}
+          {responseData ? JSON.stringify(responseData, null, 2) : 'Waiting for API response...'}
         </pre>
       </Card>
     </div>

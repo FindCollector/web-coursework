@@ -1,6 +1,18 @@
 import { motion } from 'framer-motion';
 
-const PageTransition = ({ children, isVisible, direction = 'horizontal' }) => {
+const PageTransition = ({ children, isVisible, direction = 'horizontal', noAnimation = false }) => {
+  // 如果设置了noAnimation标志，直接返回子组件，不添加动画效果
+  if (noAnimation) {
+    return (
+      <div style={{
+        width: '100%',
+        height: '100%',
+      }}>
+        {children}
+      </div>
+    );
+  }
+
   const getInitialX = () => {
     if (direction === 'horizontal') {
       return isVisible ? 100 : -100;

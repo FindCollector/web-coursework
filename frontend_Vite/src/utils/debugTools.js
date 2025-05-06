@@ -108,12 +108,12 @@ export const logAuthState = () => {
   // 打印认证状态
   try {
     console.group('🔐 认证状态');
-    console.log('token: ', sessionStorage.getItem(getStorageKey('token')) ? '已设置' : '未设置');
-    if (sessionStorage.getItem(getStorageKey('token'))) {
-      console.log('token值: ', sessionStorage.getItem(getStorageKey('token')).substring(0, 15) + '...');
+    console.log('token: ', localStorage.getItem(getStorageKey('token')) ? '已设置' : '未设置');
+    if (localStorage.getItem(getStorageKey('token'))) {
+      console.log('token值: ', localStorage.getItem(getStorageKey('token')).substring(0, 15) + '...');
     }
-    console.log('userType: ', sessionStorage.getItem(getStorageKey('userType')));
-    console.log('userName: ', sessionStorage.getItem(getStorageKey('userName')));
+    console.log('userType: ', localStorage.getItem(getStorageKey('userType')));
+    console.log('userName: ', localStorage.getItem(getStorageKey('userName')));
     console.groupEnd();
   } catch (error) {
     console.error('打印认证状态时出错:', error);
@@ -180,8 +180,8 @@ export const exposeApiTestFunctions = () => {
         console.log('登录响应:', data);
         
         if (data.code === 0 && data.data?.userInfo?.token) {
-          sessionStorage.setItem(getStorageKey('token'), data.data.userInfo.token);
-          console.log('🔑 Token 已保存到 sessionStorage:', getStorageKey('token'));
+          localStorage.setItem(getStorageKey('token'), data.data.userInfo.token);
+          console.log('🔑 Token 已保存到 localStorage:', getStorageKey('token'));
           return { success: true, data };
         } else {
           console.error('登录失败:', data.msg || '未知错误');
@@ -195,14 +195,14 @@ export const exposeApiTestFunctions = () => {
     
     // 检查认证状态
     checkAuth: () => {
-      const token = sessionStorage.getItem(getStorageKey('token'));
+      const token = localStorage.getItem(getStorageKey('token'));
       console.log('当前令牌状态:', token ? '已认证' : '未认证');
       return !!token;
     },
     
     // 注销
     logout: () => {
-      sessionStorage.removeItem(getStorageKey('token'));
+      localStorage.removeItem(getStorageKey('token'));
       console.log('已注销，删除令牌');
       return true;
     }
