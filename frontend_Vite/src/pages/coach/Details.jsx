@@ -130,8 +130,7 @@ const MapModal = ({ visible, onClose, locations }) => {
         content.innerHTML = `
           <div style="padding: 8px;">
             <h3 style="margin: 0 0 8px 0;">${location.locationName}</h3>
-            <p style="margin: 0;">Lat: ${location.latitude.toFixed(4)}</p>
-            <p style="margin: 0;">Lng: ${location.longitude.toFixed(4)}</p>
+            <p style="margin: 0;">Postcode: ${location.postcode || 'Not available'}</p>
           </div>
         `;
         
@@ -1037,7 +1036,7 @@ const CoachDetails = () => {
                                   key={location.id} 
                                   style={{ 
                                     marginBottom: '12px',
-                                    padding: '8px',
+                                    padding: '12px',
                                     borderRadius: '8px',
                                     background: coachLocations.some(loc => loc.id === location.id) 
                                       ? '#e6f7ff' 
@@ -1051,19 +1050,26 @@ const CoachDetails = () => {
                                 >
                                   <Checkbox
                                     checked={coachLocations.some(loc => loc.id === location.id)}
-                                    style={{ marginRight: '10px', marginTop: '2px' }}
+                                    style={{ marginRight: '12px', marginTop: '2px', flexShrink: 0 }}
                                     onChange={(e) => {
                                       // 阻止事件冒泡
                                       e.stopPropagation();
                                       handleLocationChange(location.id);
                                     }}
                                   />
-                                  <div>
-                                    <div style={{ fontWeight: 500 }}>{location.locationName}</div>
-                                    <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-                                      {location.latitude && location.longitude ? 
-                                        `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}` :
-                                        'Location coordinates not available'
+                                  <div style={{ width: '100%' }}>
+                                    <div style={{ fontWeight: 500, marginBottom: '4px' }}>{location.locationName}</div>
+                                    <div style={{ 
+                                      fontSize: '12px', 
+                                      color: '#666', 
+                                      display: 'inline-block',
+                                      backgroundColor: '#f0f0f0',
+                                      padding: '2px 8px',
+                                      borderRadius: '4px'
+                                    }}>
+                                      {location.postcode ? 
+                                        `${location.postcode}` :
+                                        'Postcode not available'
                                       }
                                     </div>
                                   </div>

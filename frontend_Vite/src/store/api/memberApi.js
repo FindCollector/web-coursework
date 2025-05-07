@@ -274,6 +274,48 @@ export const memberApi = baseApi.injectEndpoints({
       keepUnusedDataFor: 0,
       providesTags: ['MemberTrainingHistory']
     }),
+
+    // 获取教练位置信息用于地图显示
+    getCoachLocationInfo: builder.query({
+      query: () => ({
+        url: '/member/location/info',
+        method: 'GET',
+        // 添加时间戳确保获取最新数据
+        params: { _t: Date.now() }
+      }),
+      transformResponse: (response, meta, arg) => {
+        console.log('位置API响应:', response);
+        console.log('位置API元数据:', meta);
+        
+        if (response.code === 0 && response.data) {
+          // 确保数据是数组格式
+          if (Array.isArray(response.data)) {
+            console.log('位置数据是数组，长度:', response.data.length);
+            return response.data;
+          } else {
+            console.log('位置数据不是数组，尝试适配:', response.data);
+            // 尝试适配不同的数据格式
+            if (typeof response.data === 'object') {
+              // 可能是对象格式，尝试转换为数组
+              const locations = Object.values(response.data);
+              if (locations.length > 0) {
+                console.log('转换后的位置数据:', locations);
+                return locations;
+              }
+            }
+            // 如果无法适配，返回空数组
+            console.error('无法处理位置数据格式，返回空数组');
+            return [];
+          }
+        }
+        console.error('位置API返回错误:', response);
+        return [];
+      },
+      // 添加缓存控制，缓存5分钟
+      keepUnusedDataFor: 300,
+      // 添加标签，方便重新获取
+      providesTags: ['LocationInfo']
+    }),
   }),
 });
 
@@ -294,5 +336,6 @@ export const {
   useCancelMemberSessionMutation,
   useGetMemberTrainingHistoryQuery,
   useMarkTrainingHistoryAsReadMutation,
-  useGetMemberUnreadTrainingHistoryCountQuery
+  useGetMemberUnreadTrainingHistoryCountQuery,
+  useGetCoachLocationInfoQuery
 } = memberApi; 

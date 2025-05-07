@@ -32,4 +32,10 @@ public class LocationServiceImpl extends ServiceImpl<LocationMapper, Location> i
         }
         return map;
     }
+
+    @Override
+    public List<Location> mapLocation() {
+        List<Location> locations = list();
+        return locations;
+    }
 }

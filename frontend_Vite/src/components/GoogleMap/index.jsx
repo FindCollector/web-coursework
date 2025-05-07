@@ -91,13 +91,10 @@ const GoogleMap = ({
         const content = document.createElement('div');
         content.innerHTML = `
           <div style="padding: 8px; font-family: Arial, sans-serif;">
-            <h3 style="margin: 0 0 8px 0; color: #1a1a1a; font-size: 16px;">${location.locationName}</h3>
-            <div style="color: #666; font-size: 14px;">
-              <p style="margin: 0;">Location Details:</p>
-              <p style="margin: 4px 0;">Latitude: ${location.latitude.toFixed(4)}°N</p>
-              <p style="margin: 4px 0;">Longitude: ${location.longitude.toFixed(4)}°E</p>
-              <p style="margin: 4px 0 0;">Click marker to view on map</p>
-            </div>
+            <h3 style="margin: 0 0 8px 0;">${location.locationName}</h3>
+            <p style="margin: 0;">Location Details:</p>
+            <p style="margin: 4px 0;">Latitude: ${location.latitude.toFixed(4)}°</p>
+            <p style="margin: 4px 0;">Longitude: ${location.longitude.toFixed(4)}°</p>
           </div>
         `;
         

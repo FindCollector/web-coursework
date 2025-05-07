@@ -32,4 +32,6 @@ public class Location implements Serializable {
     private Double longitude;
 
     private Double latitude;
+
+    private String postcode;
 }

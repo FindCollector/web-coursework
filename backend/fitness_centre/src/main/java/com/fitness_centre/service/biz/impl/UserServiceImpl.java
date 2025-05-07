@@ -41,6 +41,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -424,21 +425,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if(rows == 0){
             throw new SystemException(ErrorCode.DB_OPERATION_ERROR);
         }
-        LoginUser loginUser = new LoginUser(user);
-        String token = JwtUtil.createJWT(user.getEmail());
 
-        redisCache.setCacheObject(
-                "login:" + user.getEmail(),
-                loginUser,
-                loginExpireTime,
-                TimeUnit.MINUTES
-        );
-
-        UserLoginResponse resp = new UserLoginResponse();
-        BeanUtils.copyProperties(user,resp);
-        resp.setToken(token);
-
-        return new GeneralResponseResult(ErrorCode.SUCCESS,Map.of("userInfo",resp));
+        return buildLoginSuccess(user);
     }
 
     @Override
@@ -452,19 +440,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(User::getEmail,email);
         User user = this.baseMapper.selectOne(queryWrapper);
-        LoginUser loginUser = new LoginUser(user);
-        String token = JwtUtil.createJWT(user.getEmail());
-
-        redisCache.setCacheObject(
-                "login:" + user.getEmail(),
-                loginUser,
-                loginExpireTime,
-                TimeUnit.MINUTES
-        );
-        UserLoginResponse resp = new UserLoginResponse();
-        BeanUtils.copyProperties(user,resp);
-        resp.setToken(token);
-        return new GeneralResponseResult(ErrorCode.SUCCESS,Map.of("userInfo",resp));
+       return buildLoginSuccess(user);
     }
 
 
@@ -477,6 +453,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                 loginUser,
                 loginExpireTime,
                 TimeUnit.MINUTES);
+
+        if(user.getStatus() == UserStatus.WAITING_APPROVAL.getStatus()){
+            throw new BusinessException(ErrorCode.FORBIDDEN.getCode(),"Waiting for administrator review");
+        }
+
+        if(user.getStatus() == UserStatus.BLOCKED.getStatus()){
+            throw new BusinessException(ErrorCode.FORBIDDEN.getCode(),"Your account is blocked.");
+        }
 
         UserLoginResponse resp = new UserLoginResponse();
         BeanUtils.copyProperties(user, resp);

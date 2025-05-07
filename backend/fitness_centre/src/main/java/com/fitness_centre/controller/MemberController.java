@@ -217,4 +217,11 @@ public class MemberController {
         return trainingHistoryService.readTrainingHistory(userId,id);
     }
 
+    @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).MEMBER.getRole())")
+    @GetMapping("/location/info")
+    public GeneralResponseResult getAllLocations(Authentication authentication){
+        LoginUser loginUser = (LoginUser) authentication.getPrincipal();
+        Long userId = loginUser.getId();
+        return new GeneralResponseResult(ErrorCode.SUCCESS,locationService.mapLocation());
+    }
 }
