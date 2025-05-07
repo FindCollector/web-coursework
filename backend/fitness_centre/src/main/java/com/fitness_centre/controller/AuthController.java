@@ -6,6 +6,7 @@ import com.fitness_centre.dto.auth.UserLoginRequest;
 import com.fitness_centre.dto.auth.UserRegisterRequest;
 import com.fitness_centre.service.biz.interfaces.UserService;
 import jakarta.validation.Valid;
+import org.aspectj.weaver.patterns.IToken;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -55,5 +56,22 @@ public class AuthController {
         String verifyCode = request.get("code");
         String role = request.get("role");
         return userService.verifyRegister(email,verifyCode,role);
+    }
+
+    @PostMapping("/auth/google-login")
+    public GeneralResponseResult googleLogin(@RequestBody Map<String,String> request){
+        String idToken = request.get("token");
+        return userService.googleLogin(idToken);
+    }
+
+    @PostMapping("/auth/google-login/complete-profile")
+    public GeneralResponseResult completeProfileAndLogin(@RequestBody UserRegisterRequest request){
+        return userService.googleAccountBoundBasicInformation(request);
+    }
+
+    @PostMapping("/auth/google-login/link")
+    public GeneralResponseResult emailLinkGoogleAccount(@RequestBody Map<String,String> request){
+        String email = request.get("email");
+        return userService.emailLinkGoogleAccount(email);
     }
 }

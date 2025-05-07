@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { ConfigProvider } from 'antd';
 import enUS from 'antd/lib/locale/en_US';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 
 import App from './App.jsx';
 import store from './store';
@@ -48,9 +49,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <Provider store={store}>
       <ConfigProvider locale={enUS}>
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
+        <GoogleOAuthProvider clientId="677140921578-1b18j9s2739ki5klh7hfg6mjc5guvtt8.apps.googleusercontent.com">
+          <BrowserRouter>
+            <App />
+          </BrowserRouter>
+        </GoogleOAuthProvider>
       </ConfigProvider>
     </Provider>
   </React.StrictMode>,

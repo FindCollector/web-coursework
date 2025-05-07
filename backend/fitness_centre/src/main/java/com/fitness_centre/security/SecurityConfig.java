@@ -42,6 +42,10 @@ public class SecurityConfig{
             "/auth/sendCode",
             "/auth/verifyCode",
             "/formal/default.jpg",
+            "/auth/google-login",
+            "/auth/google-login/complete-profile",
+            "/auth/google-login/link",
+
 //            "/coach/photo"
             //todo 如何让这些图片被验证token
             "/temp/**",
@@ -80,7 +84,7 @@ public class SecurityConfig{
                         // 接口允许匿名访问
                         .requestMatchers(WHILELIST).anonymous()
                         //在全局异常类中捕获
-                        .requestMatchers("/auth/sendCode","/auth/verifyRegister","/auth/logout").permitAll()
+                        .requestMatchers("/auth/sendCode","/auth/verifyRegister","/auth/logout","/auth/google-login/complete-profile").permitAll()
                         //todo 删除测试页面的放行
                         // 其余所有请求均需要认证
                         .anyRequest().authenticated())

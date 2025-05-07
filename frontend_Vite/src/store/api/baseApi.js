@@ -78,7 +78,7 @@ const baseQuery = fetchBaseQuery({
     console.log('[baseApi] 准备请求头 - 端点:', endpoint);
     
     // 检查是否是不需要token的接口
-    const noTokenEndpoints = ['login', 'sendVerificationCode', 'verifyCode', 'resendVerificationCode'];
+    const noTokenEndpoints = ['login', 'sendVerificationCode', 'verifyCode', 'resendVerificationCode', 'completeProfile', 'linkGoogleAccount'];
     if (noTokenEndpoints.includes(endpoint)) {
       console.log('[baseApi] 无需token的端点:', endpoint);
       return headers;

@@ -122,6 +122,25 @@
             <version>2.5</version>
             <scope>provided</scope>
         </dependency>
+        <!-- Google OAuth 2.0 + 解析 ID Token -->
+        <dependency>
+            <groupId>com.google.api-client</groupId>
+            <artifactId>google-api-client</artifactId>
+            <version>2.6.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.auth</groupId>
+            <artifactId>google-auth-library-oauth2-http</artifactId>
+            <version>1.19.0</version>
+        </dependency>
+        <!-- Google HTTP Client + Jackson JSON 绑定 -->
+        <dependency>
+            <groupId>com.google.http-client</groupId>
+            <artifactId>google-http-client-jackson2</artifactId>
+            <version>1.44.1</version>  <!-- 跟 google-api-client 2.x 搭配 OK -->
+        </dependency>
+
+
 
         <dependency>
             <groupId>com.baomidou</groupId>

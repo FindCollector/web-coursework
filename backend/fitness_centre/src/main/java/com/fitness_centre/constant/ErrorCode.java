@@ -36,6 +36,11 @@ public enum ErrorCode {
     TOKEN_INVALID(3002, "Invalid TOKEN or TOKEN has expired"),
     CAPTCHA_ERROR(3003, "Suspected robot"),
 
+    EMAIL_NOT_BOUND(3004,"Need to bound email with basic information"),
+
+    GOOGLE_AUTH_ERROR(3005,"Google auth error"),
+    GOOGLE_EMAIL_ALREADY_EXISTS(3006,"Google email already exist"),
+
 
 
     /**

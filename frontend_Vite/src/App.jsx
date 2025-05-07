@@ -14,6 +14,8 @@ const LandingPage = lazy(() => import('./pages/LandingPage'));
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const VerifyCode = lazy(() => import('./pages/VerifyCode'));
+const CompleteProfile = lazy(() => import('./pages/CompleteProfile'));
+const LinkGoogleAccount = lazy(() => import('./pages/LinkGoogleAccount'));
 
 // 懒加载管理员页面组件
 const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
@@ -42,7 +44,7 @@ const ProtectedRoute = ({ children, requiredUserType = null }) => {
   
   // 使用useEffect确保认证检查在组件挂载后立即执行
   useEffect(() => {
-    console.log('路由保护检查 - 认证状态:', isAuthenticated, '用户类型:', userType);
+    console.log('Route protection check - Auth status:', isAuthenticated, 'User type:', userType);
     // 延迟极短时间以确保Redux状态已完全加载
     const timer = setTimeout(() => {
       setIsChecking(false);
@@ -52,13 +54,13 @@ const ProtectedRoute = ({ children, requiredUserType = null }) => {
 
   // 检查用户是否已认证
   if (!isAuthenticated && !isChecking) {
-    console.log('未认证，重定向到登录页面');
+    console.log('Not authenticated, redirecting to login page');
     return <Navigate to="/login" replace />;
   }
 
   // 如果指定了所需的用户类型，但用户类型不匹配，则重定向到适当的页面
   if (isAuthenticated && requiredUserType && userType !== requiredUserType && !isChecking) {
-    console.log('用户类型不匹配，重定向到对应面板');
+    console.log('User type mismatch, redirecting to corresponding panel');
     switch (userType) {
       case 'admin':
         return <Navigate to="/admin/dashboard" replace />;
@@ -74,7 +76,7 @@ const ProtectedRoute = ({ children, requiredUserType = null }) => {
   // 如果仍在检查或认证通过，返回子组件
   if (isChecking) {
     return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-      <div>正在验证身份...</div>
+      <div>Verifying identity...</div>
     </div>;
   }
 
@@ -190,6 +192,16 @@ function App() {
         <Route path="/register" element={
           <Suspense fallback={<LoadingComponent />}>
             <Register />
+          </Suspense>
+        } />
+        <Route path="/complete-profile" element={
+          <Suspense fallback={<LoadingComponent />}>
+            <CompleteProfile />
+          </Suspense>
+        } />
+        <Route path="/link-google-account" element={
+          <Suspense fallback={<LoadingComponent />}>
+            <LinkGoogleAccount />
           </Suspense>
         } />
         <Route path="/" element={

@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLoginMutation } from '../store/api/authApi';
-import { Form, Input, Button, Card, Typography, message } from 'antd';
+import { Form, Input, Button, Card, Typography, message, Divider } from 'antd';
 import { ExclamationCircleFilled } from '@ant-design/icons';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { useReCaptcha, useButtonLoading } from '../hooks';
+import { GoogleLogin } from '@react-oauth/google';
 
 import { loginStart, loginSuccess, loginFailure } from '../store/authSlice';
 import { getRedirectPath, getUserTypeFromData, isUserAuthenticated } from '../utils/routeUtils';
@@ -25,13 +26,22 @@ const Login = () => {
   const location = useLocation();
   const isRegisterPage = location.pathname === '/register';
   
-  // 状态管理
-  const [expiredError, setExpiredError] = useState(false);
-  
   // 使用自定义 hooks
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { loading, error } = useSelector((state) => state.auth);
+  
+  // 状态管理
+  const [expiredError, setExpiredError] = useState(false);
+  
+  // 检查是否有完成个人资料的消息
+  useEffect(() => {
+    if (location.state?.message) {
+      message.success(location.state.message);
+      // 清除消息，避免刷新页面时重复显示
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, navigate]);
   
   // 使用RTK Query的hook
   const [login, loginResult] = useLoginMutation();
@@ -90,7 +100,7 @@ const Login = () => {
         const userName = userInfo.userName || 'Admin';
         
         if (!token) {
-          const errorMsg = '登录成功但未获取到凭证，请联系管理员';
+          const errorMsg = 'Login successful but no token received, please contact administrator';
           dispatch(loginFailure(errorMsg));
           message.error(errorMsg);
           return;
@@ -108,7 +118,7 @@ const Login = () => {
         
         // 使用工具函数获取重定向路径
         const redirectPath = getRedirectPath(userType);
-        console.log('登录成功，准备跳转到:', redirectPath, {
+        console.log('Login successful, redirecting to:', redirectPath, {
           token,
           userType,
           userName
@@ -116,10 +126,17 @@ const Login = () => {
         
         // 直接跳转，不使用setTimeout
         navigate(redirectPath, { replace: true });
+      } else if (data.code === 3004) {
+        message.info('Please complete your profile to continue');
+        navigate('/complete-profile', { 
+          state: { email: data.data.email },
+          replace: true 
+        });
+        return;
       } else {
         // 确保使用后端返回的错误消息
         const errorMessage = data.msg || 'Login failed, please try again later';
-        console.log('业务逻辑错误，使用错误消息:', errorMessage);
+        console.log('Business logic error, using error message:', errorMessage);
         
         dispatch(loginFailure(errorMessage));
         
@@ -190,6 +207,140 @@ const Login = () => {
     }
   }, [location, navigate]);
 
+  // 添加Google登录处理函数
+  const handleGoogleLoginSuccess = async (credentialResponse) => {
+    console.log('Google login successful:', credentialResponse);
+    try {
+      console.log('准备设置加载状态...');
+      // 手动设置加载状态
+      setLoading(true);
+      
+      console.log('准备调用Redux loginStart action...');
+      // 调用RTK Query的login mutation
+      dispatch(loginStart());
+      
+      console.log('准备发送Google登录请求到后端...');
+      console.log('请求数据:', {
+        googleToken: credentialResponse.credential,
+        headers: { 'X-Action': 'google-login' }
+      });
+      
+      // 发送Google登录验证信息
+      const data = await login({
+        googleToken: credentialResponse.credential,
+        headers: {
+          'X-Action': 'google-login'
+        }
+      }).unwrap();
+      
+      console.log('谷歌登录响应完整数据:', data);
+      
+      if (data.code === 0) {
+        // 获取用户信息，适应新的数据结构
+        const userInfo = data.data?.userInfo || {};
+        
+        // 从userInfo中获取token和角色
+        const token = userInfo.token;
+        const userType = userInfo.role;
+        const userName = userInfo.userName || 'Admin';
+        
+        if (!token) {
+          const errorMsg = 'Login successful but no token received, please contact administrator';
+          dispatch(loginFailure(errorMsg));
+          message.error(errorMsg);
+          return;
+        }
+        
+        // 分发登录成功action
+        dispatch(loginSuccess({
+          token,
+          userType,
+          userName
+        }));
+        
+        // 显示登录成功提示
+        message.success('Google Login Successful');
+        
+        // 使用工具函数获取重定向路径
+        const redirectPath = getRedirectPath(userType);
+        console.log('谷歌登录成功，准备跳转到:', redirectPath, {
+          token,
+          userType,
+          userName
+        });
+        
+        // 直接跳转，不使用setTimeout
+        navigate(redirectPath, { replace: true });
+      } else if (data.code === 3004) {
+        message.info('Please complete your profile to continue');
+        navigate('/complete-profile', { 
+          state: { email: data.data.email },
+          replace: true 
+        });
+        return;
+      } else if (data.code === 3006) {
+        // Google 邮箱已存在，但非通过 Google 账号登录
+        message.info('This email is already registered. Please confirm if you want to link your Google account.');
+        navigate('/link-google-account', { 
+          state: { 
+            email: data.data.email,
+            googleToken: credentialResponse.credential 
+          },
+          replace: true 
+        });
+        return;
+      } else {
+        // 确保使用后端返回的错误消息
+        const errorMessage = data.msg || 'Google login failed, please try again later';
+        console.log('业务逻辑错误，使用错误消息:', errorMessage);
+        
+        dispatch(loginFailure(errorMessage));
+        
+        // 显示错误信息
+        message.error(errorMessage);
+      }
+    } catch (error) {
+      console.error('谷歌登录错误:', error);
+      // 添加详细的错误结构日志
+      console.error('错误对象结构:', {
+        error,
+        name: error?.name,
+        message: error?.message,
+        stack: error?.stack,
+        data: error?.data,
+        status: error?.status,
+        response: error?.response
+      });
+      
+      let errorMessage = 'Google login failed';
+      
+      // 检查错误对象的不同可能的结构
+      if (error?.data) {
+        errorMessage = error.data.msg || errorMessage;
+      } else if (error?.response && error.response.data) {
+        errorMessage = error.response.data.msg || errorMessage;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
+      console.log('最终使用的错误消息:', errorMessage);
+      
+      // 只更新Redux状态
+      dispatch(loginFailure(errorMessage));
+      
+      // 显示错误信息
+      message.error(errorMessage);
+    } finally {
+      // 完成后重置加载状态
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLoginError = () => {
+    console.error('Google登录失败');
+    message.error('Google login failed. Please try again.');
+  };
+
   return (
     <PageTransition isVisible={isRegisterPage}>
       <div className="flex justify-center items-center min-h-screen" style={styles.container}>
@@ -246,6 +397,20 @@ const Login = () => {
               </Button>
             </Form.Item>
           </Form>
+          
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '15px' }}>
+            <GoogleLogin
+              onSuccess={handleGoogleLoginSuccess}
+              onError={handleGoogleLoginError}
+              useOneTap={false}
+              locale="en"
+              theme="outline"
+              type="standard"
+              size="large"
+              text="signin_with"
+              shape="rectangular"
+            />
+          </div>
           
           <div style={styles.footerText}>
             <span>Don't have an account? </span>

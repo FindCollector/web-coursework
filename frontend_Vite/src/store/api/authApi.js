@@ -8,6 +8,20 @@ export const authApi = baseApi.injectEndpoints({
       query: (data) => {
         const { headers, ...requestData } = data;
         console.log('登录请求数据:', requestData, '请求头:', headers);
+        
+        // 检查是否是Google登录请求
+        if (requestData.googleToken) {
+          return {
+            url: '/auth/google-login',
+            method: 'POST',
+            body: { token: requestData.googleToken },
+            headers: {
+              ...headers,
+              'Content-Type': 'application/json'
+            }
+          };
+        }
+        
         return {
           url: '/auth/login',
           method: 'POST',
@@ -36,6 +50,19 @@ export const authApi = baseApi.injectEndpoints({
         }
       },
       invalidatesTags: ['Auth']
+    }),
+
+    // 完成个人资料
+    completeProfile: builder.mutation({
+      query: (data) => ({
+        url: '/auth/google-login/complete-profile',
+        method: 'POST',
+        body: data,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }),
+      invalidatesTags: ['Auth', 'User']
     }),
 
     // 退出登录
@@ -136,5 +163,6 @@ export const {
   useRegisterMutation,
   useSendVerificationCodeMutation,
   useVerifyCodeMutation,
-  useResendVerificationCodeMutation
+  useResendVerificationCodeMutation,
+  useCompleteProfileMutation
 } = authApi; 

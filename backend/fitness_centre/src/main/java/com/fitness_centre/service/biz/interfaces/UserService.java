@@ -38,4 +38,10 @@ public interface UserService extends IService<User> {
 
     GeneralResponseResult userFilter();
 
+    GeneralResponseResult googleLogin(String idToken);
+
+    GeneralResponseResult googleAccountBoundBasicInformation(UserRegisterRequest requestDTO);
+
+    GeneralResponseResult emailLinkGoogleAccount(String email);
+
 }
