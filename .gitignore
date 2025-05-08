@@ -1,6 +1,8 @@
 
+
 .DS_Store
 backend/fitness_centre/src/main/resources/application.yml
 node_modules/
 frontend_Vite/.cursor
+
 
