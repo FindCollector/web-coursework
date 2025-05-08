@@ -34,7 +34,7 @@ public class UserRegisterRequest {
 
     @NotBlank(message = "The password cannot be empty.")
     @Size(min = 6, message = "The password length is at least 6 digits")
-    //todo 密码包含的特殊字符拓展
+    //todo expand password special character requirements
     @Pattern(
             regexp = "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]+$",
             message = "The password must contain both uppercase letters, lowercase letters, numbers and special symbols."

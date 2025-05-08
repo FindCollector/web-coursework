@@ -28,7 +28,7 @@ public class UserDetailService implements UserDetailsService {
         LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(User::getEmail,email);
         User user = userMapper.selectOne(queryWrapper);
-        //这里面只能抛Spring Security定义的异常
+        //Can only throw exceptions defined by Spring Security here
         if(Objects.isNull(user)){
             throw new BadCredentialsException("Wrong email or password");
         }

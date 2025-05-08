@@ -1,12 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLoginMutation } from '../store/api/authApi';
-import { Form, Input, Button, Card, Typography, message } from 'antd';
+import { Form, Input, Button, Card, Typography, message, Divider } from 'antd';
+import { ExclamationCircleFilled } from '@ant-design/icons';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { useReCaptcha, useButtonLoading } from '../hooks';
+import { GoogleLogin } from '@react-oauth/google';
 
 import { loginStart, loginSuccess, loginFailure } from '../store/authSlice';
 import { getRedirectPath, getUserTypeFromData, isUserAuthenticated } from '../utils/routeUtils';
@@ -24,18 +26,30 @@ const Login = () => {
   const location = useLocation();
   const isRegisterPage = location.pathname === '/register';
   
-  // 使用自定义 hooks
+  // Use custom hooks
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { loading, error } = useSelector((state) => state.auth);
   
-  // 使用RTK Query的hook
+  // State management
+  const [expiredError, setExpiredError] = useState(false);
+  
+  // Check if there's a profile completion message
+  useEffect(() => {
+    if (location.state?.message) {
+      message.success(location.state.message);
+      // Clear message to avoid showing again on refresh
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, navigate]);
+  
+  // Use RTK Query hook
   const [login, loginResult] = useLoginMutation();
   
-  // 使用自定义按钮加载状态 hook
+  // Use custom button loading state hook
   const [isLoading, setLoading, withLoading] = useButtonLoading(false);
 
-  // 使用自定义 reCAPTCHA hook
+  // Use custom reCAPTCHA hook
   const { executeReCaptcha, isScriptLoaded, isInitialized, error: recaptchaError } = useReCaptcha('6Lcq_e4qAAAAAEJYKkGw-zQ6CN74yjbiWByLBo6Y');
   
   // Form control
@@ -50,20 +64,20 @@ const Login = () => {
   // Handle form submission
   const onSubmit = async (formData) => {
     if (!isScriptLoaded || !isInitialized) {
-      dispatch(loginFailure(recaptchaError || 'reCAPTCHA 未准备好，请刷新页面重试'));
-      // 显示reCAPTCHA错误
-      message.error(recaptchaError || 'reCAPTCHA 未准备好，请刷新页面重试');
+      dispatch(loginFailure(recaptchaError || 'reCAPTCHA not ready, please refresh the page and try again'));
+      // Show reCAPTCHA error
+      message.error(recaptchaError || 'reCAPTCHA not ready, please refresh the page and try again');
       return;
     }
     
     try {
-      // 手动设置加载状态
+      // Manually set loading state
       setLoading(true);
       
       // Get reCAPTCHA token
       const recaptchaToken = await executeReCaptcha('login');
       
-      // 调用RTK Query的login mutation
+      // Call RTK Query's login mutation
       dispatch(loginStart());
       
       const data = await login({
@@ -74,95 +88,214 @@ const Login = () => {
         }
       }).unwrap();
       
-      console.log('登录响应完整数据:', data);
-      
       if (data.code === 0) {
-        // 获取用户信息，适应新的数据结构
+        // Get user info, adapting to new data structure
         const userInfo = data.data?.userInfo || {};
         
-        // 从userInfo中获取token和角色
+        // Get token and role from userInfo
         const token = userInfo.token;
         const userType = userInfo.role;
         const userName = userInfo.userName || 'Admin';
         
         if (!token) {
-          const errorMsg = '登录成功但未获取到凭证，请联系管理员';
+          const errorMsg = 'Login successful but no token received, please contact administrator';
           dispatch(loginFailure(errorMsg));
           message.error(errorMsg);
           return;
         }
         
-        // 分发登录成功action
+        // Dispatch login success action
         dispatch(loginSuccess({
           token,
           userType,
           userName
         }));
         
-        // 显示登录成功提示
+        // Show login success message
         message.success('Login Successful');
         
-        // 使用工具函数获取重定向路径
+        // Use utility function to get redirect path
         const redirectPath = getRedirectPath(userType);
-        console.log('登录成功，准备跳转到:', redirectPath, {
-          token,
-          userType,
-          userName
-        });
         
-        // 直接跳转，不使用setTimeout
+        // Navigate directly
         navigate(redirectPath, { replace: true });
+      } else if (data.code === 3004) {
+        message.info('Please complete your profile to continue');
+        navigate('/complete-profile', { 
+          state: { email: data.data.email },
+          replace: true 
+        });
+        return;
       } else {
-        // 确保使用后端返回的错误消息
+        // Ensure we use the error message from backend
         const errorMessage = data.msg || 'Login failed, please try again later';
-        console.log('业务逻辑错误，使用错误消息:', errorMessage);
         
         dispatch(loginFailure(errorMessage));
         
-        // 显示错误信息
+        // Show error message
         message.error(errorMessage);
       }
     } catch (error) {
-      console.error('登录错误:', error);
-      // 添加详细的错误结构日志
-      console.error('错误对象结构:', {
-        error,
-        data: error.data,
-        message: error.message,
-        response: error.response,
-        stack: error.stack
-      });
-      
       let errorMessage = 'Login failed';
       
-      // 检查错误对象的不同可能的结构
+      // Check different possible error object structures
       if (error.data) {
         errorMessage = error.data.msg || errorMessage;
-        console.log('从error.data中提取的错误消息:', error.data.msg);
       } else if (error.response && error.response.data) {
         errorMessage = error.response.data.msg || errorMessage;
-        console.log('从error.response.data中提取的错误消息:', error.response.data.msg);
       } else if (error.message) {
         errorMessage = error.message;
-        console.log('从error.message中提取的错误消息:', error.message);
       }
       
-      console.log('最终使用的错误消息:', errorMessage);
-      
-      // 只更新Redux状态
+      // Only update Redux state
       dispatch(loginFailure(errorMessage));
       
-      // 显示错误信息
+      // Show error message
       message.error(errorMessage);
     } finally {
-      // 完成后重置加载状态
+      // Reset loading state when done
       setLoading(false);
     }
+  };
+
+  // Check if redirected to login page due to session expiration
+  useEffect(() => {
+    // First check if we need to show expiration alert
+    const shouldShowExpiredAlert = 
+      (location.state && location.state.expired) || 
+      sessionStorage.getItem('tokenExpirationHandled') === 'true';
+    
+    if (shouldShowExpiredAlert) {
+      // Show expiration alert
+      setExpiredError(true);
+      
+      // Clear state and marker to avoid showing again
+      if (location.state && location.state.expired) {
+        navigate(location.pathname, { replace: true, state: {} });
+      }
+      sessionStorage.removeItem('tokenExpirationHandled');
+      
+      // Automatically close the alert after 5 seconds
+      const timer = setTimeout(() => {
+        setExpiredError(false);
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [location, navigate]);
+
+  // Add Google login handler
+  const handleGoogleLoginSuccess = async (credentialResponse) => {
+    try {
+      // Manually set loading state
+      setLoading(true);
+      
+      // Call RTK Query's login mutation
+      dispatch(loginStart());
+      
+      // Send Google login verification info
+      const data = await login({
+        googleToken: credentialResponse.credential,
+        headers: {
+          'X-Action': 'google-login'
+        }
+      }).unwrap();
+      
+      if (data.code === 0) {
+        // Get user info, adapting to new data structure
+        const userInfo = data.data?.userInfo || {};
+        
+        // Get token and role from userInfo
+        const token = userInfo.token;
+        const userType = userInfo.role;
+        const userName = userInfo.userName || 'Admin';
+        
+        if (!token) {
+          const errorMsg = 'Login successful but no token received, please contact administrator';
+          dispatch(loginFailure(errorMsg));
+          message.error(errorMsg);
+          return;
+        }
+        
+        // Dispatch login success action
+        dispatch(loginSuccess({
+          token,
+          userType,
+          userName
+        }));
+        
+        // Show login success message
+        message.success('Google Login Successful');
+        
+        // Use utility function to get redirect path
+        const redirectPath = getRedirectPath(userType);
+        
+        // Navigate directly
+        navigate(redirectPath, { replace: true });
+      } else if (data.code === 3004) {
+        message.info('Please complete your profile to continue');
+        navigate('/complete-profile', { 
+          state: { email: data.data.email },
+          replace: true 
+        });
+        return;
+      } else if (data.code === 3006) {
+        // Google email exists but not via Google account login
+        message.info('This email is already registered. Please confirm if you want to link your Google account.');
+        navigate('/link-google-account', { 
+          state: { 
+            email: data.data.email,
+            googleToken: credentialResponse.credential 
+          },
+          replace: true 
+        });
+        return;
+      } else {
+        // Ensure we use the error message from backend
+        const errorMessage = data.msg || 'Google login failed, please try again later';
+        
+        dispatch(loginFailure(errorMessage));
+        
+        // Show error message
+        message.error(errorMessage);
+      }
+    } catch (error) {
+      let errorMessage = 'Google login failed';
+      
+      // Check different possible error object structures
+      if (error?.data) {
+        errorMessage = error.data.msg || errorMessage;
+      } else if (error?.response && error.response.data) {
+        errorMessage = error.response.data.msg || errorMessage;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
+      // Only update Redux state
+      dispatch(loginFailure(errorMessage));
+      
+      // Show error message
+      message.error(errorMessage);
+    } finally {
+      // Reset loading state when done
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLoginError = () => {
+    message.error('Google login failed. Please try again.');
   };
 
   return (
     <PageTransition isVisible={isRegisterPage}>
       <div className="flex justify-center items-center min-h-screen" style={styles.container}>
+        {expiredError && (
+          <div style={styles.errorToast}>
+            <ExclamationCircleFilled style={{ color: '#ff4d4f', marginRight: '8px' }} />
+            Your session has expired. Please login again.
+          </div>
+        )}
+        
         <Card className="w-full max-w-md shadow-md" style={styles.box}>
           <div className="text-center mb-6">
             <Title level={2} style={styles.title}>Sign In</Title>
@@ -209,6 +342,20 @@ const Login = () => {
               </Button>
             </Form.Item>
           </Form>
+          
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '15px' }}>
+            <GoogleLogin
+              onSuccess={handleGoogleLoginSuccess}
+              onError={handleGoogleLoginError}
+              useOneTap={false}
+              locale="en"
+              theme="outline"
+              type="standard"
+              size="large"
+              text="signin_with"
+              shape="rectangular"
+            />
+          </div>
           
           <div style={styles.footerText}>
             <span>Don't have an account? </span>
@@ -290,6 +437,20 @@ const styles = {
       transform: 'scale(1.1)',
     }
   },
+  errorToast: {
+    position: 'absolute',
+    top: '30px',
+    display: 'flex',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    padding: '8px 16px',
+    borderRadius: '20px',
+    boxShadow: '0 3px 6px rgba(0, 0, 0, 0.16)',
+    zIndex: 1000,
+    fontSize: '14px',
+    fontWeight: 'normal',
+    animation: 'fadeInDown 0.3s ease'
+  },
 };
 
 // Add global CSS for button hover effects (since inline styles can't capture :hover)
@@ -310,6 +471,17 @@ styleElement.innerHTML = `
   
   .ant-btn-link:hover {
     transform: scale(1.1) !important;
+  }
+  
+  @keyframes fadeInDown {
+    from {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 `;
 document.head.appendChild(styleElement);

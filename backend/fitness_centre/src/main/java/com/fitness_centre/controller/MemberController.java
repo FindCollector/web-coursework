@@ -13,10 +13,13 @@ import com.fitness_centre.dto.subscription.SubscriptionRequest;
 import com.fitness_centre.security.LoginUser;
 import com.fitness_centre.service.biz.interfaces.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +48,9 @@ public class MemberController {
     @Autowired
     private SessionBookingService sessionBookingService;
 
+    @Autowired
+    private TrainingHistoryService trainingHistoryService;
+
     @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).MEMBER.getRole())")
     @GetMapping("/coachList")
     IPage<CoachDetailsResponse> coachList(@ModelAttribute CoachQueryRequest request, Authentication authentication){
@@ -61,7 +67,7 @@ public class MemberController {
         map.put("locations",locationService.getAllLocations());
         return new GeneralResponseResult(ErrorCode.SUCCESS,map);
     }
-    //--------------------------------------- 教练订阅 --------------------------------------------
+    //--------------------------------------- Coach Subscription --------------------------------------------
 
     @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).MEMBER.getRole())")
     @PostMapping("/subscription")
@@ -113,7 +119,7 @@ public class MemberController {
         Long userId = loginUser.getId();
         return subscriptionService.memberCancelSubscription(userId,coachId);
     }
-    //--------------------------------------- 课程订阅 --------------------------------------------
+    //--------------------------------------- Session Booking --------------------------------------------
 
     @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).MEMBER.getRole())")
     @GetMapping("/appropriateTimeList/{coachId}")
@@ -181,4 +187,41 @@ public class MemberController {
         return sessionBookingService.countUnreadRequest(userId,UserRole.MEMBER);
     }
 
+    //--------------------------------------- Training History --------------------------------------------
+    @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).MEMBER.getRole())")
+    @GetMapping("/training/history")
+    public GeneralResponseResult viewTrainingHistory(Authentication authentication,
+                                                     @RequestParam(defaultValue = "1")int pageNow,
+                                                     @RequestParam(defaultValue = "10") int pageSize,
+                                                     @DateTimeFormat(pattern = "yyyy/MM/dd") @RequestParam LocalDate startDate,
+                                                     @DateTimeFormat(pattern = "yyyy/MM/dd") @RequestParam LocalDate endDate){
+        LoginUser loginUser = (LoginUser) authentication.getPrincipal();
+        Long userId = loginUser.getId();
+        return trainingHistoryService.viewTrainingHistory(userId,pageNow,pageSize,startDate,endDate);
+    }
+
+    @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).MEMBER.getRole())")
+    @GetMapping("/training/unreadHistory/count")
+    public GeneralResponseResult countUnreadHistory(Authentication authentication){
+        LoginUser loginUser = (LoginUser) authentication.getPrincipal();
+        Long userId = loginUser.getId();
+        return trainingHistoryService.countUnReadTrainingHistory(userId);
+    }
+
+    @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).MEMBER.getRole())")
+    @PatchMapping("/training/history/{id}/read")
+    public GeneralResponseResult readTrainingHistoryNotification(Authentication authentication,
+                                                                 @PathVariable("id") Long id){
+        LoginUser loginUser = (LoginUser) authentication.getPrincipal();
+        Long userId = loginUser.getId();
+        return trainingHistoryService.readTrainingHistory(userId,id);
+    }
+
+    @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).MEMBER.getRole())")
+    @GetMapping("/location/info")
+    public GeneralResponseResult getAllLocations(Authentication authentication){
+        LoginUser loginUser = (LoginUser) authentication.getPrincipal();
+        Long userId = loginUser.getId();
+        return new GeneralResponseResult(ErrorCode.SUCCESS,locationService.mapLocation());
+    }
 }

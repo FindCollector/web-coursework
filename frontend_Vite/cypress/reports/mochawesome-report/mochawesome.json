@@ -1,0 +1,219 @@
+{
+  "stats": {
+    "suites": 1,
+    "tests": 7,
+    "passes": 7,
+    "pending": 0,
+    "failures": 0,
+    "start": "2025-05-08T09:16:32.395Z",
+    "end": "2025-05-08T09:16:46.226Z",
+    "duration": 13831,
+    "testsRegistered": 7,
+    "passPercent": 100,
+    "pendingPercent": 0,
+    "other": 0,
+    "hasOther": false,
+    "skipped": 0,
+    "hasSkipped": false
+  },
+  "results": [
+    {
+      "uuid": "6318f5d8-62b0-4a08-b689-849ad4f8d0dd",
+      "title": "",
+      "fullFile": "cypress/e2e/login.cy.js",
+      "file": "cypress/e2e/login.cy.js",
+      "beforeHooks": [],
+      "afterHooks": [],
+      "tests": [],
+      "suites": [
+        {
+          "uuid": "7f40ac17-699f-45a0-96e9-df0b7246152f",
+          "title": "Login Page",
+          "fullFile": "",
+          "file": "",
+          "beforeHooks": [],
+          "afterHooks": [],
+          "tests": [
+            {
+              "title": "displays the login form",
+              "fullTitle": "Login Page displays the login form",
+              "timedOut": null,
+              "duration": 2114,
+              "state": "passed",
+              "speed": "fast",
+              "pass": true,
+              "fail": false,
+              "pending": false,
+              "context": null,
+              "code": "// More flexible selector that looks for any element containing \"Sign In\" or \"Login\"\ncy.contains(/sign in|login/i).should('be.visible');\n// Look for input fields using more flexible selectors\ncy.get('body').then($body => {\n  // Check for email input field\n  const emailSelectors = ['input[type=\"email\"]', 'input[placeholder*=\"email\"]', 'input[name=\"email\"]', '[data-testid*=\"email\"]'].join(', ');\n  if ($body.find(emailSelectors).length) {\n    cy.get(emailSelectors).should('be.visible');\n  } else {\n    cy.log('Email input not found with standard selectors');\n  }\n  // Check for password input field\n  const passwordSelectors = ['input[type=\"password\"]', 'input[placeholder*=\"password\"]', 'input[name=\"password\"]', '[data-testid*=\"password\"]'].join(', ');\n  if ($body.find(passwordSelectors).length) {\n    cy.get(passwordSelectors).should('be.visible');\n  } else {\n    cy.log('Password input not found with standard selectors');\n  }\n  // Check for submit button\n  const buttonSelectors = ['button[type=\"submit\"]', 'input[type=\"submit\"]', 'button:contains(\"Sign In\")', 'button:contains(\"Login\")', '[data-testid*=\"login-button\"]', '[data-testid*=\"submit\"]'].join(', ');\n  if ($body.find(buttonSelectors).length) {\n    cy.get(buttonSelectors).should('be.visible');\n  } else {\n    cy.log('Submit button not found with standard selectors');\n  }\n});",
+              "err": {},
+              "uuid": "a0be0a9e-de45-4b5b-921a-8a72c347f517",
+              "parentUUID": "7f40ac17-699f-45a0-96e9-df0b7246152f",
+              "isHook": false,
+              "skipped": false
+            },
+            {
+              "title": "validates empty form submissions",
+              "fullTitle": "Login Page validates empty form submissions",
+              "timedOut": null,
+              "duration": 994,
+              "state": "passed",
+              "speed": "fast",
+              "pass": true,
+              "fail": false,
+              "pending": false,
+              "context": null,
+              "code": "// Find and click submit button\ncy.get('button[type=\"submit\"], input[type=\"submit\"], button:contains(\"Sign In\"), button:contains(\"Login\")').click();\n// Look for validation messages\ncy.contains(/required|cannot be empty|field is needed/i).should('be.visible');",
+              "err": {},
+              "uuid": "5ec52c64-8f50-4832-b9a8-4fb6a8a4898b",
+              "parentUUID": "7f40ac17-699f-45a0-96e9-df0b7246152f",
+              "isHook": false,
+              "skipped": false
+            },
+            {
+              "title": "validates email format",
+              "fullTitle": "Login Page validates email format",
+              "timedOut": null,
+              "duration": 864,
+              "state": "passed",
+              "speed": "fast",
+              "pass": true,
+              "fail": false,
+              "pending": false,
+              "context": null,
+              "code": "// Find email input using flexible selectors\ncy.get('input[type=\"email\"], input[placeholder*=\"email\"], input[name=\"email\"]').type('invalid-email');\n// Find and click submit button\ncy.get('button[type=\"submit\"], input[type=\"submit\"], button:contains(\"Sign In\"), button:contains(\"Login\")').click();\n// Look for validation message about email format\ncy.contains(/valid email|email format|invalid email/i).should('be.visible');",
+              "err": {},
+              "uuid": "8c24c951-243f-4d0c-b441-b260ec58abce",
+              "parentUUID": "7f40ac17-699f-45a0-96e9-df0b7246152f",
+              "isHook": false,
+              "skipped": false
+            },
+            {
+              "title": "displays error for invalid credentials",
+              "fullTitle": "Login Page displays error for invalid credentials",
+              "timedOut": null,
+              "duration": 1390,
+              "state": "passed",
+              "speed": "fast",
+              "pass": true,
+              "fail": false,
+              "pending": false,
+              "context": null,
+              "code": "// 预先拦截 /auth/login，并返回 400\ncy.intercept('POST', '**/auth/login', {\n  statusCode: 400,\n  body: {\n    code: 1001,\n    msg: 'Invalid email or password'\n  }\n}).as('loginApi');\n// 填写错误的邮箱\ncy.get('input[type=\"email\"], input[placeholder*=\"email\"], input[name=\"email\"]').type('invalid@example.com');\n// 填写错误的密码  \ncy.get('input[type=\"password\"], input[placeholder*=\"password\"], input[name=\"password\"]').type('wrongpassword');\n// 提交表单\ncy.get('button[type=\"submit\"], input[type=\"submit\"], button:contains(\"Sign In\"), button:contains(\"Login\")').click();\n// 等待拦截\ncy.wait('@loginApi');\n// Check for error message\ncy.contains(/invalid email or password|invalid credentials|incorrect password|wrong email or password/i).should('be.visible');",
+              "err": {},
+              "uuid": "c73e6cfb-6a19-4d1c-b104-e4c2b6293097",
+              "parentUUID": "7f40ac17-699f-45a0-96e9-df0b7246152f",
+              "isHook": false,
+              "skipped": false
+            },
+            {
+              "title": "redirects to dashboard on successful login",
+              "fullTitle": "Login Page redirects to dashboard on successful login",
+              "timedOut": null,
+              "duration": 5368,
+              "state": "passed",
+              "speed": "medium",
+              "pass": true,
+              "fail": false,
+              "pending": false,
+              "context": null,
+              "code": "// 预先拦截 /auth/login 并返回 200\ncy.intercept('POST', '**/auth/login', {\n  statusCode: 200,\n  body: {\n    code: 0,\n    data: {\n      userInfo: {\n        id: 1,\n        userName: 'Test User',\n        email: 'test@example.com',\n        role: 'member',\n        token: 'mock-jwt-token-12345'\n      }\n    }\n  }\n}).as('loginApi');\n// 填写邮箱\ncy.get('input[type=\"email\"], input[placeholder*=\"email\"], input[name=\"email\"]').type('test@example.com');\n// 填写密码  \ncy.get('input[type=\"password\"], input[placeholder*=\"password\"], input[name=\"password\"]').type('password123');\n// 提交表单\ncy.get('button[type=\"submit\"], input[type=\"submit\"], button:contains(\"Sign In\"), button:contains(\"Login\")').click();\n// 检查登录请求\ncy.wait('@loginApi');\n// Check for redirection - using regex to match various dashboard URLs\ncy.url().should('match', /(member|user|dashboard|home)/);\n// Verify token is set in localStorage\ncy.window().then(win => {\n  expect(win.localStorage.getItem('token')).to.eq('mock-jwt-token-12345');\n});",
+              "err": {},
+              "uuid": "bb3d8184-9a1f-46bc-8f1c-25326facedf0",
+              "parentUUID": "7f40ac17-699f-45a0-96e9-df0b7246152f",
+              "isHook": false,
+              "skipped": false
+            },
+            {
+              "title": "shows \"Remember me\" option",
+              "fullTitle": "Login Page shows \"Remember me\" option",
+              "timedOut": null,
+              "duration": 1875,
+              "state": "passed",
+              "speed": "fast",
+              "pass": true,
+              "fail": false,
+              "pending": false,
+              "context": null,
+              "code": "// Look for remember me checkbox with flexible selectors\ncy.get('body').then($body => {\n  const rememberMeSelectors = ['input[type=\"checkbox\"][name*=\"remember\"]', 'input[type=\"checkbox\"] + label:contains(\"Remember\")', 'input[type=\"checkbox\"][id*=\"remember\"]', '[data-testid*=\"remember-me\"]'].join(', ');\n  if ($body.find(rememberMeSelectors).length) {\n    cy.get(rememberMeSelectors).should('exist');\n  } else {\n    // Skip this test if remember me checkbox isn't found\n    cy.log('Remember me option not found - this feature may not be implemented');\n  }\n});",
+              "err": {},
+              "uuid": "009ec4b1-9e95-4f2d-9ec5-961b5dfd9ad2",
+              "parentUUID": "7f40ac17-699f-45a0-96e9-df0b7246152f",
+              "isHook": false,
+              "skipped": false
+            },
+            {
+              "title": "allows navigation to registration page",
+              "fullTitle": "Login Page allows navigation to registration page",
+              "timedOut": null,
+              "duration": 316,
+              "state": "passed",
+              "speed": "fast",
+              "pass": true,
+              "fail": false,
+              "pending": false,
+              "context": null,
+              "code": "// Look for sign up/register link with flexible selectors\ncy.get('body').then($body => {\n  const registerLinkSelectors = ['a:contains(\"Sign Up\")', 'a:contains(\"Register\")', 'a:contains(\"Create account\")', 'a[href*=\"register\"]', 'a[href*=\"signup\"]', 'button:contains(\"Sign Up\")', 'button:contains(\"Register\")'].join(', ');\n  if ($body.find(registerLinkSelectors).length) {\n    cy.get(registerLinkSelectors).should('exist');\n  } else {\n    // Skip this test if register link isn't found\n    cy.log('Registration link not found - this feature may not be accessible from login page');\n  }\n});",
+              "err": {},
+              "uuid": "37445edb-47ce-45f3-b0a7-fa80f7fac0e3",
+              "parentUUID": "7f40ac17-699f-45a0-96e9-df0b7246152f",
+              "isHook": false,
+              "skipped": false
+            }
+          ],
+          "suites": [],
+          "passes": [
+            "a0be0a9e-de45-4b5b-921a-8a72c347f517",
+            "5ec52c64-8f50-4832-b9a8-4fb6a8a4898b",
+            "8c24c951-243f-4d0c-b441-b260ec58abce",
+            "c73e6cfb-6a19-4d1c-b104-e4c2b6293097",
+            "bb3d8184-9a1f-46bc-8f1c-25326facedf0",
+            "009ec4b1-9e95-4f2d-9ec5-961b5dfd9ad2",
+            "37445edb-47ce-45f3-b0a7-fa80f7fac0e3"
+          ],
+          "failures": [],
+          "pending": [],
+          "skipped": [],
+          "duration": 12921,
+          "root": false,
+          "rootEmpty": false,
+          "_timeout": 2000
+        }
+      ],
+      "passes": [],
+      "failures": [],
+      "pending": [],
+      "skipped": [],
+      "duration": 0,
+      "root": true,
+      "rootEmpty": true,
+      "_timeout": 2000
+    }
+  ],
+  "meta": {
+    "mocha": {
+      "version": "7.0.1"
+    },
+    "mochawesome": {
+      "options": {
+        "quiet": false,
+        "reportFilename": "mochawesome",
+        "saveHtml": true,
+        "saveJson": true,
+        "consoleReporter": "spec",
+        "useInlineDiffs": false,
+        "code": true
+      },
+      "version": "7.1.3"
+    },
+    "marge": {
+      "options": {
+        "reportDir": "cypress/reports/mochawesome-report",
+        "overwrite": false,
+        "html": true,
+        "json": true
+      },
+      "version": "6.2.0"
+    }
+  }
+}

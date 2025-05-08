@@ -1,44 +1,67 @@
 import { baseApi } from './baseApi';
 
-// 扩展基础API，添加认证相关的端点
+// Extend base API with authentication related endpoints
 export const authApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    // 登录
+    // Login
     login: builder.mutation({
       query: (data) => {
         const { headers, ...requestData } = data;
-        console.log('登录请求数据:', requestData, '请求头:', headers);
+        
+        // Check if this is a Google login request
+        if (requestData.googleToken) {
+          return {
+            url: '/auth/google-login',
+            method: 'POST',
+            body: { token: requestData.googleToken },
+            headers: {
+              ...headers,
+              'Content-Type': 'application/json'
+            }
+          };
+        }
+        
         return {
           url: '/auth/login',
           method: 'POST',
           body: requestData,
           headers: {
             ...headers,
-            'Content-Type': 'application/json' // 确保设置内容类型
+            'Content-Type': 'application/json' // Ensure content type is set
           }
         };
       },
-      // 添加响应转换和错误处理
+      // Add response transformation and error handling
       transformResponse: (response, meta, arg) => {
-        console.log('登录响应数据:', response);
         return response;
       },
       transformErrorResponse: (response, meta, arg) => {
-        console.error('登录错误响应:', response);
         return response;
       },
       onQueryStarted: async (arg, { dispatch, queryFulfilled }) => {
         try {
           const { data } = await queryFulfilled;
-          console.log('登录成功，处理结果中:', data);
         } catch (error) {
-          console.error('登录失败详情:', error);
+          // Error handling is automatic
         }
       },
       invalidatesTags: ['Auth']
     }),
 
-    // 退出登录
+    // Complete profile
+    completeProfile: builder.mutation({
+      query: (data) => ({
+        url: '/auth/google-login/complete-profile',
+        method: 'POST',
+        body: data,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }),
+      invalidatesTags: ['Auth', 'User']
+    }),
+
+    // Logout
     logout: builder.mutation({
       query: () => ({
         url: '/auth/logout',
@@ -47,17 +70,16 @@ export const authApi = baseApi.injectEndpoints({
       invalidatesTags: ['Auth', 'User']
     }),
 
-    // 获取当前用户信息
+    // Get current user information
     getCurrentUser: builder.query({
       query: () => '/auth/user',
       providesTags: ['Auth']
     }),
 
-    // 注册新用户
+    // Register new user
     register: builder.mutation({
       query: (data) => {
         const { headers, ...requestData } = data;
-        console.log('注册请求数据:', requestData, '请求头:', headers);
         return {
           url: '/auth/register',
           method: 'POST',
@@ -69,16 +91,14 @@ export const authApi = baseApi.injectEndpoints({
         };
       },
       transformResponse: (response, meta, arg) => {
-        console.log('注册响应数据:', response);
         return response;
       },
       transformErrorResponse: (response, meta, arg) => {
-        console.error('注册错误响应:', response);
         return response;
       }
     }),
 
-    // 发送验证码
+    // Send verification code
     sendVerificationCode: builder.mutation({
       query: (data) => {
         const { headers, ...requestData } = data;
@@ -91,7 +111,7 @@ export const authApi = baseApi.injectEndpoints({
       }
     }),
 
-    // 验证验证码
+    // Verify code
     verifyCode: builder.mutation({
       query: (data) => {
         const { headers, ...requestData } = data;
@@ -104,7 +124,7 @@ export const authApi = baseApi.injectEndpoints({
       }
     }),
 
-    // 重新发送验证码
+    // Resend verification code
     resendVerificationCode: builder.mutation({
       query: (data) => {
         const { headers, ...requestData } = data;
@@ -115,20 +135,20 @@ export const authApi = baseApi.injectEndpoints({
           headers
         };
       },
-      // 防止重复请求的自定义处理逻辑
+      // Custom handling logic to prevent duplicate requests
       onQueryStarted: async (arg, { dispatch, queryFulfilled, getCacheEntry }) => {
         try {
-          // 防止重复请求的逻辑将由RTK Query自动处理
+          // Duplicate request prevention logic will be automatically handled by RTK Query
           await queryFulfilled;
         } catch (error) {
-          console.error('resendCode API error:', error);
+          // Error handling is automatic
         }
       }
     })
   })
 });
 
-// 导出自动生成的hooks
+// Export auto-generated hooks
 export const {
   useLoginMutation,
   useLogoutMutation,
@@ -136,5 +156,6 @@ export const {
   useRegisterMutation,
   useSendVerificationCodeMutation,
   useVerifyCodeMutation,
-  useResendVerificationCodeMutation
+  useResendVerificationCodeMutation,
+  useCompleteProfileMutation
 } = authApi; 

@@ -1,9 +1,9 @@
 import { baseApi } from './baseApi';
 
-// 扩展基础API，添加用户相关的端点
+// Extend base API with user-related endpoints
 export const userApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    // 获取用户列表
+    // Get user list
     getUserList: builder.query({
       query: (params) => {
         const {
@@ -17,46 +17,40 @@ export const userApi = baseApi.injectEndpoints({
           pageSize = 10
         } = params || {};
       
-        // 构建查询参数
+        // Build query parameters
         const queryParams = new URLSearchParams();
         
-        // 只添加有值的参数
+        // Only add parameters with values
         if (role) queryParams.append('role', role);
         if (status !== undefined && status !== null) queryParams.append('status', status);
         if (userName) queryParams.append('userName', userName);
         if (email) queryParams.append('email', email);
         
-        // 处理排序参数
+        // Handle sorting parameters
         if (Array.isArray(sortField) && Array.isArray(sortOrder) && sortField.length > 0) {
           sortField.forEach(field => queryParams.append('sortField', field));
           sortOrder.forEach(order => queryParams.append('sortOrder', order));
         }
         
-        // 分页参数总是添加
+        // Pagination parameters are always added
         queryParams.append('pageNow', pageNow);  
         queryParams.append('pageSize', pageSize);   
         
-        // 添加时间戳防止缓存
+        // Add timestamp to prevent caching
         queryParams.append('_t', Date.now());
-        
-        console.log('[userApi] 准备发送请求:', {
-          url: `/user/list?${queryParams.toString()}`,
-          params: Object.fromEntries(queryParams.entries()),
-          token: sessionStorage.getItem('token')
-        });
         
         return {
           url: `/user/list?${queryParams.toString()}`,
           method: 'GET'
         };
       },
-      // 禁用缓存
+      // Disable caching
       keepUnusedDataFor: 0,
-      // 确保每次都重新获取数据
+      // Ensure data is fetched every time
       forceRefetch: () => true,
-      // 处理响应转换
+      // Response transformation handling
       transformResponse: (response) => {
-        // 确保即使后端返回数据格式不完整也能正常显示
+        // Ensure normal display even if backend returns incomplete data format
         const defaultResponse = {
           code: 0,
           msg: 'success',
@@ -69,46 +63,41 @@ export const userApi = baseApi.injectEndpoints({
         
         return response || defaultResponse;
       },
-      // 为了确保缓存失效和重新获取正常工作
+      // To ensure cache invalidation and refetching works properly
       providesTags: ['User'],
       async onQueryStarted(arg, { queryFulfilled }) {
         try {
-          console.log('[userApi] 开始发送请求');
-          const result = await queryFulfilled;
-          console.log('[userApi] 请求成功:', result);
+          await queryFulfilled;
         } catch (error) {
-          console.error('[userApi] 请求失败:', error);
+          // Error handled automatically
         }
       },
     }),
 
-    // 更新用户状态
+    // Update user status
     updateUserStatus: builder.mutation({
       query: ({ userId, status }) => ({
         url: `/user/${userId}`,
         method: 'PATCH',
         body: { status }
       }),
-      // 使缓存失效，触发重新获取
+      // Invalidate cache to trigger refetch
       invalidatesTags: ['User'],
-      // 与旧API保持一致的错误处理
+      // Maintain error handling consistent with old API
       onQueryStarted: async (arg, { dispatch, queryFulfilled, getCacheEntry }) => {
         try {
           await queryFulfilled;
         } catch (error) {
-          console.error(`更新用户状态失败:`, error);
+          // Error handled automatically
         }
       },
     }),
 
-    // 删除用户
+    // Delete user
     deleteUser: builder.mutation({
       query: (userId) => {
-        console.log(`[userApi.js] deleteUser function started, received ID: ${userId}`, typeof userId);
-        
         // Verify ID exists
         if (!userId) {
-          console.error('[userApi.js] Error: No user ID provided to deleteUser!');
           throw new Error('Internal error: Missing user ID');
         }
         
@@ -117,11 +106,11 @@ export const userApi = baseApi.injectEndpoints({
           method: 'DELETE'
         };
       },
-      // 使缓存失效，触发重新获取
+      // Invalidate cache to trigger refetch
       invalidatesTags: ['User'],
     }),
 
-    // 获取用户配置（角色和状态）
+    // Get user configuration (roles and statuses)
     getUserConfig: builder.query({
       query: () => ({
         url: '/user/filter',
@@ -129,19 +118,19 @@ export const userApi = baseApi.injectEndpoints({
       }),
       transformResponse: (response) => {
         if (response.code === 0 && response.data) {
-          // 转换角色数据
+          // Transform role data
           const roles = Object.entries(response.data.role).map(([value, label]) => ({
             value,
             label,
-            // 为不同角色设置不同的颜色
+            // Set different colors for different roles
             color: value === 'admin' ? 'purple' : value === 'coach' ? 'green' : 'blue'
           }));
 
-          // 转换状态数据
+          // Transform status data
           const statuses = Object.entries(response.data.status).map(([value, label]) => ({
             value: parseInt(value),
             label,
-            // 为不同状态设置不同的颜色
+            // Set different colors for different statuses
             color: value === '0' ? 'success' : value === '1' ? 'warning' : 'error'
           }));
 
@@ -160,7 +149,7 @@ export const userApi = baseApi.injectEndpoints({
   }),
 });
 
-// 导出自动生成的hooks
+// Export auto-generated hooks
 export const {
   useGetUserListQuery,
   useUpdateUserStatusMutation,

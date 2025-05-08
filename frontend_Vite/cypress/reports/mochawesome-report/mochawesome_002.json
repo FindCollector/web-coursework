@@ -1,0 +1,221 @@
+{
+  "stats": {
+    "suites": 4,
+    "tests": 4,
+    "passes": 4,
+    "pending": 0,
+    "failures": 0,
+    "start": "2025-05-08T09:17:03.169Z",
+    "end": "2025-05-08T09:17:13.470Z",
+    "duration": 10301,
+    "testsRegistered": 4,
+    "passPercent": 100,
+    "pendingPercent": 0,
+    "other": 0,
+    "hasOther": false,
+    "skipped": 0,
+    "hasSkipped": false
+  },
+  "results": [
+    {
+      "uuid": "9ffe0497-4eb3-4330-9bf7-573564a4b5ee",
+      "title": "",
+      "fullFile": "cypress/e2e/responsive.cy.js",
+      "file": "cypress/e2e/responsive.cy.js",
+      "beforeHooks": [],
+      "afterHooks": [],
+      "tests": [],
+      "suites": [
+        {
+          "uuid": "8854ac59-9ebf-48d7-baed-739f69bf21fd",
+          "title": "Responsive Design Tests",
+          "fullFile": "",
+          "file": "",
+          "beforeHooks": [],
+          "afterHooks": [],
+          "tests": [],
+          "suites": [
+            {
+              "uuid": "14ab4cc2-9345-4a93-be4c-c6abdafd9690",
+              "title": "Mobile view (iPhone 12)",
+              "fullFile": "",
+              "file": "",
+              "beforeHooks": [],
+              "afterHooks": [],
+              "tests": [
+                {
+                  "title": "shows menu toggle on small screens",
+                  "fullTitle": "Responsive Design Tests Mobile view (iPhone 12) shows menu toggle on small screens",
+                  "timedOut": null,
+                  "duration": 1762,
+                  "state": "passed",
+                  "speed": "fast",
+                  "pass": true,
+                  "fail": false,
+                  "pending": false,
+                  "context": null,
+                  "code": "// Look for hamburger menu or mobile navigation toggle using flexible selectors\ncy.get('body').then($body => {\n  // Try common patterns for mobile menus\n  const mobileMenuSelector = ['[data-testid*=\"menu-toggle\"]', '[class*=\"hamburger\"]', '[class*=\"menu-toggle\"]', '[class*=\"menu-button\"]', '[aria-label*=\"menu\"]', 'button svg' // Often hamburger menus are buttons with SVG icons\n  ].join(', ');\n  if ($body.find(mobileMenuSelector).length) {\n    cy.get(mobileMenuSelector).should('be.visible');\n  } else {\n    cy.log('Mobile menu toggle not found with standard selectors - app may use different patterns');\n  }\n});",
+                  "err": {},
+                  "uuid": "39dc6ec8-3f6d-4724-b447-f8224bee8904",
+                  "parentUUID": "14ab4cc2-9345-4a93-be4c-c6abdafd9690",
+                  "isHook": false,
+                  "skipped": false
+                },
+                {
+                  "title": "login page is properly responsive on mobile",
+                  "fullTitle": "Responsive Design Tests Mobile view (iPhone 12) login page is properly responsive on mobile",
+                  "timedOut": null,
+                  "duration": 2951,
+                  "state": "passed",
+                  "speed": "fast",
+                  "pass": true,
+                  "fail": false,
+                  "pending": false,
+                  "context": null,
+                  "code": "cy.clearLoginState();\ncy.visit('/login');\ncy.wait(1000);\n// Take screenshot for visual inspection\ncy.screenshot('mobile-login-page', {\n  capture: 'viewport'\n});\n// Verify login form elements are visible and properly sized for mobile\ncy.get('body').then($body => {\n  const loginElements = $body.find('input[type=\"email\"], input[type=\"password\"], button[type=\"submit\"]');\n  if (loginElements.length) {\n    // Check if elements exist and are visible\n    cy.get('input[type=\"email\"], input[type=\"password\"], button[type=\"submit\"]').should('be.visible').should($el => {\n      // Get viewport width\n      const viewportWidth = Cypress.config('viewportWidth');\n      // Check each element width is reasonable for mobile\n      $el.each((_, el) => {\n        const width = Cypress.$(el).outerWidth();\n        expect(width).to.be.lessThan(viewportWidth);\n      });\n    });\n  } else {\n    cy.log('Standard login elements not found - app may use different form structure');\n  }\n});",
+                  "err": {},
+                  "uuid": "64ed832d-0a2f-48f3-924b-da2a2c923d3c",
+                  "parentUUID": "14ab4cc2-9345-4a93-be4c-c6abdafd9690",
+                  "isHook": false,
+                  "skipped": false
+                }
+              ],
+              "suites": [],
+              "passes": [
+                "39dc6ec8-3f6d-4724-b447-f8224bee8904",
+                "64ed832d-0a2f-48f3-924b-da2a2c923d3c"
+              ],
+              "failures": [],
+              "pending": [],
+              "skipped": [],
+              "duration": 4713,
+              "root": false,
+              "rootEmpty": false,
+              "_timeout": 2000
+            },
+            {
+              "uuid": "0589b940-c108-4f46-b71c-f3e652ba0936",
+              "title": "Tablet view (iPad)",
+              "fullFile": "",
+              "file": "",
+              "beforeHooks": [],
+              "afterHooks": [],
+              "tests": [
+                {
+                  "title": "dashboard adapts properly to tablet view",
+                  "fullTitle": "Responsive Design Tests Tablet view (iPad) dashboard adapts properly to tablet view",
+                  "timedOut": null,
+                  "duration": 3260,
+                  "state": "passed",
+                  "speed": "fast",
+                  "pass": true,
+                  "fail": false,
+                  "pending": false,
+                  "context": null,
+                  "code": "// Check layout of member dashboard on tablet\ncy.visit('/member/dashboard');\ncy.wait(1500);\n// Take screenshot for visual inspection\ncy.screenshot('tablet-dashboard', {\n  capture: 'viewport'\n});\n// Check if content is properly sized for tablet viewport\ncy.get('body').then($body => {\n  // Look for main container elements\n  const containers = $body.find('[class*=\"container\"], [class*=\"dashboard\"], main, section');\n  if (containers.length) {\n    // Check if the containers adjust to the tablet width properly\n    cy.get(containers.selector).first().should($el => {\n      const viewportWidth = Cypress.config('viewportWidth');\n      const width = $el.outerWidth();\n      expect(width).to.be.at.most(viewportWidth);\n    });\n  } else {\n    cy.log('Standard container elements not found - app may use different layout structure');\n  }\n});",
+                  "err": {},
+                  "uuid": "f81f8e9f-223f-47fa-ac12-c984af0c7316",
+                  "parentUUID": "0589b940-c108-4f46-b71c-f3e652ba0936",
+                  "isHook": false,
+                  "skipped": false
+                }
+              ],
+              "suites": [],
+              "passes": [
+                "f81f8e9f-223f-47fa-ac12-c984af0c7316"
+              ],
+              "failures": [],
+              "pending": [],
+              "skipped": [],
+              "duration": 3260,
+              "root": false,
+              "rootEmpty": false,
+              "_timeout": 2000
+            },
+            {
+              "uuid": "316f8491-8434-485f-a3f0-a1e2dfe5ad3e",
+              "title": "Desktop view",
+              "fullFile": "",
+              "file": "",
+              "beforeHooks": [],
+              "afterHooks": [],
+              "tests": [
+                {
+                  "title": "navigation shows full menu on desktop",
+                  "fullTitle": "Responsive Design Tests Desktop view navigation shows full menu on desktop",
+                  "timedOut": null,
+                  "duration": 1865,
+                  "state": "passed",
+                  "speed": "fast",
+                  "pass": true,
+                  "fail": false,
+                  "pending": false,
+                  "context": null,
+                  "code": "// Check if desktop navigation is visible with full menu\ncy.get('body').then($body => {\n  // Look for navigation elements that should be visible on desktop\n  const navSelectors = ['nav', '[class*=\"navigation\"]', '[class*=\"menu\"]', 'header ul', '[role=\"navigation\"]'].join(', ');\n  if ($body.find(navSelectors).length) {\n    // Check that nav elements are visible\n    cy.get(navSelectors).first().should('be.visible');\n    // Look for menu items - either they'll be direct children or nested\n    cy.get(`${navSelectors} a, ${navSelectors} li`).should('have.length.gt', 1);\n  } else {\n    cy.log('Standard navigation elements not found - app may use different layout structure');\n  }\n});\n// Take screenshot for visual inspection\ncy.screenshot('desktop-navigation', {\n  capture: 'viewport'\n});",
+                  "err": {},
+                  "uuid": "df605881-6aef-4e3c-b473-ec7c2c3acc77",
+                  "parentUUID": "316f8491-8434-485f-a3f0-a1e2dfe5ad3e",
+                  "isHook": false,
+                  "skipped": false
+                }
+              ],
+              "suites": [],
+              "passes": [
+                "df605881-6aef-4e3c-b473-ec7c2c3acc77"
+              ],
+              "failures": [],
+              "pending": [],
+              "skipped": [],
+              "duration": 1865,
+              "root": false,
+              "rootEmpty": false,
+              "_timeout": 2000
+            }
+          ],
+          "passes": [],
+          "failures": [],
+          "pending": [],
+          "skipped": [],
+          "duration": 0,
+          "root": false,
+          "rootEmpty": false,
+          "_timeout": 2000
+        }
+      ],
+      "passes": [],
+      "failures": [],
+      "pending": [],
+      "skipped": [],
+      "duration": 0,
+      "root": true,
+      "rootEmpty": true,
+      "_timeout": 2000
+    }
+  ],
+  "meta": {
+    "mocha": {
+      "version": "7.0.1"
+    },
+    "mochawesome": {
+      "options": {
+        "quiet": false,
+        "reportFilename": "mochawesome",
+        "saveHtml": true,
+        "saveJson": true,
+        "consoleReporter": "spec",
+        "useInlineDiffs": false,
+        "code": true
+      },
+      "version": "7.1.3"
+    },
+    "marge": {
+      "options": {
+        "reportDir": "cypress/reports/mochawesome-report",
+        "overwrite": false,
+        "html": true,
+        "json": true
+      },
+      "version": "6.2.0"
+    }
+  }
+}

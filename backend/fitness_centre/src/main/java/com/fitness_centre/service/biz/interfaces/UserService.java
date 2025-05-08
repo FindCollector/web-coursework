@@ -18,7 +18,7 @@ import java.util.List;
  * @date 09/03/2025
  */
 public interface UserService extends IService<User> {
-    int cleanupInactiveUsers();
+
 
     GeneralResponseResult login(UserLoginRequest loginDTO);
 
@@ -37,4 +37,11 @@ public interface UserService extends IService<User> {
     GeneralResponseResult updateStatus(Serializable id,Integer status);
 
     GeneralResponseResult userFilter();
+
+    GeneralResponseResult googleLogin(String idToken);
+
+    GeneralResponseResult googleAccountBoundBasicInformation(UserRegisterRequest requestDTO);
+
+    GeneralResponseResult emailLinkGoogleAccount(String email);
+
 }

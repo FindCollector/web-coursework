@@ -45,15 +45,15 @@ public class RecapchaAspect {
             ProceedingJoinPoint joinPoint,
             RequireRecaptcha requireRecaptcha
     ) throws Throwable {
-        // ... 前面做各种校验, 包括 reCAPTCHA 验证 ...
-        // 1. 获取当前 Request 上下文
+        // ... Various validations before, including reCAPTCHA verification ...
+        // 1. Get current Request context
         ServletRequestAttributes attributes =
                 (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
 
-        // 2. 拿到 HttpServletRequest
+        // 2. Get HttpServletRequest
         HttpServletRequest request = attributes.getRequest();
 
-        // 3. 从请求头里获取 recaptchatoken
+        // 3. Get recaptchatoken from request header
         String recaptchaToken = request.getHeader("X-Recaptcha-Token");
         String action = request.getHeader("X-Action");
         double minScore = requireRecaptcha.minScore();
@@ -61,7 +61,7 @@ public class RecapchaAspect {
         if(!verify(recaptchaToken,minScore,action)){
             throw new AuthException(ErrorCode.CAPTCHA_ERROR);
         }
-        // 如果验证通过，就执行原方法：
+        // If validation passes, execute the original method:
         return joinPoint.proceed();
     }
 

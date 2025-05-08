@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Layout, Typography, Menu, Avatar, Button, Badge } from 'antd';
+import { Layout, Typography, Menu, Avatar, Button, Badge, message } from 'antd';
 import {
   UserOutlined,
   CalendarOutlined,
@@ -16,66 +16,64 @@ import { logout as logoutAction } from '../../store/authSlice';
 import { useLogoutMutation } from '../../store/api/authApi';
 import { 
   useGetMemberUnreadRequestsCountQuery,
-  useGetMemberUnreadSessionCountQuery 
+  useGetMemberUnreadSessionCountQuery,
+  useGetMemberUnreadTrainingHistoryCountQuery
 } from '../../store/api/memberApi';
 import SubscriptionRequests from './SubscriptionRequests';
 import SessionRequests from './SessionRequests';
 import BookingSession from './BookingSession';
 import MemberSchedule from './MemberSchedule';
+import TrainingHistory from './TrainingHistory';
 
 // Note: We are using Header from Layout, but positioning it manually outside the main Layout flow.
 const { Content, Sider, Header } = Layout;
 const { Title } = Typography;
 
-const MemberDashboard = () => {
+const MemberDashboard = ({ initialActiveMenu }) => {
   const [collapsed, setCollapsed] = useState(false);
-  const [activeMenu, setActiveMenu] = useState('coaches');
+  const [activeMenu, setActiveMenu] = useState(initialActiveMenu || 'coaches');
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const auth = useSelector((state) => state.auth);
   const userName = auth?.userName || 'Member';
   const [logout, { isLoading: isLoggingOut }] = useLogoutMutation();
   
-  // 获取未读订阅请求数量
-  const { 
-    data: unreadSubscriptionCount = 0, 
-    refetch: refetchUnreadSubscriptionCount 
-  } = useGetMemberUnreadRequestsCountQuery(null, {
-    pollingInterval: 60000, // 每60秒轮询一次
-    refetchOnMountOrArgChange: true, // 组件挂载时始终重新获取
-    refetchOnFocus: true, // 窗口获得焦点时刷新
-    refetchOnReconnect: true, // 网络重连时刷新
-  });
-  
-  // 获取未读Session请求数量
-  const { 
-    data: unreadSessionCount = 0, 
-    refetch: refetchUnreadSessionCount 
-  } = useGetMemberUnreadSessionCountQuery(null, {
-    pollingInterval: 60000, // 每60秒轮询一次
-    refetchOnMountOrArgChange: true, // 组件挂载时始终重新获取
-    refetchOnFocus: true, // 窗口获得焦点时刷新
-    refetchOnReconnect: true, // 网络重连时刷新
-  });
+  // Get unread counts
+  const { data: unreadSubscriptionData, refetch: refetchUnreadSubscriptionCount } = useGetMemberUnreadRequestsCountQuery();
+  const { data: unreadSessionData, refetch: refetchUnreadSessionCount } = useGetMemberUnreadSessionCountQuery();
+  const { data: unreadTrainingHistoryData, refetch: refetchUnreadTrainingHistoryCount } = useGetMemberUnreadTrainingHistoryCountQuery();
 
-  // 计算总未读消息数
-  const totalUnreadCount = unreadSubscriptionCount + unreadSessionCount;
+  // Calculate unread counts
+  const unreadSubscriptionCount = unreadSubscriptionData?.data || 0;
+  const unreadSessionCount = unreadSessionData?.data || 0;
+  const unreadTrainingHistoryCount = unreadTrainingHistoryData || 0;
+  // Total unread messages related to requests (excluding training history)
+  const requestsUnreadCount = unreadSubscriptionCount + unreadSessionCount;
+  // Total of all unread messages
+  const totalUnreadCount = requestsUnreadCount + unreadTrainingHistoryCount;
 
   useEffect(() => {
-    console.log('Current user state:', auth);
-    
-    // 组件挂载时立即刷新未读计数
+    // Refresh unread counts immediately when component mounts
     refetchUnreadSubscriptionCount();
     refetchUnreadSessionCount();
-  }, [auth, refetchUnreadSubscriptionCount, refetchUnreadSessionCount]);
+    refetchUnreadTrainingHistoryCount();
+  }, [auth, refetchUnreadSubscriptionCount, refetchUnreadSessionCount, refetchUnreadTrainingHistoryCount]);
   
-  // 添加刷新未读计数的事件监听器
+  // Listen for initialActiveMenu changes
+  useEffect(() => {
+    if (initialActiveMenu) {
+      setActiveMenu(initialActiveMenu);
+    }
+  }, [initialActiveMenu]);
+  
+  // Listen for refresh unread count events
   useEffect(() => {
     const handleRefreshUnreadCount = () => {
       refetchUnreadSubscriptionCount();
       refetchUnreadSessionCount();
+      refetchUnreadTrainingHistoryCount();
       
-      // 如果当前在请求页面，自动刷新请求列表
+      // If currently on requests page, automatically refresh the request list
       if (activeMenu === 'subscription-requests' || activeMenu === 'session-requests') {
         if (activeMenu === 'subscription-requests') {
           window.dispatchEvent(new Event('refresh-requests'));
@@ -90,9 +88,9 @@ const MemberDashboard = () => {
     return () => {
       window.removeEventListener('refresh-unread-count', handleRefreshUnreadCount);
     };
-  }, [refetchUnreadSubscriptionCount, refetchUnreadSessionCount, activeMenu]);
+  }, [refetchUnreadSubscriptionCount, refetchUnreadSessionCount, refetchUnreadTrainingHistoryCount, activeMenu]);
   
-  // 监听未读计数变化，如果当前在请求页面且有未读消息，自动刷新请求列表
+  // Listen for unread count changes, if currently on requests page and there are unread messages, automatically refresh request list
   useEffect(() => {
     if (activeMenu === 'subscription-requests' && unreadSubscriptionCount > 0) {
       window.dispatchEvent(new Event('refresh-requests'));
@@ -109,10 +107,10 @@ const MemberDashboard = () => {
         dispatch(logoutAction());
         navigate('/login');
       } else {
-        console.error('Logout failed:', response.msg);
+        message.error(response.msg || 'Logout failed');
       }
     } catch (error) {
-      console.error('Logout failed:', error);
+      message.error('Logout failed. Please try again.');
     }
   };
 
@@ -130,7 +128,7 @@ const MemberDashboard = () => {
     {
       key: 'requests',
       icon: (
-        <Badge dot={totalUnreadCount > 0} size="small">
+        <Badge dot={requestsUnreadCount > 0} size="small">
           <BellOutlined />
         </Badge>
       ),
@@ -188,43 +186,105 @@ const MemberDashboard = () => {
       label: 'My Schedule',
     },
     {
-      key: 'favorites',
-      icon: <HeartOutlined />,
-      label: 'My Favorites',
-    },
-    {
       key: 'history',
-      icon: <HistoryOutlined />,
-      label: 'Training History',
+      icon: (
+        <Badge dot={unreadTrainingHistoryCount > 0} size="small">
+          <HistoryOutlined />
+        </Badge>
+      ),
+      label: (
+        <span>
+          Training History
+          {unreadTrainingHistoryCount > 0 && (
+            <Badge 
+              count={unreadTrainingHistoryCount} 
+              size="small" 
+              style={{ 
+                marginLeft: 6, 
+                fontSize: '10px', 
+                padding: '0 4px',
+                height: '16px',
+                lineHeight: '16px',
+                boxShadow: 'none' 
+              }} 
+            />
+          )}
+        </span>
+      ),
     },
   ];
 
   const getPageTitle = (key) => {
-    // 处理子菜单项
+    // Handle submenu items
     if (key === 'subscription-requests') {
       return 'Subscription Requests';
     } else if (key === 'session-requests') {
       return 'Session Requests';
     }
     
-    // 处理主菜单项
+    // Handle main menu items
     const item = menuItems.find(item => item.key === key);
     return item ? item.label : 'Fitness Center';
   };
 
-  // 切换菜单时的处理函数
+  // Menu change handler function
   const handleMenuChange = (key) => {
     setActiveMenu(key);
     
-    // 当切换到请求页面时，触发请求刷新事件
+    // Navigate to the corresponding URL path
+    if (key === 'coaches') {
+      navigate('/member/coaches');
+      return;
+    }
+    
+    if (key === 'booking') {
+      navigate('/member/booking');
+      return;
+    }
+    
     if (key === 'subscription-requests') {
       window.dispatchEvent(new Event('refresh-requests'));
-      // 同时刷新未读计数
+      // Also refresh unread count
       refetchUnreadSubscriptionCount();
-    } else if (key === 'session-requests') {
+      navigate('/member/subscription-requests');
+      return;
+    }
+    
+    if (key === 'session-requests') {
       window.dispatchEvent(new Event('refresh-session-requests'));
-      // 同时刷新未读计数
+      // Also refresh unread count
       refetchUnreadSessionCount();
+      navigate('/member/session-requests');
+      return;
+    }
+    
+    if (key === 'schedule') {
+      navigate('/member/schedule');
+      return;
+    }
+    
+    if (key === 'history') {
+      window.dispatchEvent(new Event('refresh-training-history'));
+      // Also refresh unread count
+      refetchUnreadTrainingHistoryCount();
+      navigate('/member/history');
+      return;
+    }
+    
+    if (key === 'requests') {
+      // Default navigate to subscription-requests submenu
+      if (unreadSubscriptionCount > 0) {
+        setActiveMenu('subscription-requests');
+        navigate('/member/subscription-requests');
+      } else if (unreadSessionCount > 0) {
+        setActiveMenu('session-requests');
+        navigate('/member/session-requests');
+      } else {
+        // If neither has unread messages, default to subscription
+        setActiveMenu('subscription-requests');
+        navigate('/member/subscription-requests');
+      }
+      return;
     }
   };
 
@@ -240,8 +300,8 @@ const MemberDashboard = () => {
         return <SessionRequests />;
       case 'schedule':
         return <MemberSchedule />;
-      case 'favorites':
       case 'history':
+        return <TrainingHistory />;
       default:
         return (
           <div className="p-8 text-center">

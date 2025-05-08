@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fitness_centre.constant.ErrorCode;
+import com.fitness_centre.constant.Provider;
 import com.fitness_centre.constant.UserRole;
 import com.fitness_centre.constant.UserStatus;
 import com.fitness_centre.dto.admin.UserListQueryRequest;
@@ -26,6 +27,13 @@ import com.fitness_centre.service.biz.interfaces.UserService;
 import com.fitness_centre.utils.JwtUtil;
 import com.fitness_centre.utils.RecaptchaValidator;
 import com.fitness_centre.utils.RedisCache;
+import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeTokenRequest;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.googleapis.auth.oauth2.GoogleTokenResponse;
+import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
+import com.google.api.client.json.jackson2.JacksonFactory;
+import jakarta.jws.soap.SOAPBinding;
 import jakarta.mail.MessagingException;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +41,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -42,7 +51,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.io.IOException;
 import java.io.Serializable;
+import java.security.GeneralSecurityException;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -75,6 +86,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     private final static int emailExpireTime = 5;
 
     private final static int basicInfoExpireTime = 45;
+
+    @Value("${google.client-id}")
+    private String clientId;
+
+    @Value("${google.client-secret}")
+    private String clientSecret;
 
     @Autowired
     private RecaptchaValidator recaptchaValidator;
@@ -211,7 +228,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new AuthException(ErrorCode.EMAIL_VERIFICATION_FAILED);
         }
         if(!code.equals(verifyCode)){
-            System.out.println(code);
             throw new AuthException(ErrorCode.EMAIL_VERIFICATION_FAILED.getCode(),"Verification code error");
         }
 
@@ -225,6 +241,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         user.setRegisterTime(LocalDateTime.now());
         //暂时不激活激活用户
         user.setStatus(1);
+        user.setProvider(Provider.LOCAL.provider);
         //并发控制：数据库中的email是unique
         try{
             this.baseMapper.insert(user);
@@ -338,10 +355,120 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         return new GeneralResponseResult(ErrorCode.SUCCESS,map);
     }
 
+    @Override
+    public GeneralResponseResult googleLogin(String idTokenString) {
+        GoogleIdToken idToken = verifyGoogleIdToken(idTokenString);
+        GoogleIdToken.Payload p = idToken.getPayload();
+        String email = p.getEmail();
+
+        User googleUser = selectOneByEmailAndProvider(email,Provider.GOOGLE.provider);
+
+        if (googleUser == null) {
+            // 可能已存在本地账号，需要提示走绑定
+            boolean localExists = lambdaQuery()
+                    .eq(User::getEmail, email)
+                    .eq(User::getProvider, Provider.LOCAL.provider)
+                    .exists();
+            if (localExists) {
+                return new GeneralResponseResult(ErrorCode.GOOGLE_EMAIL_ALREADY_EXISTS, Map.of("email", email));
+            }
+            // 前端跳转到完善资料
+            return new GeneralResponseResult(ErrorCode.EMAIL_NOT_BOUND, Map.of("email", email));
+        }
+
+        if (googleUser.getStatus() == UserStatus.BLOCKED.getStatus()) {
+            throw new AuthException(ErrorCode.FORBIDDEN);
+        }
+        return buildLoginSuccess(googleUser);
+    }
+
+    private User selectOneByEmailAndProvider(String email, String provider) {
+        return baseMapper.selectOne(new LambdaQueryWrapper<User>()
+                .eq(User::getEmail, email)
+                .eq(User::getProvider, provider));
+    }
+
+    /**
+     * 校验 Google id_token
+     */
+    private GoogleIdToken verifyGoogleIdToken(String idTokenString) {
+        try {
+            GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
+                    GoogleNetHttpTransport.newTrustedTransport(),
+                    JacksonFactory.getDefaultInstance())
+                    .setAudience(Collections.singletonList(clientId))
+                    .build();
+            GoogleIdToken idToken = verifier.verify(idTokenString);
+            if (idToken == null) {
+                throw new AuthException(ErrorCode.FORBIDDEN.getCode(), "Invalid id_token");
+            }
+            return idToken;
+        } catch (GeneralSecurityException | IOException e) {
+            throw new SystemException(ErrorCode.GOOGLE_AUTH_ERROR);
+        }
+    }
+
 
     @Override
-    public int cleanupInactiveUsers() {
-        return this.baseMapper.deleteInactiveUsers();
+    public GeneralResponseResult googleAccountBoundBasicInformation(UserRegisterRequest requestDTO) {
+        User exist = selectOneByEmailAndProvider(requestDTO.getEmail(), Provider.GOOGLE.provider);
+        if (exist != null) {
+            throw new AuthException(ErrorCode.GOOGLE_EMAIL_ALREADY_EXISTS);
+        }
+        User user = new User();
+        BeanUtils.copyProperties(requestDTO,user);
+        user.setProvider(Provider.GOOGLE.provider);
+        user.setPassword(null);
+        user.setRegisterTime(LocalDateTime.now());
+        user.setStatus(UserStatus.WAITING_APPROVAL.getStatus());
+        int rows = this.baseMapper.insert(user);
+        if(rows == 0){
+            throw new SystemException(ErrorCode.DB_OPERATION_ERROR);
+        }
+
+        return buildLoginSuccess(user);
     }
+
+    @Override
+    public GeneralResponseResult emailLinkGoogleAccount(String email) {
+        LambdaUpdateWrapper<User> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(User::getEmail,email).set(User::getProvider,Provider.GOOGLE.provider);
+        int rows = this.baseMapper.update(updateWrapper);
+        if(rows == 0){
+            throw new SystemException(ErrorCode.DB_OPERATION_ERROR);
+        }
+        LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(User::getEmail,email);
+        User user = this.baseMapper.selectOne(queryWrapper);
+       return buildLoginSuccess(user);
+    }
+
+
+    private GeneralResponseResult buildLoginSuccess(User user) {
+        LoginUser loginUser = new LoginUser(user);
+        String token = JwtUtil.createJWT(user.getEmail());
+
+        redisCache.setCacheObject(
+                "login:" + user.getEmail(),
+                loginUser,
+                loginExpireTime,
+                TimeUnit.MINUTES);
+
+        if(user.getStatus() == UserStatus.WAITING_APPROVAL.getStatus()){
+            throw new BusinessException(ErrorCode.FORBIDDEN.getCode(),"Waiting for administrator review");
+        }
+
+        if(user.getStatus() == UserStatus.BLOCKED.getStatus()){
+            throw new BusinessException(ErrorCode.FORBIDDEN.getCode(),"Your account is blocked.");
+        }
+
+        UserLoginResponse resp = new UserLoginResponse();
+        BeanUtils.copyProperties(user, resp);
+        resp.setToken(token);
+
+        return new GeneralResponseResult(ErrorCode.SUCCESS, Map.of("userInfo", resp));
+    }
+
+
 
 }

@@ -1,17 +1,17 @@
 import { useState, useCallback } from 'react';
 
 /**
- * 管理按钮加载状态的 hook
- * @param {boolean} initialState - 初始加载状态
- * @returns {Array} - [isLoading, setLoading, withLoading]
+ * Custom hook for managing button loading state
+ * @param {boolean} initialState - Initial loading state
+ * @returns {Array} - Loading state and control functions [isLoading, setLoading, withLoading]
  */
 const useButtonLoading = (initialState = false) => {
   const [isLoading, setLoading] = useState(initialState);
   
   /**
-   * 包装异步操作，自动管理加载状态
-   * @param {Function} asyncFn - 异步函数
-   * @returns {Function} - 包装后的函数
+   * Higher-order function to handle loading state during async operations
+   * @param {Function} asyncFn - Async function to wrap with loading state
+   * @returns {Function} - Wrapped function that manages loading state
    */
   const withLoading = useCallback((asyncFn) => async (...args) => {
     if (isLoading) {

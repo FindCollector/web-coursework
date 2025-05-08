@@ -31,12 +31,6 @@ const AdminDashboard = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   
-  // Log user information on component load
-  useEffect(() => {
-    console.log('Current user state:', auth);
-    console.log('Displaying user name:', userName);
-  }, []);
-
   // Replace with RTK Query mutation hook
   const [logout, { isLoading: isLoggingOut }] = useLogoutMutation();
 
@@ -59,7 +53,6 @@ const AdminDashboard = () => {
       }
     } catch (error) {
       // Handle API call error
-      console.error('Logout failed:', error);
       let errorMessage = 'Logout failed, please try again';
       if (error.data) {
         errorMessage = error.data.msg || errorMessage;
@@ -113,34 +106,9 @@ const AdminDashboard = () => {
           onClick={({ key }) => setActiveMenu(key)}
           items={[
             {
-              key: 'dashboard',
-              icon: <DashboardOutlined />,
-              label: 'Dashboard',
-            },
-            {
               key: 'users',
               icon: <UserOutlined />,
               label: 'User Management',
-            },
-            {
-              key: 'members',
-              icon: <TeamOutlined />,
-              label: 'Member Management',
-            },
-            {
-              key: 'courses',
-              icon: <BookOutlined />,
-              label: 'Course Management',
-            },
-            {
-              key: 'schedule',
-              icon: <CalendarOutlined />,
-              label: 'Schedule Management',
-            },
-            {
-              key: 'settings',
-              icon: <SettingOutlined />,
-              label: 'System Settings',
             },
           ]}
         />
@@ -157,11 +125,6 @@ const AdminDashboard = () => {
         }}>
           <div style={{ fontSize: '18px', fontWeight: 'bold' }}>
             {activeMenu === 'users' && 'User Management'}
-            {activeMenu === 'dashboard' && 'Dashboard'}
-            {activeMenu === 'members' && 'Member Management'}
-            {activeMenu === 'courses' && 'Course Management'}
-            {activeMenu === 'schedule' && 'Schedule Management'}
-            {activeMenu === 'settings' && 'System Settings'}
           </div>
           <div style={{ display: 'flex', alignItems: 'center' }}>
             <Avatar style={{ marginRight: 8, backgroundColor: token.colorPrimary }}>

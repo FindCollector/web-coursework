@@ -8,35 +8,38 @@ package com.fitness_centre.constant;
  */
 public enum ErrorCode {
     /**
-     * 成功：通常表示操作或请求成功
+     * Success: typically indicates a successful operation or request
      */
     SUCCESS(0, "success"),
 
     /**
-     * ============= 1xxx：系统与未知错误 =============
+     * ============= 1xxx: System and unknown errors =============
      */
-    SYSTEM_ERROR(1000, "系统繁忙，请稍后再试"),
-    UNKNOWN_ERROR(1001, "未知错误"),
+    SYSTEM_ERROR(1000, "System busy, please try again later"),
+    UNKNOWN_ERROR(1001, "Unknown error"),
     DB_OPERATION_ERROR(1002, "Database operation error"),
-    NETWORK_ERROR(1003, "网络异常"),
+    NETWORK_ERROR(1003, "Network exception"),
     CACHE_ERROR(1004, "Cache operation failed"),
 
     /**
-     * ============= 2xxx：参数校验与输入错误 =============
+     * ============= 2xxx: Parameter validation and input errors =============
      */
     VALIDATION_ERROR(2000, "Request parameter validation failure"),
     MISSING_PARAMETER(2001, "Missing required parameters"),
     INVALID_PARAMETER(2002, "Invalid parameter"),
 
     /**
-     * ============= 3xxx：认证与权限相关错误 =============
+     * ============= 3xxx: Authentication and permission related errors =============
      */
     UNAUTHORIZED(3000, "Not logged in or login expired"),
     FORBIDDEN(3001, "Unauthorized access"),
     TOKEN_INVALID(3002, "Invalid TOKEN or TOKEN has expired"),
     CAPTCHA_ERROR(3003, "Suspected robot"),
 
+    EMAIL_NOT_BOUND(3004,"Need to bound email with basic information"),
 
+    GOOGLE_AUTH_ERROR(3005,"Google auth error"),
+    GOOGLE_EMAIL_ALREADY_EXISTS(3006,"Google email already exist"),
 
     /**
      * User-related errors (41xx)

@@ -3,6 +3,7 @@ import { Card, Modal, Spin, Tag, Alert, Empty, Avatar, Row, Col, Space, Button, 
 import { useGetSubscriptionCoachListQuery, useUnsubscribeCoachMutation, useGetCoachAppropriateTimeListQuery, useBookSessionMutation } from '../../store/api/memberApi';
 import { UserOutlined, EnvironmentOutlined, MailOutlined, TagOutlined, CalendarOutlined, DisconnectOutlined, ClockCircleOutlined, MessageOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
+import NoticeModal from '../../components/common/NoticeModal';
 
 const { Title } = Typography; // Import Typography.Title
 const { TextArea } = Input;
@@ -77,67 +78,68 @@ const StyledTag = styled(Tag)`
 const BookingSession = () => {
   // Fetch the list of subscribed coaches
   const { data: coachList = [], isLoading, error, refetch } = useGetSubscriptionCoachListQuery(undefined, {
-    // 禁用缓存，确保每次查询都是新的请求
+    // Disable caching to ensure each query is a new request
     refetchOnMountOrArgChange: true
   });
   
-  // 取消订阅的mutation hook
+  // Unsubscribe mutation hook
   const [unsubscribeCoach, { isLoading: isUnsubscribing }] = useUnsubscribeCoachMutation();
   
-  // 预约课程的mutation hook
+  // Book session mutation hook
   const [bookSession, { isLoading: isBooking }] = useBookSessionMutation();
   
   const [selectedCoach, setSelectedCoach] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isUnsubscribeModalVisible, setIsUnsubscribeModalVisible] = useState(false);
   
-  // 添加显示教练可用时间的状态
+  // Add state for displaying coach available times
   const [isTimeModalVisible, setIsTimeModalVisible] = useState(false);
   const [selectedCoachForBooking, setSelectedCoachForBooking] = useState(null);
   
-  // 添加预约信息状态
+  // Add booking information state
   const [isBookingModalVisible, setIsBookingModalVisible] = useState(false);
   const [bookingMessage, setBookingMessage] = useState('');
   const [selectedTimeSlot, setSelectedTimeSlot] = useState(null);
   const [selectedDay, setSelectedDay] = useState(null);
   
-  // 通过 lazy 方式加载教练的可用时间数据，只有在需要时才加载
+  // State and handlers for the Notice Modal
+  const [isNoticeModalVisible, setIsNoticeModalVisible] = useState(false);
+  const showNoticeModal = () => setIsNoticeModalVisible(true);
+  const handleCloseNoticeModal = () => setIsNoticeModalVisible(false);
+  
+  // Load coach's available time data in a lazy way, only when needed
   const { data: timeSlots, isLoading: isLoadingTimeSlots, error: timeSlotsError, refetch: refetchTimeSlots } = useGetCoachAppropriateTimeListQuery(
     selectedCoachForBooking?.coachId,
     { 
       skip: !selectedCoachForBooking,
-      // 禁用缓存，确保每次查询都是新的请求
+      // Disable caching to ensure each query is a new request
       refetchOnMountOrArgChange: true
     }
   );
 
-  // 组件挂载时刷新数据
+  // Refresh data when component mounts
   useEffect(() => {
     refetch();
   }, [refetch]);
 
-  console.log('[BookingSession] State:', { isLoading, error, coachList });
-
   const handleCardClick = (coach) => {
-    console.log('[BookingSession] Card clicked:', coach);
     setSelectedCoach(coach);
     setIsModalVisible(true);
   };
 
-  // 修改处理预约课程的函数
+  // Function for handling booking session
   const handleBookSession = (coach) => {
-    console.log(`Showing available time slots for coach: ${coach.coachId}`);
     setSelectedCoachForBooking(coach);
     setIsTimeModalVisible(true);
-    setIsModalVisible(false); // 关闭详情弹窗
+    setIsModalVisible(false); // Close details modal
     
-    // 强制重新获取教练的可用时间
+    // Force refetch coach's available time
     setTimeout(() => {
       refetchTimeSlots();
     }, 0);
   };
 
-  // 修改处理点击预约按钮的函数
+  // Function for handling click on book button
   const handleBookClick = (day, slot) => {
     setSelectedDay(day);
     setSelectedTimeSlot(slot);
@@ -145,7 +147,7 @@ const BookingSession = () => {
     setIsBookingModalVisible(true);
   };
   
-  // 提交预约请求
+  // Submit booking request
   const handleSubmitBooking = async () => {
     if (!selectedCoachForBooking || !selectedTimeSlot || !selectedDay) {
       message.error('Missing required booking information');
@@ -158,41 +160,38 @@ const BookingSession = () => {
     }
     
     try {
-      // 准备请求数据
+      // Prepare request data
       const bookingData = {
         coachId: selectedCoachForBooking.coachId,
-        dayOfWeek: parseInt(selectedDay, 10),  // 转换为整数
+        dayOfWeek: parseInt(selectedDay, 10),  // Convert to integer
         startTime: selectedTimeSlot.start,
         endTime: selectedTimeSlot.end,
         message: bookingMessage.trim()
       };
       
-      console.log('Submitting booking request:', bookingData);
-      
-      // 发送预约请求
+      // Send booking request
       const response = await bookSession(bookingData).unwrap();
       
       if (response.code === 0) {
-        // 预约成功
+        // Booking successful
         message.success('Session booked successfully!');
         setIsBookingModalVisible(false);
         setIsTimeModalVisible(false);
         
-        // 重新获取教练列表和时间槽
+        // Refresh coach list and time slots
         refetch();
         refetchTimeSlots();
       } else {
-        // API返回错误
+        // API returned error
         message.error(response.msg || 'Failed to book session. Please try again.');
       }
     } catch (error) {
-      // 请求过程中出错
-      console.error('Error booking session:', error);
+      // Error during request
       message.error(error.data?.msg || 'Failed to book session. Please try again.');
     }
   };
 
-  // 格式化星期几
+  // Format day of week
   const getDayName = (day) => {
     const days = {
       '1': 'Monday',
@@ -206,40 +205,38 @@ const BookingSession = () => {
     return days[day] || `Day ${day}`;
   };
 
-  // 显示取消订阅确认弹窗
+  // Show unsubscribe confirmation modal
   const showUnsubscribeConfirm = () => {
     setIsUnsubscribeModalVisible(true);
   };
 
-  // 处理取消订阅
+  // Handle unsubscribe
   const handleUnsubscribe = async () => {
     if (!selectedCoach) return;
     
     try {
-      // 调用API取消订阅
+      // Call API to unsubscribe
       const response = await unsubscribeCoach(selectedCoach.coachId).unwrap();
       
       if (response.code === 0) {
-        // 成功取消订阅
+        // Successfully unsubscribed
         message.success('Successfully unsubscribed from coach.');
         setIsUnsubscribeModalVisible(false);
         setIsModalVisible(false);
         
-        // 刷新教练列表
+        // Refresh coach list
         refetch();
       } else {
-        // API返回错误
+        // API returned error
         message.error(response.msg || 'Failed to unsubscribe. Please try again.');
       }
     } catch (error) {
-      // 请求过程中出错
-      console.error('Error unsubscribing from coach:', error);
+      // Error during request
       message.error(error.data?.msg || 'Failed to unsubscribe. Please try again.');
     }
   };
 
   if (isLoading) {
-    console.log('[BookingSession] Rendering: Loading state'); // Log loading state
     return (
       <div className="flex justify-center items-center h-64">
         <Spin size="large" tip="Loading available coaches..." />
@@ -248,7 +245,6 @@ const BookingSession = () => {
   }
 
   if (error) {
-    console.error('[BookingSession] Rendering: Error state', error); // Log error state
     return (
       <Alert
         message="Error"
@@ -261,7 +257,6 @@ const BookingSession = () => {
   }
 
   if (!coachList || coachList.length === 0) { // Make the empty check more robust
-    console.log('[BookingSession] Rendering: Empty state'); // Log empty state
     return (
       <Empty
         description="You are not subscribed to any coaches yet, or no coaches are available for booking."
@@ -270,10 +265,9 @@ const BookingSession = () => {
     );
   }
 
-  console.log('[BookingSession] Rendering: Coach list'); // Log rendering list
   return (
     <PageWrapper>
-      {/* 添加大标题 */}
+      {/* Add main title */}
       <div className="mb-8 text-center">
         <Title level={2} className="font-bold" style={{ 
           background: 'linear-gradient(135deg, #1890ff 0%, #36cfc9 100%)',
@@ -283,6 +277,19 @@ const BookingSession = () => {
           My Subscribed Coaches
         </Title>
       </div>
+
+      {/* Add the Alert for important notice */}
+      <Alert
+        message={(
+          <Button type="link" onClick={showNoticeModal} style={{ padding: 0, height: 'auto', lineHeight: 'inherit' }}>
+            Important Notice for Booking - Click to view details
+          </Button>
+        )}
+        description="Please review the terms regarding session booking before selecting a time slot."
+        type="info"
+        showIcon
+        className="mb-6" // Add margin below the alert
+      />
 
       <Row gutter={[24, 24]}>
         {coachList.map((coach) => (
@@ -394,7 +401,7 @@ const BookingSession = () => {
         )}
       </Modal>
 
-      {/* 添加取消订阅确认弹窗 */}
+      {/* Unsubscribe confirmation modal */}
       <Modal
         title="Confirm Unsubscription"
         open={isUnsubscribeModalVisible}
@@ -420,7 +427,7 @@ const BookingSession = () => {
         )}
       </Modal>
 
-      {/* 添加教练可用时间弹窗 */}
+      {/* Coach available time modal */}
       <Modal
         title={
           <div>
@@ -471,7 +478,7 @@ const BookingSession = () => {
                       <List.Item>
                         <List.Item.Meta
                           avatar={<ClockCircleOutlined style={{ fontSize: '18px', color: '#1890ff' }} />}
-                          title={`${slot.start} - ${slot.end}`}
+                          title={`${slot.date} ${slot.start} - ${slot.end}`}
                           description="Available"
                         />
                         <Button 
@@ -493,7 +500,7 @@ const BookingSession = () => {
         )}
       </Modal>
 
-      {/* 添加预约确认弹窗 */}
+      {/* Booking confirmation modal */}
       <Modal
         title="Book Session"
         open={isBookingModalVisible}
@@ -518,7 +525,7 @@ const BookingSession = () => {
             <div className="mb-4">
               <p><strong>Coach:</strong> {selectedCoachForBooking.coachName}</p>
               <p><strong>Day:</strong> {getDayName(selectedDay)}</p>
-              <p><strong>Time:</strong> {selectedTimeSlot.start} - {selectedTimeSlot.end}</p>
+              <p><strong>Time:</strong> {`${selectedTimeSlot.date} ${selectedTimeSlot.start} - ${selectedTimeSlot.end}`}</p>
             </div>
             <Form.Item 
               label={
@@ -547,6 +554,35 @@ const BookingSession = () => {
           </Form>
         )}
       </Modal>
+
+      {/* Render the reusable NoticeModal */}
+      <NoticeModal
+        isVisible={isNoticeModalVisible}
+        onClose={handleCloseNoticeModal}
+        title="Booking Important Notice"
+      >
+        {/* Updated content for BookingSession notice */}
+        <p>Please read the following notes carefully before booking a session:</p>
+        <ul>
+          <li>
+            <strong>Plan Ahead:</strong> To allow coaches adequate time for preparation and venue coordination, sessions can only be booked for the <strong>following week</strong>.
+          </li>
+          <li>
+            <strong>No Sunday Bookings:</strong> Please note that sessions cannot be booked for Sundays.
+          </li>
+          <li>
+            <strong>Await Confirmation:</strong> After submitting your booking request, please wait for the coach to review and accept it. Your session is not confirmed until accepted.
+          </li>
+          <li>
+            <strong>Avoid Time Conflicts:</strong> Bookings that overlap with your existing accepted sessions or other pending requests are not permitted.
+          </li>
+          <li>
+            <strong>Resolving Conflicts:</strong> If you encounter a time conflict with a new booking, you must first cancel the existing accepted session or withdraw the conflicting pending request before proceeding.
+          </li>
+        </ul>
+        <p>Thank you for your cooperation.</p>
+      </NoticeModal>
+
     </PageWrapper>
   );
 };

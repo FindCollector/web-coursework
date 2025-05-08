@@ -38,23 +38,34 @@ import SessionRequests from './SessionRequests';
 import CoachSidebar from '../../components/layout/CoachSidebar';
 import Availability from './Availability';
 import CoachSchedule from './CoachSchedule';
+import UnrecordedSessions from './UnrecordedSessions';
+import { setActiveMenu } from '../../store/navSlice';
 
 const { Title, Text } = Typography;
 const { Header, Content } = Layout;
 
-const CoachDashboard = () => {
+const CoachDashboard = ({ initialActiveMenu }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { userName } = useSelector((state) => state.auth);
   const { token } = theme.useToken();
   
-  // 使用Redux状态
-  const activeMenu = useSelector((state) => state.navigation.activeMenu);
+  // 使用Redux状态，但优先使用传入的initialActiveMenu
+  const activeMenu = useSelector((state) => 
+    initialActiveMenu || state.navigation.activeMenu
+  );
   
   // 本地状态管理
   const [showProfileAlert, setShowProfileAlert] = useState(false);
   const [missingFields, setMissingFields] = useState([]);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  
+  // 同步initialActiveMenu到Redux
+  useEffect(() => {
+    if (initialActiveMenu && initialActiveMenu !== activeMenu) {
+      dispatch(setActiveMenu(initialActiveMenu));
+    }
+  }, [initialActiveMenu, dispatch, activeMenu]);
   
   // 获取教练信息完整性数据
   const { 
@@ -84,10 +95,29 @@ const CoachDashboard = () => {
   
   // 增加监听activeMenu变化，当选择profile时导航到details页面
   useEffect(() => {
+    // 当处于非路由直接匹配的activeMenu时进行导航
+    // 例如：当从侧边栏点击profile时，需要导航到details页面
+    if (initialActiveMenu) {
+      // 如果是通过路由initialActiveMenu进入的，不需要再次导航
+      return;
+    }
+    
     if (activeMenu === 'profile') {
       navigate('/coach/details');
+    } else if (activeMenu === 'schedule') {
+      navigate('/coach/schedule');
+    } else if (activeMenu === 'availability') {
+      navigate('/coach/availability');
+    } else if (activeMenu === 'unrecorded-sessions') {
+      navigate('/coach/unrecorded-sessions');
+    } else if (activeMenu === 'subscription-requests') {
+      navigate('/coach/subscription-requests');
+    } else if (activeMenu === 'session-requests') {
+      navigate('/coach/session-requests');
+    } else if (activeMenu === 'requests') {
+      navigate('/coach/requests');
     }
-  }, [activeMenu, navigate]);
+  }, [activeMenu, navigate, initialActiveMenu]);
   
   // 跳转到个人资料编辑页面
   const goToProfileEdit = () => {
@@ -132,10 +162,15 @@ const CoachDashboard = () => {
         return <SubscriptionRequests />;
       case 'session-requests':
         return <SessionRequests />;
+      case 'requests':
+        // 默认显示Subscription请求
+        return <SubscriptionRequests />;
       case 'availability':
         return <Availability />;
       case 'schedule':
         return <CoachSchedule />;
+      case 'unrecorded-sessions':
+        return <UnrecordedSessions />;
       default:
         return (
           <div className="flex flex-col items-center justify-center h-64">
@@ -262,7 +297,7 @@ const CoachDashboard = () => {
   }
   
   return (
-    <PageTransition isVisible={true}>
+    <PageTransition isVisible={true} noAnimation={true}>
       <Layout style={{ minHeight: '100vh' }}>
         <CoachSidebar 
           colorToken={token}
@@ -283,9 +318,11 @@ const CoachDashboard = () => {
               {activeMenu === 'profile' && 'Profile Management'}
               {activeMenu === 'schedule' && 'Schedule Management'}
               {activeMenu === 'members' && 'Member Management'}
+              {activeMenu === 'requests' && 'Requests Management'}
               {activeMenu === 'subscription-requests' && 'Subscription Requests'}
               {activeMenu === 'session-requests' && 'Session Requests'}
               {activeMenu === 'availability' && 'Availability Management'}
+              {activeMenu === 'unrecorded-sessions' && 'Unrecorded Sessions'}
               {activeMenu === 'settings' && 'Settings'}
             </div>
             <div style={{ display: 'flex', alignItems: 'center' }}>

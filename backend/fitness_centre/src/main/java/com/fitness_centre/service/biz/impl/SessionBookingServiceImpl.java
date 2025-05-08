@@ -2,15 +2,13 @@ package com.fitness_centre.service.biz.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fitness_centre.constant.ErrorCode;
 import com.fitness_centre.constant.RequestStatus;
 import com.fitness_centre.constant.UserRole;
-import com.fitness_centre.domain.Availability;
-import com.fitness_centre.domain.SessionBooking;
-import com.fitness_centre.domain.Subscription;
-import com.fitness_centre.domain.User;
+import com.fitness_centre.domain.*;
 import com.fitness_centre.dto.GeneralResponseResult;
 import com.fitness_centre.dto.member.BookingRequest;
 import com.fitness_centre.dto.session.ScheduleListResponse;
@@ -18,10 +16,7 @@ import com.fitness_centre.dto.session.SessionListResponse;
 import com.fitness_centre.dto.member.TimeSlotRequest;
 import com.fitness_centre.exception.BusinessException;
 import com.fitness_centre.exception.SystemException;
-import com.fitness_centre.mapper.AvailabilityMapper;
-import com.fitness_centre.mapper.SessionBookingMapper;
-import com.fitness_centre.mapper.SubscriptionMapper;
-import com.fitness_centre.mapper.UserMapper;
+import com.fitness_centre.mapper.*;
 import com.fitness_centre.service.biz.interfaces.SessionBookingService;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -51,6 +46,12 @@ public class SessionBookingServiceImpl extends ServiceImpl<SessionBookingMapper,
 
     @Autowired
     private UserMapper userMapper;
+
+    @Autowired
+    private TrainingHistoryMapper historyMapper;
+
+    @Autowired
+    private SessionBookingMapper sessionBookingMapper; // 显式注入，供单元测试 Mock
 
     //检查可用时间的步长
     private static final int BOOKING_STEP_MINUTES = 15;
@@ -84,7 +85,8 @@ public class SessionBookingServiceImpl extends ServiceImpl<SessionBookingMapper,
                                     LocalTime startTime = startDateTime.toLocalTime();
                                     // 根据课程时长计算结束时间
                                     LocalTime endTime = startTime.plus(courseDuration);
-                                    return new TimeSlotRequest(startTime, endTime); // 创建 DTO
+                                    LocalDate date = startDateTime.toLocalDate();
+                                    return new TimeSlotRequest(startTime, endTime,date); // 创建 DTO
                                 },
                                 // 先收集成 List<TimeSlotDTO>
                                 Collectors.toList()
@@ -140,7 +142,6 @@ public class SessionBookingServiceImpl extends ServiceImpl<SessionBookingMapper,
                 .lt(SessionBooking::getStartTime,rangeEnd)
                 .gt(SessionBooking::getEndTime,rangeStart);
         List<SessionBooking> acceptedBookings = this.baseMapper.selectList(sessionBookingLambdaQueryWrapper);
-        System.out.println(acceptedBookings);
 
         // 将获取到的预订记录 (SessionBooking) 转换为 TimeInterval 对象列表。
         // TimeInterval 使用 Instant 表示时间点，更适合进行精确的区间计算。
@@ -190,7 +191,6 @@ public class SessionBookingServiceImpl extends ServiceImpl<SessionBookingMapper,
             });
 
         } // --- 结束逐日循环 ---
-        System.out.println(allBookableStartTimes);
 
         // 对所有收集到的可预约开始时间点进行时间先后排序。
         Collections.sort(allBookableStartTimes);
@@ -378,6 +378,7 @@ public class SessionBookingServiceImpl extends ServiceImpl<SessionBookingMapper,
         sessionBooking.setMessage(request.getMessage());
         sessionBooking.setCoachIsRead(false);
         sessionBooking.setMemberIsRead(true);
+        sessionBooking.setIsRecord(false);
 
         int row = this.baseMapper.insert(sessionBooking);
         if(row <= 0){
@@ -385,7 +386,6 @@ public class SessionBookingServiceImpl extends ServiceImpl<SessionBookingMapper,
         }
 
         return new GeneralResponseResult(ErrorCode.SUCCESS);
-
     }
 
     @Override
@@ -404,7 +404,17 @@ public class SessionBookingServiceImpl extends ServiceImpl<SessionBookingMapper,
         return new GeneralResponseResult(ErrorCode.SUCCESS);
     }
 
+
     public GeneralResponseResult cancelBooking(Long memberId,Long bookingId){
+        //只能提前24小时取消，否则这节课算是上了（也就是要付费了）
+        LambdaQueryWrapper<SessionBooking> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(SessionBooking::getMemberId,memberId)
+                .eq(SessionBooking::getId,bookingId);
+        SessionBooking sessionBooking = this.baseMapper.selectOne(queryWrapper);
+        LocalDate yesterday = LocalDate.now().minusDays(1);
+        if(sessionBooking.getStartTime().toLocalDate().isAfter(yesterday)){
+            throw new BusinessException(ErrorCode.INVALID_PARAMETER.getCode(),"Free cancellation only 24 hours in advance");
+        }
         LambdaUpdateWrapper<SessionBooking> updateWrapper = new LambdaUpdateWrapper<>();
         updateWrapper.eq(SessionBooking::getId,bookingId)
                 .eq(SessionBooking::getMemberId,memberId)
@@ -420,15 +430,46 @@ public class SessionBookingServiceImpl extends ServiceImpl<SessionBookingMapper,
     }
 
     public GeneralResponseResult getBookingSchedule(Long userId,UserRole role){
-        //计算下一周的时间范围
         LocalDate today = LocalDate.now();
+
+        // --- 计算本周时间范围 ---
+        // 找到本周的周一 (如果是周一，则返回当天)
+        LocalDate currentMonday = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        // 找到下周的周一
         LocalDate nextMonday = today.with(TemporalAdjusters.next(DayOfWeek.MONDAY));
+        // 本周的开始时间 (本周一 00:00:00)
+        LocalDateTime currentWeekStart = currentMonday.atStartOfDay();
+        // 本周的结束时间 (下周一 00:00:00, 查询时用 <)
+        LocalDateTime currentWeekEnd = nextMonday.atStartOfDay(); // 查询区间 [currentWeekStart, currentWeekEnd)
+
+
+        // --- 计算下周时间范围 ---
+        // 下周的开始时间 (下周一 00:00:00)
+        LocalDateTime nextWeekStart = nextMonday.atStartOfDay();
+        // 找到下下周的周一
         LocalDate followingMonday = nextMonday.plusWeeks(1);
-        LocalDateTime rangeStart = nextMonday.atStartOfDay();
-        LocalDateTime rangeEnd = followingMonday.atStartOfDay(); // 查询区间 [rangeStart, rangeEnd)
+        // 下周的结束时间 (下下周一 00:00:00, 查询时用 <)
+        LocalDateTime nextWeekEnd = followingMonday.atStartOfDay(); // 查询区间 [nextWeekStart, nextWeekEnd)
+
+        // --- 查询并处理本周数据 ---
+        List<SessionBooking> currentWeekBookings = fetchBookingsForRange(userId, role, currentWeekStart, currentWeekEnd);
+        Map<String, Object> currentWeekData = processBookings(currentWeekBookings);
 
 
-        LambdaQueryWrapper<SessionBooking>  queryWrapper = new LambdaQueryWrapper<>();
+        // --- 查询并处理下周数据 ---
+        List<SessionBooking> nextWeekBookings = fetchBookingsForRange(userId, role, nextWeekStart, nextWeekEnd);
+        Map<String, Object> nextWeekData = processBookings(nextWeekBookings);
+
+        // --- 构建最终响应 ---
+        Map<String, Object> dataMap = new HashMap<>();
+        dataMap.put("currentWeek", currentWeekData);
+        dataMap.put("nextWeek", nextWeekData);
+
+        return new GeneralResponseResult(ErrorCode.SUCCESS, dataMap);
+    }
+
+    private List<SessionBooking> fetchBookingsForRange(Long userId,UserRole role,LocalDateTime rangeStart,LocalDateTime rangeEnd){
+        LambdaQueryWrapper<SessionBooking> queryWrapper = new LambdaQueryWrapper<>();
         switch (role){
             case MEMBER -> queryWrapper.eq(SessionBooking::getMemberId,userId);
             case COACH -> queryWrapper.eq(SessionBooking::getCoachId,userId);
@@ -436,55 +477,67 @@ public class SessionBookingServiceImpl extends ServiceImpl<SessionBookingMapper,
         queryWrapper.eq(SessionBooking::getStatus,RequestStatus.ACCEPT)
                 .ge(SessionBooking::getStartTime,rangeStart)
                 .lt(SessionBooking::getStartTime,rangeEnd)
-                .orderByAsc(SessionBooking::getStartTime);
-
-
-        List<SessionBooking> bookings = this.baseMapper.selectList(queryWrapper);
-
-
+                .orderByDesc(SessionBooking::getStartTime);
+        return this.baseMapper.selectList(queryWrapper);
+    }
+    /**
+     * 处理查询到的预订列表，生成 listView 和 calendarView
+     */
+    private Map<String, Object> processBookings(List<SessionBooking> bookings) {
+        // 注意：这里的用户名查询存在N+1问题，如果性能敏感，建议优化
+        // 优化方法：先收集所有需要的 coachId 和 memberId，然后一次性查询User表，再进行映射
         List<ScheduleListResponse> listView = bookings.stream()
-                .map(booking ->{
+                .map(booking -> {
+                    // --- 获取教练名称 ---
+                    // 考虑缓存或批量查询优化
+                    LambdaQueryWrapper<User> coachNameQueryWrapper = new LambdaQueryWrapper<>();
+                    coachNameQueryWrapper.eq(User::getId, booking.getCoachId()).select(User::getUserName); // 仅查询需要的字段
+                    User coach = userMapper.selectOne(coachNameQueryWrapper);
+                    String coachName = (coach != null) ? coach.getUserName() : "N/A"; // 添加null检查
+
+                    // --- 获取会员名称 ---
+                    // 考虑缓存或批量查询优化
+                    LambdaQueryWrapper<User> memberNameQueryWrapper = new LambdaQueryWrapper<>();
+                    memberNameQueryWrapper.eq(User::getId, booking.getMemberId()).select(User::getUserName); // 仅查询需要的字段
+                    User member = userMapper.selectOne(memberNameQueryWrapper);
+                    String memberName = (member != null) ? member.getUserName() : "N/A"; // 添加null检查
+
+                    // --- 时间处理 ---
                     LocalTime startTime = booking.getStartTime().toLocalTime();
                     LocalTime endTime = booking.getEndTime().toLocalTime();
-
-                    LambdaQueryWrapper<User> coachNameQueryWrapper = new LambdaQueryWrapper<>();
-                    coachNameQueryWrapper.eq(User::getId,booking.getCoachId());
-                    String coachName = userMapper.selectOne(coachNameQueryWrapper).getUserName();
-
-                    LambdaQueryWrapper<User> memberNameQueryWrapper = new LambdaQueryWrapper<>();
-                    memberNameQueryWrapper.eq(User::getId,booking.getMemberId());
-                    String memberName = userMapper.selectOne(memberNameQueryWrapper).getUserName();
+                    int dayOfWeek = booking.getStartTime().getDayOfWeek().getValue(); // 1 (Monday) to 7 (Sunday)
 
                     return new ScheduleListResponse(
                             booking.getId(),
                             booking.getCoachId(),
                             booking.getMemberId(),
-                            booking.getStartTime().getDayOfWeek().getValue(),
+                            dayOfWeek,
                             startTime,
                             endTime,
                             coachName,
                             memberName,
                             booking.getMessage()
-                            );
+                    );
                 })
-                .filter(Objects::nonNull)
+                // .filter(Objects::nonNull) // map 中已处理null用户，除非ScheduleListResponse构造函数会返回null
                 .collect(Collectors.toList());
 
-        Map<Integer,List<ScheduleListResponse>> calendarView = listView.stream()
+        // 按星期几分组，并使用 TreeMap 保证按键（星期几）排序
+        Map<Integer, List<ScheduleListResponse>> calendarView = listView.stream()
                 .collect(Collectors.groupingBy(
-                        ScheduleListResponse::getDayOfWeek,
-                        TreeMap::new,
-                        Collectors.toList()
+                        ScheduleListResponse::getDayOfWeek, // 分组依据
+                        TreeMap::new,                     // 使用 TreeMap 保证按星期排序
+                        Collectors.toList()               // 收集为 List
                 ));
-
-        Map<String,Object> dataMap = new HashMap<>();
-        dataMap.put("listView",listView);
-        dataMap.put("calenderView",calendarView);
-
-        return new GeneralResponseResult(ErrorCode.SUCCESS,dataMap);
+        // 将 listView 和 calendarView 放入结果 Map
+        Map<String, Object> resultData = new HashMap<>();
+        resultData.put("listView", listView);
+        resultData.put("calendarView", calendarView); // 注意这里的 key 是 calenderView 还是 calendarView
+        return resultData;
     }
 
     public GeneralResponseResult getBookingRequest(Long userId, int pageNow, int pageSize, List<RequestStatus> statusList,UserRole role){
+        //todo coach要将返回的时间分组,每周清空请求
         LambdaQueryWrapper<SessionBooking> queryWrapper = new LambdaQueryWrapper<>();
         switch (role){
             case MEMBER -> {
@@ -497,6 +550,7 @@ public class SessionBookingServiceImpl extends ServiceImpl<SessionBookingMapper,
             }
             default -> throw new BusinessException(ErrorCode.INVALID_PARAMETER.getCode(),"Illegal roles");
         }
+        queryWrapper.ne(SessionBooking::getStatus,RequestStatus.DELETE);
 
         if(!Objects.isNull(statusList) && !statusList.isEmpty()){
             queryWrapper.in(SessionBooking::getStatus,statusList);
@@ -510,6 +564,26 @@ public class SessionBookingServiceImpl extends ServiceImpl<SessionBookingMapper,
         // 分页查询
         bookingPage = this.baseMapper.selectPage(bookingPage, queryWrapper);
 
+        List<SessionListResponse> responseList = sessionToSessionResponse(bookingPage);
+
+//        Map<LocalDateTime, List<SessionListResponse>> dataMap = responseList.stream()
+//                .collect(Collectors.groupingBy(
+//                        SessionListResponse::getStartTime,
+//                        LinkedHashMap::new,
+//                        Collectors.toList()
+//                ));
+
+        Page<SessionListResponse> responsePage = new Page<>();
+        responsePage.setCurrent(bookingPage.getCurrent());
+        responsePage.setSize(bookingPage.getSize());
+        responsePage.setTotal(bookingPage.getTotal());
+        responsePage.setRecords(responseList);
+
+
+        return new GeneralResponseResult(ErrorCode.SUCCESS,responsePage);
+    }
+
+    public List<SessionListResponse> sessionToSessionResponse(Page<SessionBooking> bookingPage){
         List<SessionListResponse> responseList = bookingPage.getRecords().stream()
                 .map(sessionBooking -> {
                     SessionListResponse response = new SessionListResponse();
@@ -526,14 +600,7 @@ public class SessionBookingServiceImpl extends ServiceImpl<SessionBookingMapper,
                     return response;
                 }).collect(Collectors.toList());
 
-        Page<SessionListResponse> responsePage = new Page<>();
-        responsePage.setCurrent(bookingPage.getCurrent());
-        responsePage.setSize(bookingPage.getSize());
-        responsePage.setTotal(bookingPage.getTotal());
-        responsePage.setRecords(responseList);
-
-
-        return new GeneralResponseResult(ErrorCode.SUCCESS,responsePage);
+        return responseList;
     }
 
     public GeneralResponseResult countUnreadRequest(Long userId, UserRole role){
@@ -584,8 +651,8 @@ public class SessionBookingServiceImpl extends ServiceImpl<SessionBookingMapper,
         if(Objects.isNull(reply)){
             throw new BusinessException(ErrorCode.INVALID_PARAMETER.getCode(),"Please bring your reply");
         }
-        LambdaUpdateWrapper<SessionBooking> updateWrapper = new LambdaUpdateWrapper<>();
-        updateWrapper.eq(SessionBooking::getCoachId,coachId)
+        LambdaUpdateWrapper<SessionBooking> updateAcceptWrapper = new LambdaUpdateWrapper<>();
+        updateAcceptWrapper.eq(SessionBooking::getCoachId,coachId)
                 .eq(SessionBooking::getId,requestId)
                 .set(SessionBooking::getStatus,status)
                 .set(SessionBooking::getReply,reply)
@@ -593,12 +660,65 @@ public class SessionBookingServiceImpl extends ServiceImpl<SessionBookingMapper,
                 .set(SessionBooking::getCoachIsRead,true)
                 .set(SessionBooking::getMemberIsRead,false);
 
-        int rows = this.baseMapper.update(updateWrapper);
+        int rows = this.baseMapper.update(updateAcceptWrapper);
         if(rows <= 0){
             throw new SystemException(ErrorCode.DB_OPERATION_ERROR.getCode(),"Database connection error");
         }
+        LambdaQueryWrapper<SessionBooking> sessionBookingLambdaQueryWrapper = new LambdaQueryWrapper<>();
+        sessionBookingLambdaQueryWrapper.eq(SessionBooking::getId,requestId);
+        SessionBooking sessionBooking = this.baseMapper.selectOne(sessionBookingLambdaQueryWrapper);
+        String autoReply = "Sorry, this slot is already taken.";
+
+        LambdaUpdateWrapper<SessionBooking> updateRejectWrapper = new LambdaUpdateWrapper<>();
+        updateRejectWrapper.eq(SessionBooking::getCoachId,coachId)
+                .ne(SessionBooking::getId,requestId)
+                .eq(SessionBooking::getStartTime,sessionBooking.getStartTime())
+                .eq(SessionBooking::getEndTime,sessionBooking.getEndTime())
+                .set(SessionBooking::getReply,autoReply)
+                .set(SessionBooking::getStatus,RequestStatus.REJECT)
+                .set(SessionBooking::getResponseTime,LocalDateTime.now())
+                .set(SessionBooking::getCoachIsRead,true)
+                .set(SessionBooking::getMemberIsRead,false);
+
+        this.baseMapper.update(updateRejectWrapper);
+
         return new GeneralResponseResult(ErrorCode.SUCCESS);
     }
 
+    @Override
+    public GeneralResponseResult coachGetUnRecordSession(Long coachId,int pageNow,int pageSize) {
+        LambdaQueryWrapper<SessionBooking> sessionBookingLambdaQueryWrapper = new LambdaQueryWrapper<>();
+        sessionBookingLambdaQueryWrapper.le(SessionBooking::getEndTime,LocalDateTime.now())
+                .eq(SessionBooking::getIsRecord,false);
+        Page<SessionBooking> bookingPage = new Page<>(pageNow, pageSize);
+        bookingPage= this.baseMapper.selectPage(bookingPage,sessionBookingLambdaQueryWrapper);
+        List<SessionListResponse> responseList = sessionToSessionResponse(bookingPage);
+        Page<SessionListResponse> responsePage = new Page<>();
+        responsePage.setCurrent(bookingPage.getCurrent());
+        responsePage.setSize(bookingPage.getSize());
+        responsePage.setTotal(bookingPage.getTotal());
+        responsePage.setRecords(responseList);
+        return new GeneralResponseResult(ErrorCode.SUCCESS,responsePage);
+
+    }
+
+    @Override
+    public GeneralResponseResult countUnRecordSession(Long coachId) {
+        LambdaQueryWrapper<SessionBooking> sessionQueryWrapper = new LambdaQueryWrapper<>();
+        sessionQueryWrapper.eq(SessionBooking::getCoachId,coachId)
+                .le(SessionBooking::getEndTime,LocalDateTime.now())
+                .eq(SessionBooking::getIsRecord,false);
+        Long count = this.baseMapper.selectCount(sessionQueryWrapper);
+        Map<String,Long> dataMap = new HashMap<>();
+        dataMap.put("count",count);
+        return new GeneralResponseResult(ErrorCode.SUCCESS,dataMap);
+    }
+
+    // setter 注入在单元测试 @InjectMocks 时也会被调用，从而同步 baseMapper
+    @Autowired
+    public void setSessionBookingMapper(SessionBookingMapper sessionBookingMapper) {
+        this.sessionBookingMapper = sessionBookingMapper;
+        super.baseMapper = sessionBookingMapper;
+    }
 
 }

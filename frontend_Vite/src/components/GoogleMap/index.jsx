@@ -2,28 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { Modal, Spin } from 'antd';
 import PropTypes from 'prop-types';
 
-/**
- * Location object type definition
- * @typedef {Object} Location
- * @property {string} locationName - The name of the location
- * @property {number} latitude - The latitude coordinate
- * @property {number} longitude - The longitude coordinate
- */
-
-/**
- * A reusable Google Map component that can be used in modal or standalone mode
- * @param {Object} props
- * @param {Location[]} props.locations - Array of locations to display on the map
- * @param {boolean} [props.isModal=false] - Whether to show the map in a modal
- * @param {boolean} [props.visible=false] - Controls modal visibility when isModal is true
- * @param {function} [props.onClose] - Modal close handler when isModal is true
- * @param {string} [props.title="Location Map"] - Modal title when isModal is true
- * @param {Object} [props.modalProps] - Additional props for the Modal component
- * @param {Object} [props.mapProps] - Additional props for the map
- * @param {string} [props.mapProps.mapId="8f348c95237d5e1a"] - Google Maps style ID
- * @param {number} [props.mapProps.zoom=12] - Initial zoom level
- * @param {Object} [props.style] - Style object for the map container
- */
 const GoogleMap = ({ 
   locations,
   isModal = false,
@@ -91,13 +69,10 @@ const GoogleMap = ({
         const content = document.createElement('div');
         content.innerHTML = `
           <div style="padding: 8px; font-family: Arial, sans-serif;">
-            <h3 style="margin: 0 0 8px 0; color: #1a1a1a; font-size: 16px;">${location.locationName}</h3>
-            <div style="color: #666; font-size: 14px;">
-              <p style="margin: 0;">Location Details:</p>
-              <p style="margin: 4px 0;">Latitude: ${location.latitude.toFixed(4)}°N</p>
-              <p style="margin: 4px 0;">Longitude: ${location.longitude.toFixed(4)}°E</p>
-              <p style="margin: 4px 0 0;">Click marker to view on map</p>
-            </div>
+            <h3 style="margin: 0 0 8px 0;">${location.locationName}</h3>
+            <p style="margin: 0;">Location Details:</p>
+            <p style="margin: 4px 0;">Latitude: ${location.latitude.toFixed(4)}°</p>
+            <p style="margin: 4px 0;">Longitude: ${location.longitude.toFixed(4)}°</p>
           </div>
         `;
         

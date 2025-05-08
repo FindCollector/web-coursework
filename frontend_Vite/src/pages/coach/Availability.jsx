@@ -37,16 +37,16 @@ const Availability = () => {
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
   
-  // 使用RTK Query的hooks
+  // Using RTK Query hooks
   const [addAvailability, { isLoading: isAddingAvailability }] = useAddAvailabilityMutation();
   const { data: availabilityData, isLoading: isLoadingAvailability, refetch } = useGetAvailabilityQuery();
   const [deleteAvailability, { isLoading: isDeletingAvailability }] = useDeleteAvailabilityMutation();
   const [updateAvailability, { isLoading: isUpdatingAvailability }] = useUpdateAvailabilityMutation();
 
-  // 处理Tab切换，修复日历视图问题
+  // Handle tab switching, fix calendar view issues
   useEffect(() => {
     if (activeTab === '2' && calendarRef.current) {
-      // 在下一个渲染周期中让日历重新计算尺寸
+      // Recalculate calendar size in the next render cycle
       setTimeout(() => {
         const calendarApi = calendarRef.current.getApi();
         calendarApi.updateSize();
@@ -54,7 +54,7 @@ const Availability = () => {
     }
   }, [activeTab]);
 
-  // 监听窗口大小变化，确保日历视图正确调整大小
+  // Monitor window size changes to ensure calendar view properly adjusts
   useEffect(() => {
     const handleResize = () => {
       if (calendarRef.current) {
@@ -70,7 +70,7 @@ const Availability = () => {
     };
   }, []);
 
-  // 星期选项
+  // Day options
   const dayOptions = [
     { value: 1, label: 'Monday' },
     { value: 2, label: 'Tuesday' },
@@ -81,7 +81,7 @@ const Availability = () => {
     { value: 7, label: 'Sunday' },
   ];
 
-  // 获取星期几的文本表示
+  // Get the text representation of the day of the week
   const getDayText = (dayOfWeek) => {
     const day = dayOptions.find(day => day.value === dayOfWeek);
     return day ? day.label : '';
@@ -89,7 +89,7 @@ const Availability = () => {
 
   const handleSubmit = async (values) => {
     try {
-      // 格式化时间为 "HH:mm" 格式
+      // Format time to "HH:mm" format
       const startTime = values.timeRange[0].format('HH:mm');
       const endTime = values.timeRange[1].format('HH:mm');
       
@@ -102,13 +102,12 @@ const Availability = () => {
       if (response.code === 0) {
         message.success('Successfully added new availability');
         form.resetFields();
-        // 刷新空闲时间列表
+        // Refresh availability list
         refetch();
       } else {
         message.error(response.msg || 'Failed to add availability');
       }
     } catch (error) {
-      console.error('Error adding availability:', error);
       message.error(error.data?.msg || 'Failed to add availability');
     }
   };
@@ -118,23 +117,22 @@ const Availability = () => {
       const response = await deleteAvailability(id).unwrap();
       if (response.code === 0) {
         message.success('Successfully deleted availability');
-        // 刷新列表和日历
+        // Refresh list and calendar
         refetch();
       } else {
         message.error(response.msg || 'Failed to delete availability');
       }
     } catch (error) {
-      console.error('Error deleting availability:', error);
       message.error(error.data?.msg || 'Failed to delete availability');
     }
   };
 
   // --- Edit Functionality ---
 
-  // 打开编辑模态框
+  // Open edit modal
   const handleEdit = (record) => {
     setEditingRecord(record);
-    // 使用 dayjs 解析时间字符串，以便 TimePicker.RangePicker 能正确显示
+    // Parse time strings with dayjs for TimePicker.RangePicker to display correctly
     editForm.setFieldsValue({
       dayOfWeek: record.dayOfWeek,
       timeRange: [
@@ -145,14 +143,14 @@ const Availability = () => {
     setIsEditModalVisible(true);
   };
 
-  // 关闭编辑模态框
+  // Close edit modal
   const handleCancelEdit = () => {
     setIsEditModalVisible(false);
     setEditingRecord(null);
     editForm.resetFields();
   };
 
-  // 提交编辑表单
+  // Submit edit form
   const handleUpdate = async (values) => {
     if (!editingRecord) return;
 
@@ -175,12 +173,11 @@ const Availability = () => {
         message.error(response.msg || 'Failed to update availability');
       }
     } catch (error) {
-      console.error('Error updating availability:', error);
       message.error(error.data?.msg || 'Failed to update availability');
     }
   };
 
-  // 列表视图列定义
+  // List view column definitions
   const columns = [
     {
       title: 'Day',
@@ -230,7 +227,7 @@ const Availability = () => {
     },
   ];
 
-  // 准备日历视图的事件数据
+  // Prepare calendar view event data
   const prepareCalendarEvents = () => {
     if (!availabilityData || !availabilityData.data || !availabilityData.data.calendarView) {
       return [];
@@ -239,15 +236,15 @@ const Availability = () => {
     const events = [];
     const calendarView = availabilityData.data.calendarView;
 
-    // 遍历每个星期几
+    // Iterate through each day of the week
     Object.keys(calendarView).forEach(dayOfWeek => {
-      // 遍历该星期几的所有时间段
+      // Iterate through all time slots for that day
       calendarView[dayOfWeek].forEach(slot => {
-        // 对于每个时间段，创建一个事件
+        // Create an event for each time slot
         events.push({
           id: slot.id,
           title: `Available`,
-          daysOfWeek: [parseInt(dayOfWeek) % 7], // FullCalendar使用0-6代表周日至周六
+          daysOfWeek: [parseInt(dayOfWeek) % 7], // FullCalendar uses 0-6 for Sunday to Saturday
           startTime: slot.startTime,
           endTime: slot.endTime,
           backgroundColor: '#1677ff',
@@ -263,7 +260,7 @@ const Availability = () => {
     return events;
   };
 
-  // 渲染添加表单
+  // Render add form
   const renderAddForm = () => (
     <Card title="Add New Availability" className="mb-6 max-w-2xl">
       <Form
@@ -293,7 +290,7 @@ const Availability = () => {
             className="w-full"
             minuteStep={15}
             disabledTime={() => ({
-              // 只禁用 0-7 点和 23 点
+              // Only disable hours 0-7 and 23
               disabledHours: () => [...Array.from(Array(8).keys()), 23]
             })}
           />
@@ -314,7 +311,7 @@ const Availability = () => {
     </Card>
   );
 
-  // 渲染列表视图
+  // Render list view
   const renderListView = () => {
     const listData = availabilityData?.data?.listView || [];
 
@@ -334,7 +331,7 @@ const Availability = () => {
     );
   };
 
-  // 渲染编辑模态框
+  // Render edit modal
   const renderEditModal = () => (
     <Modal
       title="Edit Availability"
@@ -385,7 +382,7 @@ const Availability = () => {
     </Modal>
   );
 
-  // 渲染日历视图
+  // Render calendar view
   const renderCalendarView = () => {
     const events = prepareCalendarEvents();
 

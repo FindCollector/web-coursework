@@ -1,21 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 
-/**
- * 加载并获取 reCAPTCHA token
- * @param {string} siteKey - reCAPTCHA site key
- * @returns {Object} - reCAPTCHA 相关的状态和函数
- */
 const useReCaptcha = (siteKey = '6Lcq_e4qAAAAAEJYKkGw-zQ6CN74yjbiWByLBo6Y') => {
   const [isScriptLoaded, setIsScriptLoaded] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // 检测 grecaptcha 对象是否可用
+  // Check if grecaptcha object is available
   useEffect(() => {
     if (!isScriptLoaded) return;
 
-    // 设置一个定时器来检查 grecaptcha 是否完全加载
+    // Set a timer to check if grecaptcha is fully loaded
     const checkGrecaptchaInterval = setInterval(() => {
       if (window.grecaptcha && window.grecaptcha.enterprise) {
         clearInterval(checkGrecaptchaInterval);
@@ -24,11 +19,11 @@ const useReCaptcha = (siteKey = '6Lcq_e4qAAAAAEJYKkGw-zQ6CN74yjbiWByLBo6Y') => {
       }
     }, 100);
 
-    // 设置超时，避免无限检查
+    // Set timeout to avoid infinite checking
     const timeoutId = setTimeout(() => {
       clearInterval(checkGrecaptchaInterval);
       if (!isInitialized) {
-        setError('reCAPTCHA 初始化失败，请刷新页面');
+        setError('reCAPTCHA initialization failed, please refresh the page');
         setIsLoading(false);
       }
     }, 10000);
@@ -39,9 +34,9 @@ const useReCaptcha = (siteKey = '6Lcq_e4qAAAAAEJYKkGw-zQ6CN74yjbiWByLBo6Y') => {
     };
   }, [isScriptLoaded, isInitialized]);
 
-  // 加载 reCAPTCHA 脚本
+  // Load reCAPTCHA script
   useEffect(() => {
-    // 检查是否已经加载了脚本
+    // Check if script is already loaded
     if (document.querySelector('script[src*="recaptcha/enterprise.js"]')) {
       setIsScriptLoaded(true);
       return;
@@ -64,16 +59,11 @@ const useReCaptcha = (siteKey = '6Lcq_e4qAAAAAEJYKkGw-zQ6CN74yjbiWByLBo6Y') => {
     document.body.appendChild(script);
     
     return () => {
-      // 不在卸载时删除脚本，因为其他组件可能正在使用
-      // 在 SPA 中，我们通常希望 reCAPTCHA 脚本只加载一次
+      // Don't remove the script when unmounting, other components may be using it
+      // In SPAs, we typically want the reCAPTCHA script to be loaded only once
     };
   }, [siteKey]);
 
-  /**
-   * 获取 reCAPTCHA token
-   * @param {string} action - reCAPTCHA 操作类型
-   * @returns {Promise<string>} reCAPTCHA token
-   */
   const getToken = useCallback(async (action) => {
     if (!window.grecaptcha?.enterprise) {
       throw new Error('reCAPTCHA is not ready');
@@ -90,12 +80,7 @@ const useReCaptcha = (siteKey = '6Lcq_e4qAAAAAEJYKkGw-zQ6CN74yjbiWByLBo6Y') => {
     }
   }, [siteKey]);
 
-  /**
-   * 执行 reCAPTCHA 验证并获取 token
-   * 更友好的函数名，功能与 getToken 相同
-   * @param {string} action - reCAPTCHA 操作类型
-   * @returns {Promise<string>} reCAPTCHA token
-   */
+
   const executeReCaptcha = useCallback(async (action) => {
     return getToken(action);
   }, [getToken]);

@@ -28,33 +28,33 @@ const SubscriptionRequests = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [detailsVisible, setDetailsVisible] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
-  // 追踪当前查看的请求是否原本是未读状态
+  // Track if currently viewed request was originally unread
   const [wasUnread, setWasUnread] = useState(false);
 
-  // 使用RTK Query获取数据
+  // Use RTK Query to fetch data
   const { data, isLoading, error, refetch } = useGetMemberSubscriptionRequestsQuery({
     pageNow: currentPage,
     pageSize,
     statusList: selectedStatus
   }, {
-    // 组件挂载或参数变化时重新获取
+    // Refetch when component mounts or parameters change
     refetchOnMountOrArgChange: true,
-    // 定期自动刷新
-    pollingInterval: 30000 // 每30秒自动刷新一次
+    // Regular automatic refresh
+    pollingInterval: 30000 // Auto refresh every 30 seconds
   });
 
-  // 添加标记已读的mutation
+  // Add mark as read mutation
   const [markAsRead] = useMarkMemberRequestAsReadMutation();
   
-  // 获取未读数量查询
+  // Get unread count query
   const { refetch: refetchUnreadCount } = useGetMemberUnreadRequestsCountQuery();
   
-  // 当组件首次加载或被激活时刷新数据
+  // Refresh data when component first loads or is activated
   useEffect(() => {
-    // 组件挂载或激活时立即刷新数据
+    // Immediately refresh data when component mounts or is activated
     refetch();
     
-    // 添加事件监听器，在发送新请求后刷新列表
+    // Add event listener to refresh list after sending new requests
     const handleRefreshRequests = () => {
       refetch();
     };
@@ -66,22 +66,22 @@ const SubscriptionRequests = () => {
     };
   }, [refetch]);
   
-  // 当数据发生变化时，触发教练列表刷新
+  // Trigger coach list refresh when data changes
   useEffect(() => {
     if (data && data.records && data.records.length > 0) {
-      // 发送事件，通知CoachList组件刷新数据
+      // Send event to notify CoachList component to refresh data
       window.dispatchEvent(new Event('refresh-coach-status'));
     }
   }, [data]);
 
-  // 状态选项
+  // Status options
   const statusOptions = [
     { label: 'Pending', value: 'pending' },
     { label: 'Accepted', value: 'accept' },
     { label: 'Rejected', value: 'reject' }
   ];
 
-  // 表格列定义
+  // Table column definitions
   const columns = [
     {
       title: 'Member Name',
@@ -106,7 +106,7 @@ const SubscriptionRequests = () => {
       dataIndex: 'status',
       key: 'status',
       render: (status) => {
-        // 创建颜色映射，处理不同大小写的状态值
+        // Create color mapping, handle different case status values
         const colorMap = {
           pending: 'gold',
           accept: 'green',
@@ -116,7 +116,7 @@ const SubscriptionRequests = () => {
           REJECT: 'red'
         };
         
-        // 获取颜色，如果状态不在映射中则使用灰色
+        // Get color, if status not in mapping use default
         const color = colorMap[status] || 'default';
         
         return <Tag color={color}>{status}</Tag>;
@@ -153,36 +153,36 @@ const SubscriptionRequests = () => {
 
   const handleStatusChange = (checkedValues) => {
     setSelectedStatus(checkedValues);
-    setCurrentPage(1); // 重置页码
+    setCurrentPage(1); // Reset page number
     
-    // 强制重新获取数据，避免使用缓存
+    // Force data refetch, avoid using cache
     setTimeout(() => {
       refetch();
     }, 0);
   };
 
-  // 查看详情时标记为已读
+  // Mark as read when viewing details
   const showDetails = (record) => {
     setSelectedRequest(record);
     setDetailsVisible(true);
     
-    // 记录原始未读状态，兼容两种可能的字段名
+    // Record original unread status, compatible with both possible field names
     const isUnread = record && (record.memberIsRead === false || record.member_is_read === false);
     setWasUnread(isUnread);
     
-    // 如果是未读消息，则标记为已读
+    // If unread message, mark as read
     if (isUnread) {
       markAsRead(record.id)
         .unwrap()
         .then(() => {
-          // 标记成功后主动刷新未读计数
+          // Actively refresh unread count after marking as successful
           refetchUnreadCount();
           
-          // 触发全局事件，强制刷新侧边栏计数
+          // Trigger global event to force refresh sidebar count
           window.dispatchEvent(new Event('refresh-unread-count'));
         })
         .catch(error => {
-          console.error('Failed to mark as read:', error);
+          // Nothing to do on error
         });
     }
   };
@@ -190,15 +190,15 @@ const SubscriptionRequests = () => {
   const handleCloseDetails = () => {
     setDetailsVisible(false);
     
-    // 只有当查看的请求之前是未读状态时，才刷新计数
+    // Only refresh count if the previously viewed request was unread
     if (wasUnread) {
-      // 关闭详情时刷新未读计数，确保侧边栏数字更新
+      // Refresh unread count when closing details to ensure sidebar number is updated
       refetchUnreadCount();
-      // 触发全局事件，强制刷新侧边栏计数
+      // Trigger global event to force refresh sidebar count
       window.dispatchEvent(new Event('refresh-unread-count'));
     }
     
-    // 重置未读状态标记
+    // Reset unread status marker
     setWasUnread(false);
   };
 
@@ -207,7 +207,7 @@ const SubscriptionRequests = () => {
       <Card>
         <Title level={3} className="mb-6">My Subscription Requests</Title>
         
-        {/* 状态过滤器 */}
+        {/* Status filter */}
         <Row className="mb-6">
           <Col>
             <Checkbox.Group
@@ -218,7 +218,7 @@ const SubscriptionRequests = () => {
           </Col>
         </Row>
 
-        {/* 请求列表 */}
+        {/* Request list */}
         <Table
           columns={columns}
           dataSource={data?.records || []}
@@ -242,7 +242,7 @@ const SubscriptionRequests = () => {
         />
       </Card>
 
-      {/* 详情模态框 */}
+      {/* Details modal */}
       <Modal
         title="Subscription Request Details"
         open={detailsVisible}
@@ -260,7 +260,7 @@ const SubscriptionRequests = () => {
             <Descriptions.Item label="Coach Name">{selectedRequest.coachName}</Descriptions.Item>
             <Descriptions.Item label="Status">
               {(() => {
-                // 创建颜色映射，处理不同大小写的状态值
+                // Create color mapping, handle different case status values
                 const colorMap = {
                   pending: 'gold',
                   accept: 'green',
@@ -270,7 +270,7 @@ const SubscriptionRequests = () => {
                   REJECT: 'red'
                 };
                 
-                // 获取颜色，如果状态不在映射中则使用灰色
+                // Get color, if status not in mapping use default
                 const color = colorMap[selectedRequest.status] || 'default';
                 
                 return <Tag color={color}>{selectedRequest.status}</Tag>;

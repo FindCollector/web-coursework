@@ -1,43 +1,43 @@
 import { useState, useEffect, useCallback } from 'react';
 
 /**
- * 倒计时 hook
- * @param {number} initialValue - 初始倒计时值（秒）
- * @param {boolean} autoStart - 是否自动开始倒计时
- * @returns {Object} 倒计时状态和控制函数
+ * Countdown hook
+ * @param {number} initialValue - Initial countdown value (seconds)
+ * @param {boolean} autoStart - Whether to start countdown automatically
+ * @returns {Object} Countdown state and control functions
  */
 const useCountdown = (initialValue = 60, autoStart = false) => {
   const [seconds, setSeconds] = useState(autoStart ? initialValue : 0);
   const [isActive, setIsActive] = useState(autoStart);
   const [hasFinished, setHasFinished] = useState(false);
   
-  // 开始倒计时
+  // Start countdown
   const start = useCallback((value = initialValue) => {
     setSeconds(value);
     setIsActive(true);
     setHasFinished(false);
   }, [initialValue]);
   
-  // 暂停倒计时
+  // Pause countdown
   const pause = useCallback(() => {
     setIsActive(false);
   }, []);
   
-  // 恢复倒计时
+  // Resume countdown
   const resume = useCallback(() => {
     if (seconds > 0) {
       setIsActive(true);
     }
   }, [seconds]);
   
-  // 重置倒计时
+  // Reset countdown
   const reset = useCallback((value = initialValue) => {
     setSeconds(value);
     setIsActive(false);
     setHasFinished(false);
   }, [initialValue]);
   
-  // 倒计时逻辑
+  // Countdown logic
   useEffect(() => {
     let timerId;
     

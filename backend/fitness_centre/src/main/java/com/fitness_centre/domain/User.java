@@ -29,7 +29,6 @@ public class User implements Serializable {
     @JsonSerialize(using = ToStringSerializer.class)
     private Long id;
 
-    @TableField(updateStrategy = FieldStrategy.NOT_NULL)
     private String email;
 
     @TableField(updateStrategy = FieldStrategy.NOT_NULL)
@@ -56,5 +55,7 @@ public class User implements Serializable {
 
     @TableField(updateStrategy = FieldStrategy.NOT_NULL)
     private String userName;
+
+    private String provider;
 
 }

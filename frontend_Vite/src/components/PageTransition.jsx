@@ -1,6 +1,17 @@
 import { motion } from 'framer-motion';
 
-const PageTransition = ({ children, isVisible, direction = 'horizontal' }) => {
+const PageTransition = ({ children, isVisible, direction = 'horizontal', noAnimation = false }) => {
+  if (noAnimation) {
+    return (
+      <div style={{
+        width: '100%',
+        height: '100%',
+      }}>
+        {children}
+      </div>
+    );
+  }
+
   const getInitialX = () => {
     if (direction === 'horizontal') {
       return isVisible ? 100 : -100;

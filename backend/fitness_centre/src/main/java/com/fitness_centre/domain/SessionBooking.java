@@ -61,4 +61,7 @@ public class SessionBooking implements Serializable {
     private Boolean coachIsRead;
 
     private Boolean memberIsRead;
+
+    private Boolean isRecord;
+
 }

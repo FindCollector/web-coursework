@@ -26,27 +26,26 @@ public class AuthenticationProviderImpl implements AuthenticationProvider {
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
 
-        // 1) 获取请求里的用户名(邮箱)、原始密码
+        // 1) Get username (email) and raw password from request
         String email = authentication.getName();
         String rawPassword = (String) authentication.getCredentials();
 
-        // 2) 先加载用户是否存在
+        // 2) First check if user exists
         UserDetails userDetails;
         try {
             userDetails = userDetailsService.loadUserByUsername(email);
         } catch (UsernameNotFoundException e) {
-            // 用户不存在
+            // User not found
             throw new UsernameNotFoundException("User not found");
         }
 
 
-        // 3) 再检查密码是否正确
+        // 3) Then check if password is correct
         if (!passwordEncoder.matches(rawPassword, userDetails.getPassword())) {
             throw new BadCredentialsException("Wrong email or password");
         }
 
-        // 4) 最后再检查是否被封禁或者还未审核
-
+        // 4) Finally check if account is blocked or pending approval
         if (userDetails instanceof LoginUser loginUser) {
             if(loginUser.getUser().getStatus().equals(UserStatus.WAITING_APPROVAL.getStatus()) ){
                 throw new LockedException("Waiting for administrator review");
@@ -57,7 +56,7 @@ public class AuthenticationProviderImpl implements AuthenticationProvider {
         }
 
 
-        // 5) 如果都通过，构造一个认证成功的对象
+        // 5) If all checks pass, construct a successful authentication object
         return new UsernamePasswordAuthenticationToken(
                 userDetails,
                 userDetails.getPassword(),
@@ -67,7 +66,7 @@ public class AuthenticationProviderImpl implements AuthenticationProvider {
 
     @Override
     public boolean supports(Class<?> authentication) {
-        // 表示支持 UsernamePasswordAuthenticationToken 这种认证类型
+        // Indicates support for UsernamePasswordAuthenticationToken authentication type
         return UsernamePasswordAuthenticationToken.class.isAssignableFrom(authentication);
     }
 }

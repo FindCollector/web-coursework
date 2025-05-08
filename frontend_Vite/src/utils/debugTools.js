@@ -1,18 +1,18 @@
 /**
- * 调试辅助工具
- * 用于调试API请求和响应
+ * Debug Helper Tools
+ * Used for debugging API requests and responses
  */
 
-// 获取存储键名，不再添加实例ID后缀
+// Get storage key without adding instance ID suffix
 const getStorageKey = (key) => {
-  // 使用简单的键名，不追加实例ID
+  // Use simple key names without appending instance ID
   return key;
 };
 
-// 监听网络请求
+// Monitor network requests
 export const setupNetworkMonitoring = () => {
   if (process.env.NODE_ENV !== 'production') {
-    // 创建一个XHR监听器，记录所有的XHR请求
+    // Create an XHR listener to record all XHR requests
     const originalXHROpen = XMLHttpRequest.prototype.open;
     const originalXHRSend = XMLHttpRequest.prototype.send;
     
@@ -22,12 +22,9 @@ export const setupNetworkMonitoring = () => {
         
         try {
           const response = JSON.parse(this.responseText);
-          console.group(`🌐 XHR请求: ${this._method} ${url}`);
-          console.log('状态: ', this.status);
-          console.log('响应: ', response);
-          console.groupEnd();
+          // Network monitoring handled silently in production
         } catch (e) {
-          console.log(`非JSON响应: ${url}`);
+          // Non-JSON response, silently handled
         }
       });
       
@@ -37,100 +34,64 @@ export const setupNetworkMonitoring = () => {
     };
     
     XMLHttpRequest.prototype.send = function() {
-      console.group(`🚀 发送XHR请求: ${this._method} ${this._url}`);
-      console.log('数据: ', arguments[0] || '无');
+      // Request sending handled silently
       
-      if (this._method === 'POST' && arguments[0]) {
-        try {
-          console.log('请求体: ', JSON.parse(arguments[0]));
-        } catch (e) {
-          // ignore
-        }
-      }
-      
-      console.groupEnd();
       originalXHRSend.apply(this, arguments);
     };
     
-    // 监听Fetch请求
+    // Monitor Fetch requests
     const originalFetch = window.fetch;
     
     window.fetch = function() {
       const url = arguments[0];
       const options = arguments[1] || {};
       
-      console.group(`🌐 Fetch请求: ${options.method || 'GET'} ${url}`);
-      
-      if (options.body) {
-        try {
-          console.log('请求体: ', JSON.parse(options.body));
-        } catch (e) {
-          console.log('请求体: ', options.body);
-        }
-      }
-      
-      console.log('选项: ', options);
-      console.groupEnd();
+      // Fetch request monitoring handled silently
       
       return originalFetch.apply(this, arguments)
         .then(response => {
-          // 克隆响应，因为response.json()只能调用一次
+          // Clone response, because response.json() can only be called once
           const clone = response.clone();
           
           clone.json().then(data => {
-            console.group(`🌐 Fetch响应: ${options.method || 'GET'} ${url}`);
-            console.log('状态: ', response.status);
-            console.log('响应: ', data);
-            console.groupEnd();
+            // Response monitoring handled silently
           }).catch(() => {
-            // 非JSON响应，忽略
+            // Non-JSON response, ignore
           });
           
           return response;
         });
     };
     
-    console.log('🔍 网络监控已启用');
+    // Network monitoring enabled silently
   }
 }
 
-// 打印认证状态
+// Print authentication state
 export const logAuthState = () => {
   if (process.env.NODE_ENV === 'production') {
     return;
   }
   
   const getStorageKey = (key) => {
-    // 使用简单的键名，不追加实例ID
+    // Use simple key names without appending instance ID
     return key;
   };
   
-  // 打印认证状态
-  try {
-    console.group('🔐 认证状态');
-    console.log('token: ', sessionStorage.getItem(getStorageKey('token')) ? '已设置' : '未设置');
-    if (sessionStorage.getItem(getStorageKey('token'))) {
-      console.log('token值: ', sessionStorage.getItem(getStorageKey('token')).substring(0, 15) + '...');
-    }
-    console.log('userType: ', sessionStorage.getItem(getStorageKey('userType')));
-    console.log('userName: ', sessionStorage.getItem(getStorageKey('userName')));
-    console.groupEnd();
-  } catch (error) {
-    console.error('打印认证状态时出错:', error);
-  }
-};
+  // Authentication state handled silently
+}
 
-// 添加调试样式到页面
+// Add debug styles to page
 export const addDebugStyles = () => {
   if (process.env.NODE_ENV !== 'production') {
     const style = document.createElement('style');
     style.innerHTML = `
-      /* 边框调试辅助 */
+      /* Border debug helper */
       .debug-borders * {
         outline: 1px solid rgba(255, 0, 0, 0.2);
       }
       
-      /* API错误指示器 */
+      /* API error indicator */
       .api-error-indicator {
         position: fixed;
         bottom: 10px;
@@ -145,27 +106,27 @@ export const addDebugStyles = () => {
     `;
     document.head.appendChild(style);
     
-    console.log('🎨 调试样式已添加');
+    // Debug styles added silently
   }
 }
 
-// 暴露API测试函数
+// Expose API test functions
 export const exposeApiTestFunctions = () => {
   if (process.env.NODE_ENV === 'production') {
     return;
   }
   
   const getStorageKey = (key) => {
-    // 使用简单的键名，不追加实例ID
+    // Use simple key names without appending instance ID
     return key;
   };
   
-  // 创建全局测试对象
+  // Create global test object
   window.testAuth = {
-    // 登录测试
+    // Login test
     login: async (email = 'admin@example.com', password = 'password123') => {
       try {
-        console.log('测试登录:', email, password);
+        // Test login silently
         
         const response = await fetch('http://localhost:8080/auth/login', {
           method: 'POST',
@@ -177,36 +138,30 @@ export const exposeApiTestFunctions = () => {
         });
         
         const data = await response.json();
-        console.log('登录响应:', data);
         
         if (data.code === 0 && data.data?.userInfo?.token) {
-          sessionStorage.setItem(getStorageKey('token'), data.data.userInfo.token);
-          console.log('🔑 Token 已保存到 sessionStorage:', getStorageKey('token'));
+          localStorage.setItem(getStorageKey('token'), data.data.userInfo.token);
           return { success: true, data };
         } else {
-          console.error('登录失败:', data.msg || '未知错误');
-          return { success: false, error: data.msg || '登录失败', data };
+          return { success: false, error: data.msg || 'Login failed', data };
         }
       } catch (error) {
-        console.error('登录请求错误:', error);
         return { success: false, error: error.message };
       }
     },
     
-    // 检查认证状态
+    // Check authentication status
     checkAuth: () => {
-      const token = sessionStorage.getItem(getStorageKey('token'));
-      console.log('当前令牌状态:', token ? '已认证' : '未认证');
+      const token = localStorage.getItem(getStorageKey('token'));
       return !!token;
     },
     
-    // 注销
+    // Logout
     logout: () => {
-      sessionStorage.removeItem(getStorageKey('token'));
-      console.log('已注销，删除令牌');
+      localStorage.removeItem(getStorageKey('token'));
       return true;
     }
   };
   
-  console.log('API测试函数已暴露。使用 window.testAuth 进行API测试');
+  // API test functions exposed silently
 }; 

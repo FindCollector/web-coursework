@@ -1,37 +1,36 @@
 import { createSlice } from '@reduxjs/toolkit';
 
-// 获取带页面ID的存储键名，但使用localStorage中保存的一致ID
+// Get storage key with consistent ID from localStorage
 const getStorageKey = (key) => {
-  // 检查PAGE_INSTANCE_ID是否存在且来自localStorage（而不是刚刚生成的）
-  // 使用简单的键名，不再追加实例ID，以确保刷新页面时能找到相同的键
+  // Check if PAGE_INSTANCE_ID exists and is from localStorage (not newly generated)
+  // Use simple key names without appending instance ID to ensure finding the same key when refreshing the page
   return key;
 };
 
-// 从sessionStorage获取值的安全方法
+// Safe method to get values from localStorage
 const safeGetItem = (key) => {
   try {
-    return sessionStorage.getItem(getStorageKey(key));
+    return localStorage.getItem(getStorageKey(key));
   } catch (error) {
-    console.error('从sessionStorage获取数据失败:', error);
     return null;
   }
 };
 
-// 向sessionStorage设置值的安全方法
+// Safe method to set values in localStorage
 const safeSetItem = (key, value) => {
   try {
-    sessionStorage.setItem(getStorageKey(key), value);
+    localStorage.setItem(getStorageKey(key), value);
   } catch (error) {
-    console.error('向sessionStorage设置数据失败:', error);
+    // Error silently handled
   }
 };
 
-// 从sessionStorage移除值的安全方法
+// Safe method to remove values from localStorage
 const safeRemoveItem = (key) => {
   try {
-    sessionStorage.removeItem(getStorageKey(key));
+    localStorage.removeItem(getStorageKey(key));
   } catch (error) {
-    console.error('从sessionStorage移除数据失败:', error);
+    // Error silently handled
   }
 };
 
@@ -60,15 +59,10 @@ const authSlice = createSlice({
       state.loading = false;
       state.error = null;
       
-      // 保存到sessionStorage
+      // Save to localStorage
       safeSetItem('token', action.payload.token);
       safeSetItem('userType', action.payload.userType);
       safeSetItem('userName', action.payload.userName || 'Admin');
-      
-      // 调试日志，确认token已保存
-      console.log('登录成功: Auth token stored in Redux and sessionStorage');
-      console.log('保存的密钥:', getStorageKey('token'));
-      console.log('保存后所有sessionStorage键:', Object.keys(sessionStorage));
     },
     loginFailure: (state, action) => {
       state.loading = false;
@@ -80,7 +74,7 @@ const authSlice = createSlice({
       state.userName = null;
       state.isAuthenticated = false;
       
-      // 清除sessionStorage中的认证信息
+      // Clear authentication information from localStorage
       safeRemoveItem('token');
       safeRemoveItem('userType');
       safeRemoveItem('userName');

@@ -15,20 +15,20 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * 字符串拆分工具类
+ * String splitting utility class
  */
 public class StringSplitUtil {
 
     /**
-     * 1. 最简单用法：按逗号拆分，并去除首尾空格
-     * @param input  需要拆分的字符串
-     * @return 拆分后的字符串列表
+     * 1. Simplest usage: Split by comma and remove leading/trailing whitespace
+     * @param input  String to be split
+     * @return List of split strings
      */
     public static List<String> splitByComma(String input) {
         if (input == null || input.trim().isEmpty()) {
             return Collections.emptyList();
         }
-        // 先用逗号分割，再把每个元素trim一下
+        // First split by comma, then trim each element
         String[] parts = input.split(",");
         List<String> result = new ArrayList<>();
         for (String part : parts) {
@@ -41,13 +41,13 @@ public class StringSplitUtil {
     }
 
     /**
-     * 2. 更通用的拆分：可指定分隔符、是否需要去重等
-     * @param input       需要拆分的字符串
-     * @param delimiter   分隔符（如 "," / ";" / "\\|" 等）
-     * @param trim        是否去除每一项的首尾空格
-     * @param ignoreEmpty 是否忽略空字符串
-     * @param distinct    是否去重
-     * @return 拆分后的字符串列表
+     * 2. More general splitting: Can specify delimiter, whether to remove duplicates, etc.
+     * @param input       String to be split
+     * @param delimiter   Delimiter (such as "," / ";" / "\\|" etc.)
+     * @param trim        Whether to remove leading/trailing whitespace from each item
+     * @param ignoreEmpty Whether to ignore empty strings
+     * @param distinct    Whether to remove duplicates
+     * @return List of split strings
      */
     public static List<String> splitToList(String input, String delimiter,
                                            boolean trim, boolean ignoreEmpty, boolean distinct) {
@@ -55,22 +55,23 @@ public class StringSplitUtil {
             return Collections.emptyList();
         }
 
-        String[] parts = input.split(delimiter);
+        // Use -1 as the limit parameter to force keeping trailing empty strings
+        String[] parts = input.split(delimiter, -1);
         List<String> list = new ArrayList<>();
         for (String part : parts) {
             String item = trim ? part.trim() : part;
             if (ignoreEmpty && item.isEmpty()) {
-                // 跳过空字符串
+                // Skip empty strings
                 continue;
             }
             list.add(item);
         }
-        // 如果需要去重，则用LinkedHashSet保留顺序
+        // If deduplication is needed, use LinkedHashSet to preserve order
         if (distinct) {
             list = new ArrayList<>(new LinkedHashSet<>(list));
         }
         return list;
     }
 
-    // 如果还有更多需求，可在此继续添加方法
+    // Additional methods can be added here if needed
 }

@@ -1,59 +1,48 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { useSelector, useDispatch } from 'react-redux';
 import { useState, useEffect, lazy, Suspense } from 'react'
 import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
+import { logout } from './store/authSlice';
+import { message } from 'antd';
 
-// 懒加载页面组件
+const LandingPage = lazy(() => import('./pages/LandingPage'));
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const VerifyCode = lazy(() => import('./pages/VerifyCode'));
+const CompleteProfile = lazy(() => import('./pages/CompleteProfile'));
+const LinkGoogleAccount = lazy(() => import('./pages/LinkGoogleAccount'));
 
-// 懒加载管理员页面组件
 const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
-// 懒加载教练页面组件
 const CoachDashboard = lazy(() => import('./pages/coach/Dashboard'));
 const CoachDetails = lazy(() => import('./pages/coach/Details'));
-// 懒加载会员页面组件
 const MemberDashboard = lazy(() => import('./pages/member/Dashboard'));
-// 懒加载调试页面组件
-const DebugPage = lazy(() => import('./pages/Debug'));
-// 导入DnD Provider
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 
-// 加载中组件
 const LoadingComponent = () => (
   <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-    <div>页面加载中...</div>
+    <div>Loading page...</div>
   </div>
 );
 
-// 受保护路由组件
 const ProtectedRoute = ({ children, requiredUserType = null }) => {
   const { isAuthenticated, userType } = useSelector((state) => state.auth);
   const [isChecking, setIsChecking] = useState(true);
   
-  // 使用useEffect确保认证检查在组件挂载后立即执行
   useEffect(() => {
-    console.log('路由保护检查 - 认证状态:', isAuthenticated, '用户类型:', userType);
-    // 延迟极短时间以确保Redux状态已完全加载
     const timer = setTimeout(() => {
       setIsChecking(false);
     }, 50);
     return () => clearTimeout(timer);
   }, [isAuthenticated, userType]);
 
-  // 检查用户是否已认证
   if (!isAuthenticated && !isChecking) {
-    console.log('未认证，重定向到登录页面');
     return <Navigate to="/login" replace />;
   }
 
-  // 如果指定了所需的用户类型，但用户类型不匹配，则重定向到适当的页面
   if (isAuthenticated && requiredUserType && userType !== requiredUserType && !isChecking) {
-    console.log('用户类型不匹配，重定向到对应面板');
     switch (userType) {
       case 'admin':
         return <Navigate to="/admin/dashboard" replace />;
@@ -66,26 +55,82 @@ const ProtectedRoute = ({ children, requiredUserType = null }) => {
     }
   }
 
-  // 如果仍在检查或认证通过，返回子组件
   if (isChecking) {
     return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-      <div>正在验证身份...</div>
+      <div>Verifying identity...</div>
     </div>;
   }
 
   return children;
 };
 
-// 占位页面组件
-const Home = () => <div className="p-6">Home</div>;
-
 function App() {
   const [count, setCount] = useState(0)
-
+  const { isAuthenticated } = useSelector((state) => state.auth);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  
+  useEffect(() => {
+    if (isAuthenticated) {
+      const tokenExpirationKey = 'tokenExpirationHandled';
+      sessionStorage.removeItem(tokenExpirationKey);
+      
+      const originalFetch = window.fetch;
+      window.fetch = async function(...args) {
+        if (sessionStorage.getItem(tokenExpirationKey) === 'true') {
+          return originalFetch.apply(this, args);
+        }
+        
+        try {
+          const response = await originalFetch.apply(this, args);
+          
+          if (sessionStorage.getItem(tokenExpirationKey) === 'true') {
+            return response;
+          }
+          
+          const clonedResponse = response.clone();
+          
+          clonedResponse.json().then(data => {
+            if (data && data.code === 3000 && data.msg === 'Not logged in or login expired') {
+              if (sessionStorage.getItem(tokenExpirationKey) === 'true') {
+                return;
+              }
+              
+              sessionStorage.setItem(tokenExpirationKey, 'true');
+              
+              localStorage.removeItem('token');
+              localStorage.removeItem('userType');
+              localStorage.removeItem('userName');
+              
+              dispatch(logout());
+              
+              if (!window.location.pathname.includes('/login')) {
+                navigate('/login', { 
+                  replace: true,
+                  state: { 
+                    expired: true
+                  }
+                });
+              }
+            }
+          }).catch(err => {
+          });
+          
+          return response;
+        } catch (error) {
+          return Promise.reject(error);
+        }
+      };
+      
+      return () => {
+        window.fetch = originalFetch;
+      };
+    }
+  }, [isAuthenticated, dispatch, navigate]);
+  
   return (
     <DndProvider backend={HTML5Backend}>
       <Routes>
-        {/* 公共路由 */}
         <Route path="/verify-code" element={
           <Suspense fallback={<LoadingComponent />}>
             <VerifyCode />
@@ -101,18 +146,22 @@ function App() {
             <Register />
           </Suspense>
         } />
-        <Route path="/" element={<Home />} />
-        
-        {/* 调试页面 - 仅在开发环境中显示 */}
-        {process.env.NODE_ENV !== 'production' && (
-          <Route path="/debug" element={
-            <Suspense fallback={<LoadingComponent />}>
-              <DebugPage />
-            </Suspense>
-          } />
-        )}
+        <Route path="/complete-profile" element={
+          <Suspense fallback={<LoadingComponent />}>
+            <CompleteProfile />
+          </Suspense>
+        } />
+        <Route path="/link-google-account" element={
+          <Suspense fallback={<LoadingComponent />}>
+            <LinkGoogleAccount />
+          </Suspense>
+        } />
+        <Route path="/" element={
+          <Suspense fallback={<LoadingComponent />}>
+            <LandingPage />
+          </Suspense>
+        } />
 
-        {/* 管理员路由 */}
         <Route
           path="/admin/dashboard"
           element={
@@ -124,7 +173,6 @@ function App() {
           }
         />
 
-        {/* 会员路由 */}
         <Route
           path="/member/dashboard"
           element={
@@ -135,8 +183,67 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/member/coaches"
+          element={
+            <ProtectedRoute requiredUserType="member">
+              <Suspense fallback={<LoadingComponent />}>
+                <MemberDashboard initialActiveMenu="coaches" />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/member/booking"
+          element={
+            <ProtectedRoute requiredUserType="member">
+              <Suspense fallback={<LoadingComponent />}>
+                <MemberDashboard initialActiveMenu="booking" />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/member/subscription-requests"
+          element={
+            <ProtectedRoute requiredUserType="member">
+              <Suspense fallback={<LoadingComponent />}>
+                <MemberDashboard initialActiveMenu="subscription-requests" />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/member/session-requests"
+          element={
+            <ProtectedRoute requiredUserType="member">
+              <Suspense fallback={<LoadingComponent />}>
+                <MemberDashboard initialActiveMenu="session-requests" />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/member/schedule"
+          element={
+            <ProtectedRoute requiredUserType="member">
+              <Suspense fallback={<LoadingComponent />}>
+                <MemberDashboard initialActiveMenu="schedule" />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/member/history"
+          element={
+            <ProtectedRoute requiredUserType="member">
+              <Suspense fallback={<LoadingComponent />}>
+                <MemberDashboard initialActiveMenu="history" />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
 
-        {/* 教练路由 */}
         <Route
           path="/coach/dashboard"
           element={
@@ -157,8 +264,70 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/coach/session-requests"
+          element={
+            <ProtectedRoute requiredUserType="coach">
+              <Suspense fallback={<LoadingComponent />}>
+                <CoachDashboard initialActiveMenu="session-requests" />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/coach/subscription-requests"
+          element={
+            <ProtectedRoute requiredUserType="coach">
+              <Suspense fallback={<LoadingComponent />}>
+                <CoachDashboard initialActiveMenu="subscription-requests" />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/coach/requests"
+          element={
+            <ProtectedRoute requiredUserType="coach">
+              <Suspense fallback={<LoadingComponent />}>
+                <CoachDashboard initialActiveMenu="requests" />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/coach/schedule"
+          element={
+            <ProtectedRoute requiredUserType="coach">
+              <Suspense fallback={<LoadingComponent />}>
+                <CoachDashboard initialActiveMenu="schedule" />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/coach/availability"
+          element={
+            <ProtectedRoute requiredUserType="coach">
+              <Suspense fallback={<LoadingComponent />}>
+                <CoachDashboard initialActiveMenu="availability" />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/coach/unrecorded-sessions"
+          element={
+            <ProtectedRoute requiredUserType="coach">
+              <Suspense fallback={<LoadingComponent />}>
+                <CoachDashboard initialActiveMenu="unrecorded-sessions" />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
 
-        {/* 404页面 - 捕获所有未匹配的路由 */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </DndProvider>

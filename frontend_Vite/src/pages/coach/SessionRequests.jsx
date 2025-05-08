@@ -35,39 +35,39 @@ const SessionRequests = () => {
   const [handleVisible, setHandleVisible] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [replyText, setReplyText] = useState('');
-  // 追踪当前查看的请求是否原本是未读状态
+  // Track if currently viewed request was originally unread
   const [wasUnread, setWasUnread] = useState(false);
-  // 添加处理状态
+  // Add processing state
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // 使用RTK Query获取数据
+  // Use RTK Query to fetch data
   const { data, isLoading, refetch } = useGetSessionRequestsQuery({
     pageNow: currentPage,
     pageSize,
     statusList: selectedStatus
   }, {
     refetchOnMountOrArgChange: true,
-    pollingInterval: 30000 // 每30秒自动刷新一次
+    pollingInterval: 30000 // Auto refresh every 30 seconds
   });
 
-  // 添加标记已读的mutation
+  // Add mark as read mutation
   const [markAsRead] = useMarkCoachSessionRequestAsReadMutation();
   
-  // 获取未读订阅计数查询
+  // Get unread subscription count query
   const { refetch: refetchUnreadSubscriptionCount } = useGetUnreadRequestsCountQuery();
   
-  // 获取未读Session计数查询
+  // Get unread session count query
   const { refetch: refetchUnreadSessionCount } = useGetUnreadSessionCountQuery();
   
-  // 添加处理Session请求的mutation
+  // Add handle session request mutation
   const [handleSessionRequest] = useHandleSessionRequestMutation();
 
-  // 当组件首次加载或被激活时刷新数据
+  // Refresh data when component is first loaded or activated
   useEffect(() => {
-    // 组件挂载或激活时立即刷新数据
+    // Immediately refresh data when component mounts or activates
     refetch();
     
-    // 添加事件监听器，在发送新请求后刷新列表
+    // Add event listener to refresh list after sending new requests
     const handleRefreshRequests = () => {
       refetch();
     };
@@ -79,7 +79,7 @@ const SessionRequests = () => {
     };
   }, [refetch]);
 
-  // 状态选项
+  // Status options
   const statusOptions = [
     { label: 'Pending', value: 'PENDING' },
     { label: 'Accepted', value: 'ACCEPT' },
@@ -87,7 +87,7 @@ const SessionRequests = () => {
     { label: 'Cancelled', value: 'CANCEL' }
   ];
 
-  // 表格列定义
+  // Table column definitions
   const columns = [
     {
       title: 'Member Name',
@@ -107,7 +107,7 @@ const SessionRequests = () => {
       dataIndex: 'status',
       key: 'status',
       render: (status) => {
-        // 创建颜色映射，处理不同大小写的状态值
+        // Create color mapping, handling different case status values
         const colorMap = {
           pending: 'gold',
           accept: 'green',
@@ -119,7 +119,7 @@ const SessionRequests = () => {
           CANCEL: 'grey'
         };
         
-        // 获取颜色，如果状态不在映射中则使用灰色
+        // Get color, use grey as default if status not in mapping
         const color = colorMap[status] || 'default';
         
         return <Tag color={color}>{status}</Tag>;
@@ -177,37 +177,37 @@ const SessionRequests = () => {
 
   const handleStatusChange = (checkedValues) => {
     setSelectedStatus(checkedValues);
-    setCurrentPage(1); // 重置页码
+    setCurrentPage(1); // Reset page number
     
-    // 强制重新获取数据，避免使用缓存
+    // Force refetch data to avoid using cache
     setTimeout(() => {
       refetch();
     }, 0);
   };
 
-  // 查看详情时标记为已读
+  // Mark as read when viewing details
   const showDetails = (record) => {
     setSelectedRequest(record);
     setDetailsVisible(true);
     
-    // 记录原始未读状态
+    // Record original unread state
     const isUnread = record && !record.coachIsRead;
     setWasUnread(isUnread);
     
-    // 如果是未读消息，则标记为已读
+    // Mark as read if unread
     if (isUnread) {
       markAsRead(record.id)
         .unwrap()
         .then(() => {
-          // 标记成功后主动刷新未读计数
+          // Actively refresh unread count after successful marking
           refetchUnreadSessionCount();
           refetchUnreadSubscriptionCount();
           
-          // 触发全局事件，强制刷新侧边栏计数
+          // Trigger global event to force refresh sidebar counts
           window.dispatchEvent(new Event('refresh-unread-count'));
         })
         .catch(error => {
-          console.error('Failed to mark as read:', error);
+          message.error('Failed to mark as read');
         });
     }
   };
@@ -215,16 +215,16 @@ const SessionRequests = () => {
   const handleCloseDetails = () => {
     setDetailsVisible(false);
     
-    // 只有当查看的请求之前是未读状态时，才刷新计数
+    // Only refresh counts if the viewed request was originally unread
     if (wasUnread) {
-      // 关闭详情时刷新未读计数，确保侧边栏数字更新
+      // Refresh unread counts when closing details to ensure sidebar numbers update
       refetchUnreadSessionCount();
       refetchUnreadSubscriptionCount();
-      // 触发全局事件，强制刷新侧边栏计数
+      // Trigger global event to force refresh sidebar counts
       window.dispatchEvent(new Event('refresh-unread-count'));
     }
     
-    // 重置未读状态标记
+    // Reset unread state marker
     setWasUnread(false);
   };
 
@@ -233,24 +233,23 @@ const SessionRequests = () => {
     setReplyText('');
     setHandleVisible(true);
     
-    // 记录原始未读状态
+    // Record original unread state
     const isUnread = record && !record.coachIsRead;
     setWasUnread(isUnread);
     
-    // 如果是未读消息，则标记为已读
+    // Mark as read if unread
     if (isUnread) {
       markAsRead(record.id)
         .unwrap()
         .then(() => {
-          // 标记成功后主动刷新未读计数
+          // Actively refresh unread count after successful marking
           refetchUnreadSessionCount();
           refetchUnreadSubscriptionCount();
           
-          // 触发全局事件，强制刷新侧边栏计数
+          // Trigger global event to force refresh sidebar counts
           window.dispatchEvent(new Event('refresh-unread-count'));
         })
         .catch(error => {
-          console.error('Failed to mark as read:', error);
           message.error(error?.data?.msg || 'Failed to mark as read');
         });
     }
@@ -259,20 +258,20 @@ const SessionRequests = () => {
   const handleCloseHandleModal = () => {
     setHandleVisible(false);
     
-    // 只有当查看的请求之前是未读状态时，才刷新计数
+    // Only refresh counts if the viewed request was originally unread
     if (wasUnread) {
-      // 关闭处理模态框时刷新未读计数
+      // Refresh unread counts when closing handle modal
       refetchUnreadSessionCount();
       refetchUnreadSubscriptionCount();
-      // 触发全局事件，强制刷新侧边栏计数
+      // Trigger global event to force refresh sidebar counts
       window.dispatchEvent(new Event('refresh-unread-count'));
     }
     
-    // 重置未读状态标记
+    // Reset unread state marker
     setWasUnread(false);
   };
 
-  // 处理请求（接受或拒绝）
+  // Handle request (accept or reject)
   const handleRequest = async (status) => {
     if (!replyText.trim()) {
       message.error('Please enter a reply');
@@ -291,21 +290,20 @@ const SessionRequests = () => {
       if (response.code === 0) {
         message.success('Successfully processed');
         setHandleVisible(false);
-        refetch(); // 刷新列表
-        refetchUnreadSessionCount(); // 刷新未读计数
-        refetchUnreadSubscriptionCount(); // 刷新订阅未读计数
+        refetch(); // Refresh list
+        refetchUnreadSessionCount(); // Refresh unread count
+        refetchUnreadSubscriptionCount(); // Refresh subscription unread count
       } else {
         message.error(response.msg || 'Processing failed');
       }
     } catch (error) {
-      console.error('处理Session请求失败:', error);
       message.error(error.data?.msg || 'Processing failed, please try again later');
     } finally {
       setIsProcessing(false);
     }
   };
 
-  // 确保传递给Table的dataSource始终是数组
+  // Ensure dataSource passed to Table is always an array
   const tableDataSource = Array.isArray(data?.data?.records) ? data.data.records : [];
 
   return (
@@ -313,7 +311,7 @@ const SessionRequests = () => {
       <Card>
         <Title level={3} className="mb-6">Session Requests</Title>
         
-        {/* 状态过滤器 */}
+        {/* Status filter */}
         <Row className="mb-6">
           <Col>
             <Checkbox.Group
@@ -324,7 +322,7 @@ const SessionRequests = () => {
           </Col>
         </Row>
 
-        {/* 请求列表 */}
+        {/* Request list */}
         <Table
           columns={columns}
           dataSource={tableDataSource}
@@ -348,7 +346,7 @@ const SessionRequests = () => {
         />
       </Card>
 
-      {/* 详情模态框 */}
+      {/* Details modal */}
       <Modal
         title="Session Request Details"
         open={detailsVisible}
@@ -404,7 +402,7 @@ const SessionRequests = () => {
         )}
       </Modal>
 
-      {/* 处理请求模态框 */}
+      {/* Handle request modal */}
       <Modal
         title="Handle Session Request"
         open={handleVisible}

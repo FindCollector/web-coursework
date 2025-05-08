@@ -5,7 +5,7 @@ import { Form, Input, Button, Card, Typography, Select, DatePicker, Modal } from
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
-import dayjs from 'dayjs'; // 导入dayjs，Ant Design v5使用的日期库
+import dayjs from 'dayjs'; // Import dayjs, date library used by Ant Design v5
 
 import PageTransition from '../components/PageTransition';
 
@@ -16,23 +16,23 @@ const { Option } = Select;
 const schema = yup.object({
   userName: yup.string().required('Username is required'),
   gender: yup.number().required('Please select gender'),
-  birthday: yup.mixed() // 使用mixed类型更灵活地处理日期
+  birthday: yup.mixed() // Use mixed type for more flexibility with dates
     .required('Please select birthday')
     .test('is-valid-date', 'Birthday cannot be in the future', (value) => {
-      // 检查值是否存在
+      // Check if value exists
       if (!value) return false;
       
-      // 如果是dayjs对象
+      // If it's a dayjs object
       if (dayjs.isDayjs(value)) {
         return value.isBefore(dayjs());
       }
       
-      // 如果是Date对象
+      // If it's a Date object
       if (value instanceof Date) {
         return value <= new Date();
       }
       
-      // 其他情况，尝试转换为dayjs并比较
+      // Other cases, try to convert to dayjs and compare
       try {
         return dayjs(value).isBefore(dayjs());
       } catch (e) {
@@ -65,37 +65,29 @@ const Register = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const navigate = useNavigate();
 
-  // 使用RTK Query hooks
+  // Use RTK Query hooks
   const [sendVerificationCode, sendCodeResult] = useSendVerificationCodeMutation();
   
-  // 添加按钮加载状态
+  // Add button loading state
   const [isLoading, setIsLoading] = useState(false);
 
   // Load reCAPTCHA Enterprise script
   useEffect(() => {
-    // 检查是否已经加载了脚本
+    // Check if script is already loaded
     if (document.querySelector('script[src*="recaptcha/enterprise.js"]')) {
-      console.log('reCAPTCHA script already loaded in Register page, skipping...');
       return;
     }
     
-    console.log('Loading reCAPTCHA script in Register page...');
     const script = document.createElement('script');
     script.src = 'https://www.google.com/recaptcha/enterprise.js?render=6Lcq_e4qAAAAAEJYKkGw-zQ6CN74yjbiWByLBo6Y';
     script.async = true;
     script.id = 'recaptcha-script';
-    script.onload = () => {
-      console.log('reCAPTCHA script loaded successfully in Register page.');
-    };
-    script.onerror = (error) => {
-      console.error('Error loading reCAPTCHA script in Register page:', error);
-    };
     document.body.appendChild(script);
     
     return () => {
-      // 不要在卸载组件时移除脚本，因为验证码页面会使用
+      // Don't remove the script when unmounting the component as verification page will use it
       if (process.env.NODE_ENV !== 'production') {
-        console.log('Register component unmounted, reCAPTCHA script remains for other components');
+        // Script remains for other components
       }
     };
   }, []);
@@ -117,46 +109,38 @@ const Register = () => {
 
   // Handle form submission
   const onSubmit = async (formData) => {
-    console.log('Form submitted', formData);
-    
-    // 先检查是否已经在处理中，避免重复提交
+    // First check if already processing to avoid duplicate submissions
     if (isLoading || sendCodeResult.isPending) {
-      console.log('Request already in progress, ignoring');
       return;
     }
     
     if (!window.grecaptcha?.enterprise) {
-      console.error('reCAPTCHA not loaded');
       setErrorMessage('reCAPTCHA is not ready, please wait...');
       setIsModalVisible(true);
       return;
     }
     
     try {
-      // 设置加载状态
+      // Set loading state
       setIsLoading(true);
       
-      console.log('Getting reCAPTCHA token...');
-      
-      // 增加超时处理
+      // Add timeout handling
       let recaptchaToken;
       try {
-        // 给reCAPTCHA调用增加一个超时限制
+        // Add a timeout limit for reCAPTCHA call
         const tokenPromise = window.grecaptcha.enterprise.execute(
           '6Lcq_e4qAAAAAEJYKkGw-zQ6CN74yjbiWByLBo6Y',
           { action: 'sendCode' }
         );
         
-        // 创建一个超时Promise
+        // Create a timeout Promise
         const timeoutPromise = new Promise((_, reject) => {
           setTimeout(() => reject(new Error('reCAPTCHA token request timed out')), 10000);
         });
         
-        // 使用Promise.race来处理可能的超时
+        // Use Promise.race to handle potential timeout
         recaptchaToken = await Promise.race([tokenPromise, timeoutPromise]);
-        console.log('Token received', recaptchaToken.substring(0, 10) + '...');
       } catch (error) {
-        console.error('Failed to get reCAPTCHA token:', error);
         setErrorMessage('Failed to verify human presence. Please try again.');
         setIsModalVisible(true);
         setIsLoading(false);
@@ -178,20 +162,15 @@ const Register = () => {
           formattedBirthday = formData.birthday;
         } 
         else {
-          console.warn('Unknown birthday format:', formData.birthday);
           try {
             formattedBirthday = dayjs(formData.birthday).format('YYYY-MM-DD');
           } catch (e) {
-            console.error('Failed to format birthday:', e);
             formattedBirthday = dayjs().format('YYYY-MM-DD');
           }
         }
       } else {
-        console.warn('No birthday provided');
         formattedBirthday = dayjs().format('YYYY-MM-DD');
       }
-      
-      console.log('Formatted birthday:', formattedBirthday);
       
       const submitData = {
         ...formData,
@@ -204,34 +183,24 @@ const Register = () => {
         }
       };
       
-      console.log('Sending data to API...', submitData);
-      
-      // 使用RTK Query mutation，添加更好的错误处理
+      // Use RTK Query mutation with better error handling
       try {
         const data = await sendVerificationCode(submitData).unwrap();
-        console.log('API Response:', data);
         
         if (data.code === 0) {
-          // 添加调试日志
-          console.log('跳转到验证码页面，传递数据:', { 
-            email: data.data?.email || control._formValues.email,
-            userName: control._formValues.userName,
-            role: control._formValues.role
-          });
-          
-          // 确保页面state参数正确传递
+          // Ensure page state parameters are correctly passed
           const email = data.data?.email || control._formValues.email;
           const userName = control._formValues.userName;
           const role = control._formValues.role;
           
-          // 添加短暂延迟，确保状态更新和API请求都已完成
+          // Add a short delay to ensure state updates and API requests are completed
           setTimeout(() => {
-            // 使用replace而非push，防止后退
+            // Use replace instead of push to prevent going back
             navigate('/verify-code', { 
               state: { email, userName, role },
               replace: true
             });
-            // 重置状态
+            // Reset state
             setIsLoading(false);
           }, 500);
         } else {
@@ -240,7 +209,6 @@ const Register = () => {
           setIsLoading(false);
         }
       } catch (error) {
-        console.error('API Error:', error);
         let errorMessage = 'Registration failed';
         if (error.data) {
           errorMessage = error.data.msg || errorMessage;
@@ -251,17 +219,16 @@ const Register = () => {
         }
         setErrorMessage(errorMessage);
         setIsModalVisible(true);
-        setIsLoading(false); // 重置加载状态
+        setIsLoading(false); // Reset loading state
       }
     } catch (error) {
-      console.error('Unexpected error:', error);
       setErrorMessage('An unexpected error occurred. Please try again.');
       setIsModalVisible(true);
-      setIsLoading(false); // 重置加载状态
+      setIsLoading(false); // Reset loading state
     }
   };
   
-  // 在Modal关闭时重置加载状态
+  // Reset loading state when Modal closes
   const handleModalClose = () => {
     setIsModalVisible(false);
     setIsLoading(false);
@@ -348,9 +315,8 @@ const Register = () => {
                     <DatePicker
                       value={field.value}
                       onChange={(date) => {
-                        // 确保传递一个有效的日期对象给表单
+                        // Ensure a valid date object is passed to the form
                         field.onChange(date);
-                        console.log("Selected date:", date); // 调试日志
                       }}
                       onBlur={field.onBlur}
                       placeholder="Select birthday"

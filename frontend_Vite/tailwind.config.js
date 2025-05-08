@@ -1,4 +1,3 @@
-/** @type {import('tailwindcss').Config} */
 export default {
   content: [
     "./index.html",
@@ -8,7 +7,7 @@ export default {
     extend: {},
   },
   plugins: [],
-  // 解决与Ant Design的冲突
+  
   corePlugins: {
     preflight: false,
   }

@@ -2,85 +2,132 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { message } from 'antd';
 import { logout } from '../authSlice';
 
-// 获取存储键名，不再添加实例ID后缀
+// Get storage key without adding instance ID suffix
 const getStorageKey = (key) => {
-  // 使用简单的键名，不追加实例ID，确保刷新页面后仍能找到token
+  // Use simple key names without appending instance ID to ensure token can be found after page refresh
   return key;
 };
 
-// 从sessionStorage获取值的安全方法
+// Safe method to get values from localStorage
 const safeGetItem = (key) => {
   try {
-    return sessionStorage.getItem(getStorageKey(key));
+    return localStorage.getItem(getStorageKey(key));
   } catch (error) {
-    console.error('从sessionStorage获取数据失败:', error);
     return null;
   }
 };
 
-// 创建一个基础查询
+// Safe method to remove items from localStorage
+const safeRemoveItem = (key) => {
+  try {
+    localStorage.removeItem(getStorageKey(key));
+  } catch (error) {
+    // Error silently handled
+  }
+};
+
+// Function to handle token expiration
+const handleTokenExpiration = (api) => {
+  // Prevent duplicate handling, use a flag to avoid multiple calls
+  if (window.__handlingTokenExpiration) {
+    return;
+  }
+  
+  // Set flag to prevent duplicate handling
+  window.__handlingTokenExpiration = true;
+  
+  // Clear local storage
+  safeRemoveItem('token');
+  safeRemoveItem('userType');
+  safeRemoveItem('userName');
+  
+  // Trigger Redux logout action
+  api.dispatch(logout());
+  
+  // Display message to user
+  message.error({
+    content: 'Your session has expired. Please login again.',
+    duration: 5,
+    style: {
+      marginTop: '20vh',
+      fontSize: '16px',
+      fontWeight: 'bold'
+    }
+  });
+  
+  // Redirect to login page
+  setTimeout(() => {
+    window.location.href = '/login';
+    // Reset handling flag
+    setTimeout(() => {
+      window.__handlingTokenExpiration = false;
+    }, 1000);
+  }, 2000);
+};
+
+// Create a base query
 const baseQuery = fetchBaseQuery({
   baseUrl: process.env.NODE_ENV === 'production' 
     ? '/' 
     : 'http://localhost:8080',
   prepareHeaders: (headers, { endpoint }) => {
-    // 添加调试日志
-    console.log('[baseApi] 准备请求头 - 端点:', endpoint);
-    
-    // 检查是否是不需要token的接口
-    const noTokenEndpoints = ['login', 'sendVerificationCode', 'verifyCode', 'resendVerificationCode'];
+    // Check if this is an endpoint that doesn't need a token
+    const noTokenEndpoints = ['login', 'sendVerificationCode', 'verifyCode', 'resendVerificationCode', 'completeProfile', 'linkGoogleAccount'];
     if (noTokenEndpoints.includes(endpoint)) {
-      console.log('[baseApi] 无需token的端点:', endpoint);
       return headers;
     }
     
-    // 从sessionStorage获取token (使用安全方法)
+    // Get token from localStorage (using safe method)
     const token = safeGetItem('token');
-    console.log('[baseApi] 从 sessionStorage 获取的 token:', token ? '存在' : '不存在');
-    console.log('[baseApi] 存储键:', getStorageKey('token'));
-    console.log('[baseApi] 所有 sessionStorage 键:', Object.keys(sessionStorage));
     
+    // If a token exists, attach it using the standard Bearer scheme
+    // and keep the legacy "token" header for backward compatibility
     if (token) {
       headers.set('Authorization', `Bearer ${token}`);
       headers.set('token', token);
-      console.log('[baseApi] 已添加token到请求头');
-      // 打印完整的请求头
-      console.log('[baseApi] 完整请求头:', Object.fromEntries(headers.entries()));
-    } else {
-      console.warn('[baseApi] 未找到token，端点:', endpoint);
     }
     return headers;
   },
 });
 
-// 创建一个包装的baseQuery来处理token过期
+// Create a wrapped baseQuery to handle token expiration
 const baseQueryWithReauth = async (args, api, extraOptions) => {
   const result = await baseQuery(args, api, extraOptions);
   
-  // 检查是否是token过期错误
-  if (result.error && result.error.data) {
-    const { code, msg } = result.error.data;
-    if (code === 3000 && msg === 'Not logged in or login expired') {
-      // 清除token
-      sessionStorage.removeItem('token');
-      // 触发登出action
-      api.dispatch(logout());
-      // 显示错误消息
-      message.error('登录已过期，请重新登录');
-      // 重定向到登录页
-      window.location.href = '/login';
+  // Check for errors
+  if (result.error) {
+    // Extract data from error
+    const errorData = result.error.data;
+    
+    // Check if it's a token expiration error
+    if (errorData) {
+      const { code, msg, data } = errorData;
+      
+      // Extended error code detection, compatible with multiple expiration scenarios
+      const isTokenExpired = 
+        (code === 3000) || 
+        (code === 401) || 
+        (msg === 'Not logged in or login expired') ||
+        (msg && msg.toLowerCase().includes('token expired')) ||
+        (msg && msg.toLowerCase().includes('invalid token')) ||
+        (data && typeof data === 'string' && data.includes('authentication is required'));
+        
+      if (isTokenExpired) {
+        // Call local handling function directly
+        handleTokenExpiration(api);
+      }
     }
   }
   
   return result;
 };
 
-// 创建基础API配置
+// Create base API configuration
 export const baseApi = createApi({
   reducerPath: 'api',
   baseQuery: baseQueryWithReauth,
-  // 通用标签类型
+  // Common tag types
   tagTypes: ['User', 'Auth', 'Coach', 'MemberSubscriptionRequests', 'MemberUnreadCount'],
-  // 端点将在各个特定的API slice中定义
+  // Endpoints will be defined in specific API slices
   endpoints: () => ({}),
 }); 

@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 
 /**
- * 普通图片的懒加载组件
+ * Lazy loading component for regular images
  * 
- * 使用方法：
+ * Usage:
  * <ImgLazy 
  *   src="path/to/image.jpg" 
- *   alt="描述" 
+ *   alt="description" 
  *   width={300} 
  *   height={200} 
  * />
@@ -18,9 +18,9 @@ const ImgLazy = ({
   height,
   className = "",
   style = {},
-  loading = "lazy", // 使用原生懒加载或Intersection Observer
-  rootMargin = "200px 0px", // 默认提前200px加载
-  threshold = 0.1, // 当10%可见时加载
+  loading = "lazy", // Use native lazy loading or Intersection Observer
+  rootMargin = "200px 0px", // Default: load 200px before becoming visible
+  threshold = 0.1, // Load when 10% visible
   onLoad,
   onError,
   ...props
@@ -29,9 +29,9 @@ const ImgLazy = ({
   const [isLoaded, setIsLoaded] = useState(false);
   const [shouldLoad, setShouldLoad] = useState(false);
   
-  // 使用Intersection Observer API实现懒加载
+  // Use Intersection Observer API for lazy loading
   useEffect(() => {
-    // 如果浏览器支持native lazy loading且用户选择使用它，直接返回
+    // If browser supports native lazy loading and user chooses to use it, return directly
     if (loading === 'lazy' && 'loading' in HTMLImageElement.prototype) {
       return;
     }
@@ -60,18 +60,18 @@ const ImgLazy = ({
     };
   }, [loading, rootMargin, threshold]);
   
-  // 处理图片加载完成
+  // Handle image load completion
   const handleLoad = (e) => {
     setIsLoaded(true);
     if (onLoad) onLoad(e);
   };
   
-  // 处理图片加载错误
+  // Handle image load error
   const handleError = (e) => {
     if (onError) onError(e);
   };
   
-  // 优先使用原生懒加载，不支持时回退到自定义Intersection Observer实现
+  // Prioritize native lazy loading, fall back to custom Intersection Observer implementation when not supported
   const usesNativeLazy = loading === 'lazy' && 'loading' in HTMLImageElement.prototype;
   const shouldUseObserver = !usesNativeLazy && shouldLoad;
   
@@ -83,7 +83,7 @@ const ImgLazy = ({
     ...style
   };
   
-  // 占位符样式
+  // Placeholder style
   const placeholderStyle = {
     width: width || '100%',
     height: height || '200px',
@@ -93,7 +93,7 @@ const ImgLazy = ({
     alignItems: 'center'
   };
   
-  // 如果不支持原生懒加载且图片还未进入视图，显示占位符
+  // If native lazy loading is not supported and the image hasn't entered the viewport yet, show placeholder
   if (!usesNativeLazy && !shouldLoad) {
     return <div ref={imgRef} style={placeholderStyle} className={className} />;
   }

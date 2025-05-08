@@ -19,7 +19,9 @@ public enum RequestStatus {
 
     ACCEPT("accept","Accept"),
 
-    CANCEL("cancel","Cancel");
+    CANCEL("cancel","Cancel"),
+
+    DELETE("delete","Delete");
 
     private final String status;
     private final String desc;

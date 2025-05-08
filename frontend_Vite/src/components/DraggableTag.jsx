@@ -3,7 +3,7 @@ import { Tag, Badge } from 'antd';
 import { useDrag, useDrop } from 'react-dnd';
 import { motion } from 'framer-motion';
 
-// 定义一组多彩的标签颜色
+// Define a set of colorful tag colors
 const TAG_COLORS = [
   'magenta', 'red', 'volcano', 'orange', 'gold',
   'lime', 'green', 'cyan', 'blue', 'geekblue',
@@ -14,25 +14,16 @@ const DraggableTag = ({ tag, index, type, onMove, onRemove, style }) => {
   const ref = useRef(null);
   const [isHovered, setIsHovered] = useState(false);
   
-  // 使用 useEffect 检查组件 ref 是否正确初始化
+  // Use useEffect to check if the component ref is properly initialized
   useEffect(() => {
     if (!ref.current) {
-      console.warn('Tag ref not initialized:', tag);
-    } else {
-      console.log('Tag ref initialized:', tag.tagName, '- Type:', type);
+      // Tag ref not initialized
     }
   }, [tag, type]);
   
   const [{ isDragging }, drag] = useDrag({
     type: 'tag',
     item: () => {
-      console.log('Starting drag tag:', { 
-        id: tag.id, 
-        name: tag.tagName, 
-        index, 
-        sourceType: type 
-      });
-      
       return { 
         id: tag.id, 
         index, 
@@ -43,12 +34,6 @@ const DraggableTag = ({ tag, index, type, onMove, onRemove, style }) => {
     end: (item, monitor) => {
       const didDrop = monitor.didDrop();
       const dropResult = monitor.getDropResult();
-      
-      console.log('Drag end:', { 
-        didDrop, 
-        dropResult,
-        item 
-      });
     },
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
@@ -59,7 +44,6 @@ const DraggableTag = ({ tag, index, type, onMove, onRemove, style }) => {
     accept: 'tag',
     hover: (item, monitor) => {
       if (!ref.current) {
-        console.error('Ref not available during hover');
         return;
       }
       
@@ -68,18 +52,20 @@ const DraggableTag = ({ tag, index, type, onMove, onRemove, style }) => {
       const sourceType = item.sourceType;
       const targetType = type;
       
-      // 如果拖拽项和放置项相同，则不做任何处理
+      // Don't replace items with themselves
       if (dragIndex === hoverIndex && sourceType === targetType) {
         return;
       }
       
-      // 获取鼠标位置信息，用于更准确的拖拽
+      // Get mouse position information for more accurate dragging
       const hoverBoundingRect = ref.current.getBoundingClientRect();
       const hoverMiddleY = (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
       const clientOffset = monitor.getClientOffset();
       const hoverClientY = clientOffset.y - hoverBoundingRect.top;
       
-      // 仅在鼠标越过中线时进行处理，减少频繁更新
+      // Only perform the move when the mouse has crossed half of the items height
+      // When dragging downwards, only move when the cursor is below 50%
+      // When dragging upwards, only move when the cursor is above 50%
       if (
         (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) ||
         (dragIndex > hoverIndex && hoverClientY > hoverMiddleY)
@@ -87,19 +73,10 @@ const DraggableTag = ({ tag, index, type, onMove, onRemove, style }) => {
         return;
       }
       
-      console.log('Hover event:', { 
-        dragTag: item.name,
-        hoverTag: tag.tagName,
-        dragIndex, 
-        hoverIndex, 
-        sourceType, 
-        targetType
-      });
-      
-      // 调用传入的onMove函数处理移动逻辑
+      // Call onMove function to handle the movement logic
       onMove(dragIndex, hoverIndex, sourceType, targetType, item.id);
       
-      // 更新拖拽项的index和sourceType
+      // Update the index and sourceType for the dragged item
       item.index = hoverIndex;
       item.sourceType = targetType;
     },
@@ -108,17 +85,17 @@ const DraggableTag = ({ tag, index, type, onMove, onRemove, style }) => {
     }),
   });
   
-  // 将 drag 和 drop 应用于同一个引用
+  // Apply drag and drop to the same ref
   drag(drop(ref));
   
-  // 根据标签ID确定标签颜色，保证相同标签始终相同颜色
+  // Determine tag color based on tag ID to ensure the same tag always has the same color
   const getTagColor = () => {
-    // 使用标签ID来计算颜色索引，确保相同ID的标签颜色一致
+    // Use the tag ID to calculate the color index, ensuring consistent colors for the same ID
     const colorIndex = tag.id % TAG_COLORS.length;
     return TAG_COLORS[colorIndex];
   };
   
-  // 根据拖拽状态设置样式
+  // Set style based on drag state
   const tagStyle = {
     cursor: 'move',
     opacity: isDragging ? 0.5 : 1,
@@ -137,11 +114,11 @@ const DraggableTag = ({ tag, index, type, onMove, onRemove, style }) => {
     ...style,
   };
   
-  // 鼠标悬停效果
+  // Mouse hover effects
   const handleMouseEnter = () => setIsHovered(true);
   const handleMouseLeave = () => setIsHovered(false);
   
-  // 为选中的标签添加特殊标记
+  // Add special marker for selected tags
   const badgeColor = type === 'coach' ? '#52c41a' : 'transparent';
   
   return (
@@ -160,7 +137,6 @@ const DraggableTag = ({ tag, index, type, onMove, onRemove, style }) => {
           style={tagStyle}
           closable={onRemove !== undefined}
           onClose={() => {
-            console.log('Remove tag:', tag.tagName, '- Type:', type);
             onRemove && onRemove(tag.id, type);
           }}
           color={getTagColor()}

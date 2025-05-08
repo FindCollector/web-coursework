@@ -28,7 +28,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
  */
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity  // 启用方法级别安全
+@EnableMethodSecurity  // Enable method-level security
 public class SecurityConfig{
     @Bean
     public PasswordEncoder passwordEncoder(){
@@ -42,16 +42,20 @@ public class SecurityConfig{
             "/auth/sendCode",
             "/auth/verifyCode",
             "/formal/default.jpg",
+            "/auth/google-login",
+            "/auth/google-login/complete-profile",
+            "/auth/google-login/link",
+
 //            "/coach/photo"
-            //todo 如何让这些图片被验证token
+            //todo how to verify token for these images
             "/temp/**",
 //            "/member/coach/filter"
 //            "/member/subscription",
     };
 
-    //放行
+    //Permit access
     /**
-     * 核心配置：通过 SecurityFilterChain 来配置 HttpSecurity
+     * Core configuration: Configure HttpSecurity through SecurityFilterChain
      */
     @Autowired
     private JwtAuthenticationTokenFilter jwtAuthenticationTokenFilter;
@@ -67,25 +71,25 @@ public class SecurityConfig{
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                // 1. 关闭 CSRF
+                // 1. Disable CSRF
                 .csrf(csrf -> csrf.disable())
-                //配置Spring Security允许跨域
+                //Configure Spring Security to allow cross-origin
                 .cors(cors ->{})
 
-                // 2. 设置 Session 策略为无状态
+                // 2. Set Session strategy to stateless
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-                // 3. 配置请求的权限规则
+                // 3. Configure request authorization rules
                 .authorizeHttpRequests(auth -> auth
-                        // 接口允许匿名访问
+                        // Allow anonymous access to interfaces
                         .requestMatchers(WHILELIST).anonymous()
-                        //在全局异常类中捕获
-                        .requestMatchers("/auth/sendCode","/auth/verifyRegister","/auth/logout").permitAll()
-                        //todo 删除测试页面的放行
-                        // 其余所有请求均需要认证
+                        //Captured in the global exception handler
+                        .requestMatchers("/auth/sendCode","/auth/verifyRegister","/auth/logout","/auth/google-login/complete-profile").permitAll()
+                        //todo remove test page access
+                        // All other requests require authentication
                         .anyRequest().authenticated())
 
-                 //配置异常处理器（Lambda DSL）
+                 //Configure exception handlers (Lambda DSL)
                 .exceptionHandling(exceptionHandling ->
                         exceptionHandling
                                 .authenticationEntryPoint(authenticationEntryPoint)
@@ -94,17 +98,17 @@ public class SecurityConfig{
 
 
 
-        //将自己的过滤器放在SpringSecurity的过滤器链中，指定位置
+        //Add custom filter to Spring Security filter chain at specified position
         http.addFilterBefore(jwtAuthenticationTokenFilter, UsernamePasswordAuthenticationFilter.class);
 
-        // 也可以根据需要添加 .httpBasic()、.formLogin()、自定义过滤器等
+        // You can also add .httpBasic(), .formLogin(), custom filters, etc. as needed
 
-        // 4. 最后返回构建好的 SecurityFilterChain
+        // 4. Finally return the built SecurityFilterChain
         return http.build();
     }
 
 
-    //获取AuthenticationManager对象，去调用其中的方法
+    //Get AuthenticationManager object to call its methods
 //    @Bean
 //    public AuthenticationManager authenticationManagerBean(AuthenticationConfiguration configuration) throws Exception {
 //        return configuration.getAuthenticationManager();
@@ -115,17 +119,17 @@ public class SecurityConfig{
             HttpSecurity http,
             AuthenticationProviderImpl authenticationProvider
     ) throws Exception {
-        // 1. 从 HttpSecurity 中拿到 AuthenticationManagerBuilder
+        // 1. Get AuthenticationManagerBuilder from HttpSecurity
         AuthenticationManagerBuilder builder =
                 http.getSharedObject(AuthenticationManagerBuilder.class);
 
-        // 2. 加入自定义的 Provider
+        // 2. Add custom Provider
         builder.authenticationProvider(authenticationProvider);
 
-        // 3. 其他如 builder.userDetailsService(...) 或 builder.inMemoryAuthentication() 等都可以在这里配置
-        //    省略...
+        // 3. Other configurations like builder.userDetailsService(...) or builder.inMemoryAuthentication() can be added here
+        //    omitted...
 
-        // 4. 最后构建一个 AuthenticationManager 返回
+        // 4. Finally build and return an AuthenticationManager
         return builder.build();
     }
 }

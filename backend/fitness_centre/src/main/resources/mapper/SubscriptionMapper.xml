@@ -26,7 +26,7 @@
                 #{st}
             </foreach>
         </if>
-        ORDER BY s.response_time DESC, s.request_time DESC
+        ORDER BY s.coach_is_read ASC,s.response_time DESC, s.request_time DESC
     </select>
 
     <select id="findSubscriptionByMemberId" resultType="com.fitness_centre.dto.subscription.SubscriptionListResponse">
@@ -51,7 +51,7 @@
                 #{st}
             </foreach>
         </if>
-        ORDER BY s.response_time DESC, s.request_time DESC
+        ORDER BY s.member_is_read ASC,s.response_time DESC, s.request_time DESC
     </select>
 
 </mapper>

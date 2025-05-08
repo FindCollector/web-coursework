@@ -6,70 +6,89 @@ import {
   TeamOutlined, 
   SettingOutlined,
   DashboardOutlined,
-  BellOutlined
+  BellOutlined,
+  HistoryOutlined,
+  ScheduleOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout as logoutAction } from '../../store/authSlice';
 import { setActiveMenu } from '../../store/navSlice';
 import { useLogoutMutation } from '../../store/api/authApi';
-import { useGetUnreadRequestsCountQuery, useGetUnreadSessionCountQuery } from '../../store/api/coachApi';
+import { 
+  useGetUnreadRequestsCountQuery, 
+  useGetUnreadSessionCountQuery, 
+  useGetUnrecordedSessionCountDataQuery
+} from '../../store/api/coachApi';
 import { Modal, message } from 'antd';
 
 const { Sider } = Layout;
 const { Title } = Typography;
 
 /**
- * 教练侧边栏组件
- * 用于Coach Dashboard和Details等页面的共享侧边栏
+ * Coach Sidebar Component
+ * Shared sidebar for Coach Dashboard and Details pages
  */
 const CoachSidebar = ({ colorToken, onCollapse }) => {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
   const dispatch = useDispatch();
   
-  // 从Redux中获取activeMenu
+  // Get activeMenu from Redux
   const activeMenu = useSelector((state) => state.navigation.activeMenu);
   
-  // 添加 RTK Query 的 logout mutation hook
+  // Add RTK Query logout mutation hook
   const [logout, { isLoading: isLoggingOut }] = useLogoutMutation();
   
-  // 获取未读订阅请求计数
+  // Get unread subscription request count
   const { 
     data: unreadSubscriptionCount = 0, 
     refetch: refetchUnreadSubscriptionCount 
   } = useGetUnreadRequestsCountQuery(null, {
-    pollingInterval: 60000, // 每60秒轮询一次
-    refetchOnMountOrArgChange: true, // 组件挂载时始终重新获取
-    refetchOnFocus: true, // 窗口获得焦点时刷新
-    refetchOnReconnect: true, // 网络重连时刷新
+    pollingInterval: 60000, // Poll every 60 seconds
+    refetchOnMountOrArgChange: true, // Always refetch on component mount
+    refetchOnFocus: true, // Refresh when window gets focus
+    refetchOnReconnect: true, // Refresh when network reconnects
   });
   
-  // 获取未读Session请求计数
+  // Get unread Session request count
   const { 
     data: unreadSessionCount = 0, 
     refetch: refetchUnreadSessionCount 
   } = useGetUnreadSessionCountQuery(null, {
-    pollingInterval: 60000, // 每60秒轮询一次
-    refetchOnMountOrArgChange: true, // 组件挂载时始终重新获取
-    refetchOnFocus: true, // 窗口获得焦点时刷新
-    refetchOnReconnect: true, // 网络重连时刷新
+    pollingInterval: 60000, // Poll every 60 seconds
+    refetchOnMountOrArgChange: true, // Always refetch on component mount
+    refetchOnFocus: true, // Refresh when window gets focus
+    refetchOnReconnect: true, // Refresh when network reconnects
   });
   
-  // 计算总未读消息数
-  const totalUnreadCount = unreadSubscriptionCount + unreadSessionCount;
+  // Get unrecorded Session count
+  const { 
+    data: unrecordedSessionCount = 0, 
+    refetch: refetchUnrecordedSessionCount 
+  } = useGetUnrecordedSessionCountDataQuery(null, {
+    pollingInterval: 60000, // Poll every 60 seconds
+    refetchOnMountOrArgChange: true,
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
+  });
   
-  // 组件挂载或激活时刷新未读计数
+  // Calculate total unread messages count (Requests)
+  const totalUnreadRequestsCount = unreadSubscriptionCount + unreadSessionCount;
+  
+  // Refresh unread counts when component mounts or becomes active
   useEffect(() => {
     refetchUnreadSubscriptionCount();
     refetchUnreadSessionCount();
+    refetchUnrecordedSessionCount();
     
-    // 注册事件监听器，用于强制刷新计数
+    // Register event listener for forced count refresh
     const refreshHandler = () => {
       refetchUnreadSubscriptionCount();
       refetchUnreadSessionCount();
+      refetchUnrecordedSessionCount();
       
-      // 如果当前在订阅请求页面，自动刷新请求列表
+      // If currently on subscription requests page, auto-refresh request list
       if (activeMenu === 'subscription-requests') {
         window.dispatchEvent(new Event('refresh-subscription-requests'));
       } else if (activeMenu === 'session-requests') {
@@ -82,9 +101,9 @@ const CoachSidebar = ({ colorToken, onCollapse }) => {
     return () => {
       window.removeEventListener('refresh-unread-count', refreshHandler);
     };
-  }, [refetchUnreadSubscriptionCount, refetchUnreadSessionCount, activeMenu]);
+  }, [refetchUnreadSubscriptionCount, refetchUnreadSessionCount, refetchUnrecordedSessionCount, activeMenu]);
   
-  // 监听未读计数变化，如果当前在请求页面且有未读消息，自动刷新请求列表
+  // Monitor unread count changes; if on request page with unread messages, auto-refresh request list
   useEffect(() => {
     if (activeMenu === 'subscription-requests' && unreadSubscriptionCount > 0) {
       window.dispatchEvent(new Event('refresh-subscription-requests'));
@@ -93,34 +112,33 @@ const CoachSidebar = ({ colorToken, onCollapse }) => {
     }
   }, [unreadSubscriptionCount, unreadSessionCount, activeMenu]);
   
-  // 处理登出
+  // Handle logout
   const handleLogout = () => {
     Modal.confirm({
-      title: '退出登录确认',
-      content: '确定要退出登录吗？',
+      title: 'Logout Confirmation',
+      content: 'Are you sure you want to log out?',
       onOk: async () => {
         try {
           const response = await logout().unwrap();
           dispatch(logoutAction());
           navigate('/login');
         } catch (error) {
-          console.error('Logout failed:', error);
-          message.error('登出失败，请重试。');
+          message.error('Logout failed, please try again.');
         }
       },
-      okText: '退出',
-      cancelText: '取消',
+      okText: 'Logout',
+      cancelText: 'Cancel',
     });
   };
   
-  // 处理菜单点击
+  // Handle menu click
   const handleMenuItemClick = ({ key }) => {
     if (key === 'logout') {
       handleLogout();
       return;
     }
     
-    // 更新Redux中的activeMenu状态
+    // Update activeMenu status in Redux
     dispatch(setActiveMenu(key));
     
     if (key === 'profile') {
@@ -128,31 +146,188 @@ const CoachSidebar = ({ colorToken, onCollapse }) => {
       return;
     }
     
-    // 如果点击的是订阅请求菜单项，强制刷新未读计数
     if (key === 'subscription-requests') {
-      // 强制刷新未读计数
+      // Force refresh unread count
       refetchUnreadSubscriptionCount();
-      // 触发订阅请求列表刷新事件
+      // Trigger subscription request list refresh event
       window.dispatchEvent(new Event('refresh-subscription-requests'));
-    } else if (key === 'session-requests') {
-      // 强制刷新未读计数
-      refetchUnreadSessionCount();
-      // 触发会话请求列表刷新事件
-      window.dispatchEvent(new Event('refresh-coach-session-requests'));
+      navigate('/coach/subscription-requests');
+      return;
     }
     
-    if (key === 'dashboard' || key === 'subscription-requests' || key === 'session-requests' || key === 'schedule' || key === 'members' || key === 'settings' || key === 'availability') {
+    if (key === 'session-requests') {
+      // Force refresh unread count
+      refetchUnreadSessionCount();
+      // Trigger session request list refresh event
+      window.dispatchEvent(new Event('refresh-coach-session-requests'));
+      navigate('/coach/session-requests');
+      return;
+    }
+    
+    if (key === 'schedule') {
+      navigate('/coach/schedule');
+      return;
+    }
+    
+    if (key === 'availability') {
+      navigate('/coach/availability');
+      return;
+    }
+    
+    if (key === 'unrecorded-sessions') {
+      navigate('/coach/unrecorded-sessions');
+      return;
+    }
+    
+    // Navigate to dashboard for menu items that still need dashboard direction
+    if (key === 'dashboard' || key === 'members' || key === 'settings') {
       navigate('/coach/dashboard');
+      return;
+    }
+    
+    // Handle requests parent menu item click - if user clicked parent menu instead of submenu
+    if (key === 'requests') {
+      // Default navigate to subscription-requests submenu
+      if (unreadSubscriptionCount > 0) {
+        dispatch(setActiveMenu('subscription-requests'));
+        navigate('/coach/subscription-requests');
+      } else if (unreadSessionCount > 0) {
+        dispatch(setActiveMenu('session-requests'));
+        navigate('/coach/session-requests');
+      } else {
+        // If neither has unread messages, default to subscription
+        dispatch(setActiveMenu('subscription-requests'));
+        navigate('/coach/subscription-requests');
+      }
       return;
     }
   };
   
-  // 处理侧边栏折叠状态变化
+  // Handle sidebar collapse state change
   const handleCollapse = (value) => {
     setCollapsed(value);
     if (onCollapse) {
       onCollapse(value);
     }
+  };
+  
+  // Get menu items
+  const getMenuItems = ({ unreadSubscriptionCount = 0, unreadSessionCount = 0, unreadTrainingHistoryCount = 0 }) => {
+
+    // Calculate total requests
+    const totalRequestsCount = unreadSubscriptionCount + unreadSessionCount;
+
+    // Create navigation menu items
+    return [
+      // {
+      //   key: 'dashboard',
+      //   icon: <DashboardOutlined />,
+      //   label: 'Dashboard',
+      // },
+      {
+        key: 'profile',
+        icon: <UserOutlined />,
+        label: 'Profile',
+      },
+      {
+        key: 'requests',
+        icon: (
+          <Badge count={totalRequestsCount} size="small" offset={[2, 0]}>
+            <BellOutlined />
+          </Badge>
+        ),
+        label: 'Requests',
+        children: [
+          {
+            key: 'subscription-requests',
+            label: (
+              <span>
+                Subscription
+                {unreadSubscriptionCount > 0 && (
+                  <Badge 
+                    count={unreadSubscriptionCount} 
+                    size="small" 
+                    style={{ 
+                      marginLeft: 6, 
+                      fontSize: '10px', 
+                      padding: '0 4px',
+                      height: '16px',
+                      lineHeight: '16px',
+                      boxShadow: 'none' 
+                    }} 
+                  />
+                )}
+              </span>
+            ),
+          },
+          {
+            key: 'session-requests',
+            label: (
+              <span>
+                Session
+                {unreadSessionCount > 0 && (
+                  <Badge 
+                    count={unreadSessionCount} 
+                    size="small" 
+                    style={{ 
+                      marginLeft: 6, 
+                      fontSize: '10px', 
+                      padding: '0 4px',
+                      height: '16px',
+                      lineHeight: '16px',
+                      boxShadow: 'none' 
+                    }} 
+                  />
+                )}
+              </span>
+            ),
+          }
+        ]
+      },
+      {
+        key: 'schedule',
+        icon: <CalendarOutlined />,
+        label: 'Schedule',
+      },
+      // {
+      //   key: 'members',
+      //   icon: <TeamOutlined />,
+      //   label: 'My Members',
+      // },
+      {
+        key: 'availability',
+        icon: <CalendarOutlined />,
+        label: 'Availability',
+      },
+      {
+        key: 'unrecorded-sessions',
+        icon: <HistoryOutlined />,
+        label: (
+          <span>
+            Unrecorded
+            {unrecordedSessionCount > 0 && (
+              <Badge 
+                count={unrecordedSessionCount} 
+                size="small" 
+                style={{ 
+                  marginLeft: 6, 
+                  fontSize: '10px', 
+                  padding: '0 4px',
+                  height: '16px',
+                  lineHeight: '16px',
+                  boxShadow: 'none' 
+                }} 
+              />
+            )}
+          </span>
+        ),
+      },
+      // {
+      //   key: 'settings',
+      //   icon: <SettingOutlined />,
+      //   label: 'Settings',
+      // }
+    ];
   };
   
   return (
@@ -181,93 +356,7 @@ const CoachSidebar = ({ colorToken, onCollapse }) => {
         selectedKeys={[activeMenu]}
         defaultOpenKeys={['requests']}
         onClick={handleMenuItemClick}
-        items={[
-          {
-            key: 'dashboard',
-            icon: <DashboardOutlined />,
-            label: 'Dashboard',
-          },
-          {
-            key: 'profile',
-            icon: <UserOutlined />,
-            label: 'Profile',
-          },
-          {
-            key: 'schedule',
-            icon: <CalendarOutlined />,
-            label: 'Schedule',
-          },
-          {
-            key: 'members',
-            icon: <TeamOutlined />,
-            label: 'My Members',
-          },
-          {
-            key: 'requests',
-            icon: (
-              <Badge dot={totalUnreadCount > 0}>
-                <BellOutlined />
-              </Badge>
-            ),
-            label: 'Requests',
-            children: [
-              {
-                key: 'subscription-requests',
-                label: (
-                  <span>
-                    Subscription
-                    {unreadSubscriptionCount > 0 && (
-                      <Badge 
-                        count={unreadSubscriptionCount} 
-                        size="small" 
-                        style={{ 
-                          marginLeft: 6, 
-                          fontSize: '10px', 
-                          padding: '0 4px',
-                          height: '16px',
-                          lineHeight: '16px',
-                          boxShadow: 'none' 
-                        }} 
-                      />
-                    )}
-                  </span>
-                ),
-              },
-              {
-                key: 'session-requests',
-                label: (
-                  <span>
-                    Session
-                    {unreadSessionCount > 0 && (
-                      <Badge 
-                        count={unreadSessionCount} 
-                        size="small" 
-                        style={{ 
-                          marginLeft: 6, 
-                          fontSize: '10px', 
-                          padding: '0 4px',
-                          height: '16px',
-                          lineHeight: '16px',
-                          boxShadow: 'none' 
-                        }} 
-                      />
-                    )}
-                  </span>
-                ),
-              }
-            ]
-          },
-          {
-            key: 'availability',
-            icon: <CalendarOutlined />,
-            label: 'Availability',
-          },
-          {
-            key: 'settings',
-            icon: <SettingOutlined />,
-            label: 'Settings',
-          }
-        ]}
+        items={getMenuItems({ unreadSubscriptionCount, unreadSessionCount, unrecordedSessionCount })}
       />
     </Sider>
   );
