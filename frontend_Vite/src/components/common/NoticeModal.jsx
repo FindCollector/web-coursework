@@ -4,7 +4,7 @@ import { Modal, Button } from 'antd';
 const NoticeModal = ({ isVisible, onClose, title, children }) => {
   return (
     <Modal
-      title={title || "Notice"} // Default title if none provided
+      title={title || "Notice"}
       open={isVisible}
       onCancel={onClose}
       footer={[
@@ -12,8 +12,8 @@ const NoticeModal = ({ isVisible, onClose, title, children }) => {
           OK
         </Button>
       ]}
-      centered // Center the modal vertically
-      width={600} // Default width, can be overridden if needed via style/className props later
+      centered 
+      width={600} 
     >
       {children} 
     </Modal>

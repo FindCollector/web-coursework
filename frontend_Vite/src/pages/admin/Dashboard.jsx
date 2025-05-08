@@ -31,12 +31,6 @@ const AdminDashboard = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   
-  // Log user information on component load
-  useEffect(() => {
-    console.log('Current user state:', auth);
-    console.log('Displaying user name:', userName);
-  }, []);
-
   // Replace with RTK Query mutation hook
   const [logout, { isLoading: isLoggingOut }] = useLogoutMutation();
 
@@ -59,7 +53,6 @@ const AdminDashboard = () => {
       }
     } catch (error) {
       // Handle API call error
-      console.error('Logout failed:', error);
       let errorMessage = 'Logout failed, please try again';
       if (error.data) {
         errorMessage = error.data.msg || errorMessage;

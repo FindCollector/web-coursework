@@ -4,7 +4,7 @@ import navReducer from './navSlice';
 import { baseApi } from './api/baseApi';
 import { setupListeners } from '@reduxjs/toolkit/query';
 
-// 生成唯一的命名空间，防止多标签页共享Redux状态
+// Generate unique namespace to prevent sharing Redux state across multiple tabs
 const getStoreNamespace = () => {
   if (typeof window !== 'undefined' && window.PAGE_INSTANCE_ID) {
     return `store_${window.PAGE_INSTANCE_ID}`;
@@ -16,11 +16,11 @@ export const store = configureStore({
   reducer: {
     auth: authReducer,
     navigation: navReducer,
-    // 添加RTK Query的API Reducer
+    // Add RTK Query API Reducer
     [baseApi.reducerPath]: baseApi.reducer,
-    // 可根据需要添加其他reducer
+    // Add other reducers as needed
   },
-  // 添加RTK Query的中间件
+  // Add RTK Query middleware
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(baseApi.middleware),
   devTools: {
@@ -28,7 +28,7 @@ export const store = configureStore({
   }
 });
 
-// 可选: 但是强烈推荐添加这个，用于refetchOnFocus/refetchOnReconnect功能
+// Optional but strongly recommended for refetchOnFocus/refetchOnReconnect features
 setupListeners(store.dispatch);
 
 export default store; 

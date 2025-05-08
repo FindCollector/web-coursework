@@ -183,7 +183,15 @@
             <version>4.13.2</version>
             <scope>test</scope>
         </dependency>
+        
+        <!-- 添加Spring Security Test依赖 -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
+
 
     <build>
         <plugins>
@@ -191,7 +199,26 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.11</version> <!-- 用最新版，写文章时是 0.8.11 -->
+                <executions>
+                    <!-- 让测试时自动把探针注入 -->
+                    <execution>
+                        <goals><goal>prepare-agent</goal></goals>
+                    </execution>
+                    <!-- 测试结束后立刻生成报告 -->
+                    <execution>
+                        <id>report</id>
+                        <phase>test</phase>
+                        <goals><goal>report</goal></goals>
+                    </execution>
+                </executions>
+            </plugin>
+
         </plugins>
+        <testSourceDirectory>${project.basedir}/test</testSourceDirectory>
     </build>
 
 </project>

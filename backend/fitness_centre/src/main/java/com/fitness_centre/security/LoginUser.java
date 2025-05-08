@@ -30,12 +30,12 @@ public class LoginUser implements UserDetails {
         this.user = user;
     }
 
-    //定义成成员变量，避免每一次都去赋值
-    //避免序列化到流当中（redis中不支持将这个类）
+    //Define as member variable to avoid reassigning every time
+    //Avoid serializing to stream (Redis does not support this class)
     @JSONField(serialize = false)
     private List<SimpleGrantedAuthority> authorities;
 
-    //Spring Security调用这个获得的权限信息
+    //Spring Security calls this to obtain permission information
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         if(authorities != null){
@@ -67,7 +67,7 @@ public class LoginUser implements UserDetails {
     public boolean isAccountNonLocked() {
         Integer status = user.getStatus();
         if(status.equals(UserStatus.BLOCKED.getStatus())){
-            System.out.println("账号封禁");
+            System.out.println("Account blocked");
             return false;
         }
         return true;
@@ -83,7 +83,7 @@ public class LoginUser implements UserDetails {
         Integer status = user.getStatus();
 
         if(status.equals(UserStatus.WAITING_APPROVAL.getStatus())){
-            //todo 改提示语
+            //todo change prompt message
             return false;
         }
         return true;

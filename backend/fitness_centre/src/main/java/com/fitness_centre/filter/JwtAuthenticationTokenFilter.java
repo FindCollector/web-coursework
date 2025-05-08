@@ -34,16 +34,16 @@ public class JwtAuthenticationTokenFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        //获取token(前端如果已经登录的话，要从请求头获取token)
+        //Get token (if the frontend is already logged in, get the token from the request header)
         String token = request.getHeader("token");
         if (!StringUtils.hasText(token)) {
-            //放行，不用解析了,被后面过滤器捕获去登录
+            //Let it pass, no need to parse, will be caught by later filters for login
             filterChain.doFilter(request, response);
             return;
         }
-        //解析token
+        //Parse token
         String email;
-        //TODO 修改响应格式
+        //TODO modify response format
         try {
             Claims claims = JwtUtil.parseJWT(token);
             email = claims.getSubject();
@@ -51,18 +51,18 @@ public class JwtAuthenticationTokenFilter extends OncePerRequestFilter {
             e.printStackTrace();
             throw new AuthException(ErrorCode.TOKEN_INVALID);
         }
-        //从redis中获取用户信息
+        //Get user information from redis
         String redisKey = "login:" + email;
         LoginUser loginUser =  redisCache.getCacheObject(redisKey);
         if(Objects.isNull(loginUser)){
             throw new AuthException(ErrorCode.UNAUTHORIZED);
         }
 
-        //区别于LoginServiceImpl，这里要用三个参数的构造函数，它会设置成员变量为已认证的状态
+        //Different from LoginServiceImpl, here we need to use the constructor with three parameters, which will set the member variable to an authenticated state
         UsernamePasswordAuthenticationToken authenticationToken =
                 new UsernamePasswordAuthenticationToken(loginUser,null,loginUser.getAuthorities());
         SecurityContextHolder.getContext().setAuthentication(authenticationToken);
-        //放行
+        //Let it pass
         filterChain.doFilter(request,response);
     }
 }

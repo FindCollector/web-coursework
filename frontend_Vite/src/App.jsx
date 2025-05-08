@@ -18,13 +18,12 @@ const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
 const CoachDashboard = lazy(() => import('./pages/coach/Dashboard'));
 const CoachDetails = lazy(() => import('./pages/coach/Details'));
 const MemberDashboard = lazy(() => import('./pages/member/Dashboard'));
-const DebugPage = lazy(() => import('./pages/Debug'));
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 
 const LoadingComponent = () => (
   <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-    <div>页面加载中...</div>
+    <div>Loading page...</div>
   </div>
 );
 
@@ -162,14 +161,6 @@ function App() {
             <LandingPage />
           </Suspense>
         } />
-        
-        {process.env.NODE_ENV !== 'production' && (
-          <Route path="/debug" element={
-            <Suspense fallback={<LoadingComponent />}>
-              <DebugPage />
-            </Suspense>
-          } />
-        )}
 
         <Route
           path="/admin/dashboard"

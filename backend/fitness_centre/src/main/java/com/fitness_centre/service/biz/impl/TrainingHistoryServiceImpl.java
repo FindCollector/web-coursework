@@ -2,6 +2,8 @@ package com.fitness_centre.service.biz.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -46,10 +48,21 @@ public class TrainingHistoryServiceImpl extends ServiceImpl<TrainingHistoryMappe
 
     @Autowired
     private TagMapper tagMapper;
+
+    @Autowired
+    private TrainingHistoryMapper trainingHistoryMapper;
+
+    @Autowired
+    public void setTrainingHistoryMapper(TrainingHistoryMapper trainingHistoryMapper) {
+        this.trainingHistoryMapper = trainingHistoryMapper;
+        super.baseMapper = trainingHistoryMapper;
+    }
+
     @Override
     public GeneralResponseResult addTrainingHistory(Long coachId,Long sessionId, String feedback,List<Long> tagList) {
-        LambdaQueryWrapper<SessionBooking> sessionQueryWrapper = new LambdaQueryWrapper<>();
-        sessionQueryWrapper.eq(SessionBooking::getId,sessionId).eq(SessionBooking::getCoachId,coachId);
+        // 使用普通QueryWrapper代替LambdaQueryWrapper
+        QueryWrapper<SessionBooking> sessionQueryWrapper = new QueryWrapper<>();
+        sessionQueryWrapper.eq("id", sessionId).eq("coach_id", coachId);
         SessionBooking sessionBooking = sessionBookingMapper.selectOne(sessionQueryWrapper);
         TrainingHistory trainingHistory = new TrainingHistory();
         BeanUtils.copyProperties(sessionBooking,trainingHistory,"id");
@@ -57,13 +70,14 @@ public class TrainingHistoryServiceImpl extends ServiceImpl<TrainingHistoryMappe
         trainingHistory.setFeedback(feedback);
         //为了之后的主键回填
         trainingHistory.setId(null);
-        int rows = this.baseMapper.insert(trainingHistory);
+        int rows = this.trainingHistoryMapper.insert(trainingHistory);
         if (rows <= 0){
             throw new SystemException(ErrorCode.DB_OPERATION_ERROR);
         }
         //将这条Session标记为已记录
-        LambdaUpdateWrapper<SessionBooking> sessionUpdateWrapper = new LambdaUpdateWrapper<>();
-        sessionUpdateWrapper.eq(SessionBooking::getId,sessionId).set(SessionBooking::getIsRecord,true);
+        // 使用普通UpdateWrapper代替LambdaUpdateWrapper
+        UpdateWrapper<SessionBooking> sessionUpdateWrapper = new UpdateWrapper<>();
+        sessionUpdateWrapper.eq("id", sessionId).set("is_record", true);
         rows = sessionBookingMapper.update(sessionUpdateWrapper);
         if (rows <= 0){
             throw new SystemException(ErrorCode.DB_OPERATION_ERROR);
@@ -90,18 +104,19 @@ public class TrainingHistoryServiceImpl extends ServiceImpl<TrainingHistoryMappe
         Page<TrainingHistory> pageParam = new Page<>(pageNow, pageSize);
 
         // 2. 设置查询条件
-        LambdaQueryWrapper<TrainingHistory> trainHistoryWrapper = new LambdaQueryWrapper<>();
-        trainHistoryWrapper.eq(TrainingHistory::getMemberId, memberId);
+        // 使用普通QueryWrapper代替LambdaQueryWrapper
+        QueryWrapper<TrainingHistory> trainHistoryWrapper = new QueryWrapper<>();
+        trainHistoryWrapper.eq("member_id", memberId);
         if(startDate != null && endDate != null){
             LocalDateTime startTime = startDate.atStartOfDay();
             LocalDateTime endTime = endDate.atStartOfDay();
-            trainHistoryWrapper.ge(TrainingHistory::getStartTime,startTime)
-                    .le(TrainingHistory::getEndTime,endTime);
+            trainHistoryWrapper.ge("start_time", startTime)
+                    .le("end_time", endTime);
         }
-        trainHistoryWrapper.orderByDesc(TrainingHistory::getStartTime);
+        trainHistoryWrapper.orderByDesc("start_time");
 
         // 3. 执行分页查询，获取分页结果 IPage<TrainingHistory>
-        IPage<TrainingHistory> historyPage = this.baseMapper.selectPage(pageParam, trainHistoryWrapper);
+        IPage<TrainingHistory> historyPage = this.trainingHistoryMapper.selectPage(pageParam, trainHistoryWrapper);
 
         // 4. 将查询到的实体列表 (TrainingHistory) 转换为响应列表 (TrainingHistoryListResponse)
         //    注意：此处的 .map() 内部仍然会为每条记录执行数据库查询，存在 N+1 问题
@@ -115,8 +130,9 @@ public class TrainingHistoryServiceImpl extends ServiceImpl<TrainingHistoryMappe
                     // 根据 memberId 查询会员名称
                     // **重要修正**：原代码使用 response.getId() 查询是错误的，应使用 trainingHistory 中的 ID。
                     // 这里假设使用 trainingHistory.getMemberId() 获取会员ID。
-                    LambdaQueryWrapper<User> memberQueryWrapper = new LambdaQueryWrapper<>();
-                    memberQueryWrapper.eq(User::getId, trainingHistory.getMemberId()); // 使用 trainingHistory 的 memberId
+                    // 使用普通QueryWrapper代替LambdaQueryWrapper
+                    QueryWrapper<User> memberQueryWrapper = new QueryWrapper<>();
+                    memberQueryWrapper.eq("id", trainingHistory.getMemberId()); // 使用 trainingHistory 的 memberId
                     User member = userMapper.selectOne(memberQueryWrapper);
                     response.setMemberName(member != null ? member.getUserName() : "未知用户");
 
@@ -124,8 +140,9 @@ public class TrainingHistoryServiceImpl extends ServiceImpl<TrainingHistoryMappe
                     // **重要假设与修正**：假设 TrainingHistory 实体中有 coachId 字段，并且原代码意图是查询教练。
                     // 原代码使用 response.getId() 是错误的。这里假设使用 trainingHistory.getCoachId()。
                     // 如果 TrainingHistory 没有 coachId，你需要调整这里的逻辑。
-                    LambdaQueryWrapper<User> coachQueryWrapper = new LambdaQueryWrapper<>();
-                    coachQueryWrapper.eq(User::getId, trainingHistory.getCoachId()); // 假设有 getCoachId() 方法
+                    // 使用普通QueryWrapper代替LambdaQueryWrapper
+                    QueryWrapper<User> coachQueryWrapper = new QueryWrapper<>();
+                    coachQueryWrapper.eq("id", trainingHistory.getCoachId()); // 假设有 getCoachId() 方法
                     User coach = userMapper.selectOne(coachQueryWrapper);
                     response.setCoachName(coach != null ? coach.getUserName() : "未知教练");
 
@@ -148,9 +165,10 @@ public class TrainingHistoryServiceImpl extends ServiceImpl<TrainingHistoryMappe
 
     @Override
     public GeneralResponseResult countUnReadTrainingHistory(Long memberId) {
-        LambdaQueryWrapper<TrainingHistory> trainingHistoryWrapper = new LambdaQueryWrapper<>();
-        trainingHistoryWrapper.eq(TrainingHistory::getMemberId,memberId).eq(TrainingHistory::getMemberIsRead,false);
-        Long count = this.baseMapper.selectCount(trainingHistoryWrapper);
+        // 使用普通QueryWrapper代替LambdaQueryWrapper
+        QueryWrapper<TrainingHistory> trainingHistoryWrapper = new QueryWrapper<>();
+        trainingHistoryWrapper.eq("member_id", memberId).eq("member_is_read", false);
+        Long count = this.trainingHistoryMapper.selectCount(trainingHistoryWrapper);
         Map<String,Long> dataMap = new HashMap<>();
         dataMap.put("count",count);
         return new GeneralResponseResult(ErrorCode.SUCCESS,dataMap);
@@ -158,11 +176,12 @@ public class TrainingHistoryServiceImpl extends ServiceImpl<TrainingHistoryMappe
 
     @Override
     public GeneralResponseResult readTrainingHistory(Long memberId,Long historyId) {
-        LambdaUpdateWrapper<TrainingHistory> updateWrapper = new LambdaUpdateWrapper<>();
-        updateWrapper.eq(TrainingHistory::getMemberId,memberId)
-                .eq(TrainingHistory::getId,historyId)
-                .set(TrainingHistory::getMemberIsRead,true);
-        int rows = this.baseMapper.update(updateWrapper);
+        // 使用普通UpdateWrapper代替LambdaUpdateWrapper
+        UpdateWrapper<TrainingHistory> updateWrapper = new UpdateWrapper<>();
+        updateWrapper.eq("member_id", memberId)
+                .eq("id", historyId)
+                .set("member_is_read", true);
+        int rows = this.trainingHistoryMapper.update(updateWrapper);
         if (rows <= 0){
             throw new SystemException(ErrorCode.DB_OPERATION_ERROR);
         }

@@ -12,7 +12,7 @@ import {
   Descriptions
 } from 'antd';
 import { CalendarOutlined, UnorderedListOutlined } from '@ant-design/icons';
-import { useGetCoachSessionScheduleQuery } from '../../store/api/coachApi'; // 使用 coachApi
+import { useGetCoachSessionScheduleQuery } from '../../store/api/coachApi'; // Using coachApi
 import FullCalendar from '@fullcalendar/react';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import dayjs from 'dayjs';
@@ -79,7 +79,7 @@ const CoachSchedule = () => {
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
   const [selectedEventDetails, setSelectedEventDetails] = useState(null);
 
-  // 使用 coach 的 hook 获取日程数据
+  // Using coach hook to get schedule data
   const {
     data: scheduleData, // Contains { currentWeek: {...}, nextWeek: {...} }
     isLoading,
@@ -123,7 +123,7 @@ const CoachSchedule = () => {
   useEffect(() => {
     refetch();
   }, [refetch]);
-  // --- (useEffect hooks 结束) ---
+  // --- (End of useEffect hooks) ---
 
   // --- (existing dayOptions, getDayText) ---
   const dayOptions = [
@@ -141,7 +141,7 @@ const CoachSchedule = () => {
     const day = dayOptions.find(day => day.value === numericDay);
     return day ? day.label : '';
   };
-  // --- (dayOptions, getDayText 结束) ---
+  // --- (End of dayOptions, getDayText) ---
 
   // --- (existing columns definition) ---
   const columns = [
@@ -154,14 +154,14 @@ const CoachSchedule = () => {
     { title: 'Start Time', dataIndex: 'startTime', key: 'startTime' },
     { title: 'End Time', dataIndex: 'endTime', key: 'endTime' },
     { 
-      title: 'Member', // 改为 Member
-      dataIndex: 'memberName', // 显示 memberName
+      title: 'Member', 
+      dataIndex: 'memberName', 
       key: 'memberName', 
-      render: (text) => <Tag color="purple">{text}</Tag> // 使用不同颜色区分
+      render: (text) => <Tag color="purple">{text}</Tag> // Use different color to distinguish
     },
-    { title: 'Member Message', dataIndex: 'message', key: 'message', ellipsis: true }, // 明确是 Member Message
+    { title: 'Member Message', dataIndex: 'message', key: 'message', ellipsis: true }, 
   ];
-  // --- (columns 结束) ---
+  // --- (End of columns) ---
 
   // No longer need a single prepareCalendarEvents, use helper function
   // const prepareCalendarEvents = () => { ... } // REMOVED
@@ -169,23 +169,23 @@ const CoachSchedule = () => {
   // --- (existing handleEventClick) ---
   const handleEventClick = (clickInfo) => {
     const eventDetails = {
-      memberName: clickInfo.event.extendedProps.memberName, // 显示 Member Name
+      memberName: clickInfo.event.extendedProps.memberName, // Display Member Name
       day: getDayText(clickInfo.event.extendedProps.dayOfWeek),
       startTime: clickInfo.event.extendedProps.startTime,
       endTime: clickInfo.event.extendedProps.endTime,
-      message: clickInfo.event.extendedProps.message, // 这是 Member Message
+      message: clickInfo.event.extendedProps.message, // This is Member Message
     };
     setSelectedEventDetails(eventDetails);
     setIsDetailModalVisible(true);
   };
-  // --- (handleEventClick 结束) ---
+  // --- (End of handleEventClick) ---
 
   // --- (existing handleCloseDetailModal) ---
   const handleCloseDetailModal = () => {
     setIsDetailModalVisible(false);
     setSelectedEventDetails(null);
   };
-  // --- (handleCloseDetailModal 结束) ---
+  // --- (End of handleCloseDetailModal) ---
 
   // Render function for the content of a specific week (list or calendar)
   const renderWeekContent = (weekData, weekStartDate) => {
@@ -291,7 +291,7 @@ const CoachSchedule = () => {
       )}
     </Modal>
   );
-  // --- (renderDetailsModal 结束) ---
+  // --- (End of renderDetailsModal) ---
 
   // --- (existing Loading/Error states) ---
   if (isLoading) {
@@ -301,7 +301,7 @@ const CoachSchedule = () => {
   if (error) {
     return <div className="p-8"><Alert message="Error loading schedule" description="Could not load schedule. Please try again." type="error" showIcon /></div>;
   }
-  // --- (Loading/Error states 结束) ---
+  // --- (End of Loading/Error states) ---
 
   return (
     <div className="p-6">

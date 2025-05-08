@@ -50,7 +50,7 @@ const UserManagement = () => {
   const [userToDelete, setUserToDelete] = useState(null);
   // --- End State ---
 
-  // 使用RTK Query hooks替换React Query
+  // Use RTK Query hooks instead of React Query
   const { data, isLoading, refetch } = useGetUserListQuery({
     pageNow: pagination.current,
     pageSize: pagination.pageSize,
@@ -62,12 +62,12 @@ const UserManagement = () => {
     refetchOnMountOrArgChange: true
   });
 
-  // 获取用户配置
+  // Get user configuration
   const { data: userConfig } = useGetUserConfigQuery();
   const [roleOptions, setRoleOptions] = useState([]);
   const [statusOptions, setStatusOptions] = useState([]);
 
-  // 当配置数据加载完成后，更新选项
+  // Update options when configuration data is loaded
   useEffect(() => {
     if (userConfig) {
       setRoleOptions(userConfig.roles || []);
@@ -92,9 +92,6 @@ const UserManagement = () => {
       userData = data;
     }
     
-    // Log the userData for debugging
-    console.log('Raw user data:', userData);
-    
     // Process each user record to ensure it has a valid id field
     return userData.map(user => {
       // If the user doesn't have an id field, try to determine it from other fields
@@ -102,22 +99,10 @@ const UserManagement = () => {
         // Create a synthetic id if none exists
         // First try common id fields, then fall back to email as a unique identifier
         user.id = user.userId || user._id || user.userID || user.email;
-        console.log('Added synthetic id to user:', user.id);
       }
       return user;
     });
   };
-
-  // Fetch user data on component load
-  useEffect(() => {
-    // Check if token exists
-    const token = sessionStorage.getItem('token');
-    if (token) {
-      console.log('Found token in sessionStorage, preparing to fetch user data');
-    } else {
-      console.warn('No token found in sessionStorage, authentication may fail');
-    }
-  }, []);
 
   // Update pagination information
   useEffect(() => {
@@ -129,14 +114,12 @@ const UserManagement = () => {
     }
   }, [data]);
 
-  // 使用RTK Query的mutation hooks
+  // Use RTK Query mutation hooks
   const [updateUserStatus, updateStatusResult] = useUpdateUserStatusMutation();
   const [deleteUser, deleteUserResult] = useDeleteUserMutation();
 
   // Handle table changes (pagination, sorting, filtering)
-  const handleTableChange = (pagination, filters, sorter) => {
-    console.log('Table change:', pagination.current, pagination.pageSize);
-    
+  const handleTableChange = (pagination, filters, sorter) => {    
     // Update pagination
     setPagination({
       current: pagination.current,
@@ -185,22 +168,15 @@ const UserManagement = () => {
     handleSearch(newValues);
   };
 
-  // 添加useEffect来监听数据变化
-  useEffect(() => {
-    if (!skip && data) {
-      console.log('Data received:', data);
-    }
-  }, [data, skip]);
-
   // Reset filters
   const resetFilters = () => {
-    // 重置表单
+    // Reset form
     searchForm.resetFields();
     
-    // 显示加载提示
+    // Show loading message
     const loadingMessage = message.loading('Loading data...', 0);
 
-    // 重置状态
+    // Reset states
     setFilters({});
     setSorter({});
     setPagination({
@@ -208,7 +184,7 @@ const UserManagement = () => {
       pageSize: 10
     });
 
-    // 直接调用refetch强制刷新数据
+    // Force refresh data
     refetch()
       .then(() => {
         loadingMessage();
@@ -219,22 +195,6 @@ const UserManagement = () => {
         message.error('Failed to refresh data');
       });
   };
-
-  // 监听状态变化
-  useEffect(() => {
-    console.log('[UserManagement] 状态变化:', {
-      pagination,
-      filters,
-      sorter
-    });
-  }, [pagination, filters, sorter]);
-
-  // 监听数据变化
-  useEffect(() => {
-    if (data) {
-      console.log('[UserManagement] 收到新数据:', data);
-    }
-  }, [data]);
 
   const approveUser = (userId) => {
     // Show loading message
@@ -251,7 +211,6 @@ const UserManagement = () => {
           message.success('User approved successfully');
         } else {
           message.error(data.msg || 'Operation failed, please try again');
-          console.error('Failed to approve user:', data);
         }
       })
       .catch((error) => {
@@ -259,7 +218,6 @@ const UserManagement = () => {
         loadingMessage();
         
         message.error('Operation failed: ' + (error.message || 'Unknown error'));
-        console.error('Error approving user:', error);
         
         // Show more specific prompt for network errors
         if (error.message && (error.message.includes('Network Error') || error.message.includes('CORS'))) {
@@ -287,7 +245,6 @@ const UserManagement = () => {
           message.success('User banned successfully');
         } else {
           message.error(data.msg || 'Operation failed, please try again');
-          console.error('Failed to ban user:', data);
         }
       })
       .catch((error) => {
@@ -295,7 +252,6 @@ const UserManagement = () => {
         loadingMessage();
         
         message.error('Operation failed: ' + (error.message || 'Unknown error'));
-        console.error('Error banning user:', error);
       });
   };
 
@@ -305,12 +261,11 @@ const UserManagement = () => {
       message.error('Cannot delete: Missing user ID');
       return;
     }
-    console.log('[UserManagement.jsx] showDeleteConfirm - Opening modal, ID:', userId);
     setUserToDelete(userId);
     setIsDeleteModalVisible(true);
   };
 
-  // 处理删除用户确认
+  // Handle user deletion confirmation
   const handleDeleteOk = async () => {
     if (!userToDelete) {
       message.error('No user selected for deletion');
@@ -319,8 +274,6 @@ const UserManagement = () => {
     }
     
     try {
-      console.log('[UserManagement.jsx] handleDeleteOk - Attempting to delete user ID:', userToDelete);
-      
       const result = await deleteUser(userToDelete).unwrap();
       
       setIsDeleteModalVisible(false);
@@ -330,11 +283,9 @@ const UserManagement = () => {
         message.success('User deleted successfully');
       } else {
         message.error(result.msg || 'Failed to delete user (Backend)');
-        console.error('[UserManagement.jsx] deleteUser - Backend Failed:', result);
         Modal.error({ title: 'Delete Failed', content: result.msg || 'Unknown backend error' });
       }
     } catch (error) {
-      console.error('[UserManagement.jsx] deleteUser error:', error);
       setIsDeleteModalVisible(false);
       setUserToDelete(null);
       
@@ -344,7 +295,6 @@ const UserManagement = () => {
   };
 
   const handleDeleteCancel = () => {
-    console.log('[UserManagement.jsx] handleDeleteCancel - User cancelled');
     setIsDeleteModalVisible(false); 
     setUserToDelete(null);
   };
@@ -406,13 +356,6 @@ const UserManagement = () => {
         // Determine which ID field to use (different backends might use different field names)
         const userId = record.id || record.userId || record._id;
         
-        // Log the determined userId
-        if (userId) {
-          console.log('Using userId:', userId);
-        } else {
-          console.error('Could not find valid user ID:', record);
-        }
-        
         return (
           <Space size="small">
             {/* Approve button for pending users */}
@@ -460,7 +403,6 @@ const UserManagement = () => {
                   icon={<DeleteOutlined />}
                   onClick={() => {
                     if (userId) {
-                      console.log('[UserManagement.jsx] onClick - Clicked delete button, preparing to call showDeleteConfirm, userId:', userId);
                       showDeleteConfirm(userId);
                     } else {
                       message.error('Cannot find user ID');

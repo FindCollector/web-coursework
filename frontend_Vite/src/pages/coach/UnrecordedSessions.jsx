@@ -1,23 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Modal, Typography, Spin, Alert, Tag, Space, Descriptions, Input, Checkbox, Form, message } from 'antd';
 import { useGetUnrecordedSessionsQuery, useGetCoachTagsQuery, useRecordSessionHistoryMutation } from '../../store/api/coachApi';
-import dayjs from 'dayjs'; // 用于格式化日期时间
+import dayjs from 'dayjs'; // For formatting date and time
 
 const { Title, Text, Paragraph } = Typography;
-const { TextArea } = Input; // 获取 TextArea
+const { TextArea } = Input; // Get TextArea
 
 const UnrecordedSessions = () => {
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10 });
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
   const [selectedSession, setSelectedSession] = useState(null);
   
-  // --- 新增状态用于记录弹窗 ---
+  // --- Add states for record modal ---
   const [isRecordModalVisible, setIsRecordModalVisible] = useState(false);
   const [recordingSessionId, setRecordingSessionId] = useState(null);
-  const [recordForm] = Form.useForm(); // 创建 Form 实例
+  const [recordForm] = Form.useForm(); // Create Form instance
   // ---------------------------
 
-  // 使用 RTK Query hook 获取数据
+  // Use RTK Query hook to get data
   const { 
     data: sessionData, 
     isLoading: isLoadingSessions, 
@@ -29,87 +29,83 @@ const UnrecordedSessions = () => {
     pageSize: pagination.pageSize,
   });
 
-  // 使用 RTK Query hook 获取 Tags 数据
+  // Use RTK Query hook to get Tags data
   const { 
-    data: tagsData = [], // 默认空数组
+    data: tagsData = [], // Default empty array
     isLoading: isLoadingTags, 
     isError: isErrorTags, 
     error: errorTags 
   } = useGetCoachTagsQuery();
   
-  // --- 获取记录 Session 的 Mutation --- 
+  // --- Get Record Session Mutation --- 
   const [recordSession, { isLoading: isRecording }] = useRecordSessionHistoryMutation();
   // ----------------------------------
 
-  // 处理表格分页、排序、筛选变化
+  // Handle table pagination, sorting, filtering changes
   const handleTableChange = (newPagination) => {
     setPagination(newPagination);
   };
 
-  // 显示详情弹窗
+  // Show detail modal
   const showDetailModal = (record) => {
     setSelectedSession(record);
     setIsDetailModalVisible(true);
   };
 
-  // 关闭详情弹窗
+  // Close detail modal
   const handleDetailModalClose = () => {
     setIsDetailModalVisible(false);
     setSelectedSession(null);
   };
   
-  // --- 更新处理 Record 按钮点击 ---
+  // --- Update handling Record button click ---
   const handleRecordClick = (record) => {
-    setRecordingSessionId(record.id); // 设置当前要记录的 Session ID
-    setIsRecordModalVisible(true); // 打开记录弹窗
-    recordForm.resetFields(); // 重置表单
+    setRecordingSessionId(record.id); // Set current Session ID to record
+    setIsRecordModalVisible(true); // Open record modal
+    recordForm.resetFields(); // Reset form
   };
   // ---------------------------
 
-  // --- 新增：关闭记录弹窗 ---
+  // --- New: Close record modal ---
   const handleRecordModalClose = () => {
     setIsRecordModalVisible(false);
     setRecordingSessionId(null);
-    recordForm.resetFields(); // 关闭时也重置表单
+    recordForm.resetFields(); // Also reset form when closing
   };
   // -----------------------
 
-  // --- 新增：处理记录表单提交 ---
+  // --- New: Handle record form submission ---
   const handleRecordFormSubmit = async () => {
     try {
       const values = await recordForm.validateFields(); 
-      console.log('Recording Session ID:', recordingSessionId);
-      console.log('Feedback:', values.feedback);
-      console.log('Selected Tags:', values.tags);
       
-      // 调用 Mutation 记录 Session
+      // Call Mutation to record Session
       const result = await recordSession({ 
         sessionId: recordingSessionId, 
         feedback: values.feedback, 
-        tagList: values.tags // `tags` 应该是 Checkbox.Group 返回的 value 数组 (即 tag IDs)
+        tagList: values.tags // `tags` should be the value array returned by Checkbox.Group (i.e. tag IDs)
       }).unwrap();
       
-      // 使用后端返回的成功消息
+      // Use success message returned from backend
       message.success(result.msg || 'Session recorded successfully!');
       
-      handleRecordModalClose(); // 关闭弹窗
-      // 列表和计数会在 invalidateTags 后自动刷新，无需手动 refetch
+      handleRecordModalClose(); // Close modal
+      // List and count will auto-refresh after invalidateTags, no need to manually refetch
       
     } catch (errorInfo) {
-      console.error('Failed to record session:', errorInfo);
-      // 使用后端返回的错误消息
+      // Use error message returned from backend
       if (errorInfo.data && errorInfo.data.code !== 0) {
-        // 如果是后端返回的错误，显示后端的错误消息
+        // If it's an error returned from backend, show backend error message
         message.error(errorInfo.data.msg || 'Failed to record session');
       } else {
-        // 其他错误（如网络错误等）
+        // Other errors (like network errors)
         message.error(errorInfo.message || 'Failed to record session. Please try again.');
       }
     }
   };
   // -------------------------
 
-  // 定义表格列
+  // Define table columns
   const columns = [
     {
       title: 'Member Name',
@@ -125,13 +121,13 @@ const UnrecordedSessions = () => {
       title: 'Start Time',
       dataIndex: 'startTime',
       key: 'startTime',
-      render: (text) => dayjs(text).format('YYYY-MM-DD HH:mm'), // 格式化时间
+      render: (text) => dayjs(text).format('YYYY-MM-DD HH:mm'), // Format time
     },
     {
       title: 'End Time',
       dataIndex: 'endTime',
       key: 'endTime',
-      render: (text) => dayjs(text).format('YYYY-MM-DD HH:mm'), // 格式化时间
+      render: (text) => dayjs(text).format('YYYY-MM-DD HH:mm'), // Format time
     },
     {
       title: 'Actions',
@@ -149,7 +145,7 @@ const UnrecordedSessions = () => {
     },
   ];
 
-  // 处理加载状态
+  // Handle loading state
   if (isLoadingSessions) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px' }}>
@@ -158,7 +154,7 @@ const UnrecordedSessions = () => {
     );
   }
 
-  // 处理错误状态
+  // Handle error state
   if (isErrorSessions) {
     return (
       <Alert 
@@ -177,7 +173,7 @@ const UnrecordedSessions = () => {
       <Table
         columns={columns}
         dataSource={sessionData?.records || []}
-        rowKey="id" // 使用 Session ID 作为 key
+        rowKey="id" // Use Session ID as key
         pagination={{
           current: sessionData?.current || 1,
           pageSize: sessionData?.size || 10,
@@ -188,7 +184,7 @@ const UnrecordedSessions = () => {
         bordered
       />
 
-      {/* 详情 Modal */}
+      {/* Detail Modal */}
       <Modal
         title="Session Details"
         open={isDetailModalVisible}
@@ -212,7 +208,7 @@ const UnrecordedSessions = () => {
         )}
       </Modal>
 
-      {/* --- 新增：记录 Session Modal --- */}
+      {/* --- New: Record Session Modal --- */}
       <Modal
         title="Record Session Feedback"
         open={isRecordModalVisible}
@@ -221,12 +217,12 @@ const UnrecordedSessions = () => {
           <Button key="back" onClick={handleRecordModalClose}>
             Cancel
           </Button>,
-          <Button key="submit" type="primary" loading={isRecording} onClick={handleRecordFormSubmit}> {/* 使用 isRecording 控制 loading 状态 */}
+          <Button key="submit" type="primary" loading={isRecording} onClick={handleRecordFormSubmit}> {/* Use isRecording to control loading state */}
             Submit Record
           </Button>,
         ]}
         width={600}
-        destroyOnClose // 关闭时销毁内部组件状态
+        destroyOnClose // Destroy internal component state when closed
       >
         <Form
           form={recordForm}

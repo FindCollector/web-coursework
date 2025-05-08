@@ -1,21 +1,21 @@
 import { baseApi } from './baseApi';
 
-// 扩展基础API，添加会员相关的端点
+// Extend base API with member-related endpoints
 export const memberApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    // 获取会员订阅请求列表
+    // Get member subscription requests list
     getMemberSubscriptionRequests: builder.query({
       query: (params = {}) => {
         const { pageNow = 1, pageSize = 10, statusList } = params;
         
-        // 构建查询参数
+        // Build query parameters
         const queryParams = new URLSearchParams();
         queryParams.append('pageNow', pageNow);
         queryParams.append('pageSize', pageSize);
-        // 添加时间戳参数，确保不使用缓存
+        // Add timestamp parameter to ensure cache is not used
         queryParams.append('_t', Date.now());
         
-        // 处理状态列表
+        // Handle status list
         if (statusList && statusList.length > 0) {
           statusList.forEach(status => {
             queryParams.append('statusList', status);
@@ -27,17 +27,17 @@ export const memberApi = baseApi.injectEndpoints({
           method: 'GET'
         };
       },
-      // 确保每次调用都是新的请求，不使用缓存
+      // Ensure each call is a new request, not using cache
       keepUnusedDataFor: 0,
       providesTags: ['MemberSubscriptionRequests']
     }),
 
-    // 获取会员未读订阅请求计数
+    // Get member unread subscription requests count
     getMemberUnreadRequestsCount: builder.query({
       query: () => ({
         url: '/member/unreadRequest/count',
         method: 'GET',
-        // 添加时间戳参数，确保不使用缓存
+        // Add timestamp parameter to ensure cache is not used
         params: { _t: Date.now() }
       }),
       transformResponse: (response) => {
@@ -46,17 +46,17 @@ export const memberApi = baseApi.injectEndpoints({
         }
         return 0;
       },
-      // 确保每次调用都是新的请求，不使用缓存
+      // Ensure each call is a new request, not using cache
       keepUnusedDataFor: 0,
       providesTags: ['MemberUnreadCount', 'MemberSubscriptionRequests']
     }),
     
-    // 获取会员未读Session请求计数
+    // Get member unread session requests count
     getMemberUnreadSessionCount: builder.query({
       query: () => ({
         url: '/member/session/unreadRequest/count',
         method: 'GET',
-        // 添加时间戳参数，确保不使用缓存
+        // Add timestamp parameter to ensure cache is not used
         params: { _t: Date.now() }
       }),
       transformResponse: (response) => {
@@ -65,12 +65,12 @@ export const memberApi = baseApi.injectEndpoints({
         }
         return 0;
       },
-      // 确保每次调用都是新的请求，不使用缓存
+      // Ensure each call is a new request, not using cache
       keepUnusedDataFor: 0,
       providesTags: ['MemberUnreadSessionCount', 'MemberSessionRequests']
     }),
     
-    // 标记会员订阅请求为已读
+    // Mark member subscription request as read
     markMemberRequestAsRead: builder.mutation({
       query: (requestId) => ({
         url: `/member/subscription/${requestId}/read`,
@@ -79,19 +79,19 @@ export const memberApi = baseApi.injectEndpoints({
       invalidatesTags: ['MemberUnreadCount', 'MemberSubscriptionRequests']
     }),
 
-    // 获取会员Session请求列表
+    // Get member session requests list
     getMemberSessionRequests: builder.query({
       query: (params = {}) => {
         const { pageNow = 1, pageSize = 10, statusList } = params;
         
-        // 构建查询参数
+        // Build query parameters
         const queryParams = new URLSearchParams();
         queryParams.append('pageNow', pageNow);
         queryParams.append('pageSize', pageSize);
-        // 添加时间戳参数，确保不使用缓存
+        // Add timestamp parameter to ensure cache is not used
         queryParams.append('_t', Date.now());
         
-        // 处理状态列表
+        // Handle status list
         if (statusList && statusList.length > 0) {
           statusList.forEach(status => {
             queryParams.append('statusList', status);
@@ -103,12 +103,12 @@ export const memberApi = baseApi.injectEndpoints({
           method: 'GET'
         };
       },
-      // 确保每次调用都是新的请求，不使用缓存
+      // Ensure each call is a new request, not using cache
       keepUnusedDataFor: 0,
       providesTags: ['MemberSessionRequests']
     }),
     
-    // 标记Session请求为已读
+    // Mark session request as read
     markSessionRequestAsRead: builder.mutation({
       query: (requestId) => ({
         url: `/member/session/request/${requestId}/read`,
@@ -117,104 +117,101 @@ export const memberApi = baseApi.injectEndpoints({
       invalidatesTags: ['MemberUnreadCount', 'MemberSessionRequests', 'MemberUnreadSessionCount']
     }),
 
-    // 获取会员已订阅的教练列表 (用于预约 Session)
+    // Get member's subscribed coach list (for booking sessions)
     getSubscriptionCoachList: builder.query({
       query: () => ({
         url: '/member/subscriptionCoachList',
         method: 'GET',
-        // 添加时间戳确保获取最新数据
+        // Add timestamp to ensure latest data
         params: { _t: Date.now() } 
       }),
-      // 假设返回的数据结构是 { code: number, msg: string, data: Coach[] }
-      // 直接返回 data 部分或根据需要转换
+      // Assuming the returned data structure is { code: number, msg: string, data: Coach[] }
+      // Return data part directly or transform as needed
       transformResponse: (response) => {
         if (response.code === 0 && Array.isArray(response.data)) {
           return response.data;
         }
-        // 返回空数组或抛出错误，根据错误处理策略决定
-        console.error('Failed to fetch subscription coach list:', response.msg);
+        // Return empty array or throw error, depending on error handling strategy
         return []; 
       },
-      // 不保留未使用的数据，确保每次查询都是全新的请求
+      // Don't retain unused data, ensure each query is a fresh request
       keepUnusedDataFor: 0,
-      // 可以添加 tag 用于缓存管理，例如 'SubscriptionCoaches'
+      // Can add tag for cache management, e.g., 'SubscriptionCoaches'
       providesTags: ['SubscriptionCoaches'] 
     }),
     
-    // 会员取消订阅教练
+    // Member unsubscribe from coach
     unsubscribeCoach: builder.mutation({
       query: (coachId) => ({
         url: `/member/subscription/${coachId}`,
         method: 'PATCH'
       }),
-      // 当取消订阅成功时，使缓存的订阅教练列表失效，强制重新获取
+      // When unsubscribe is successful, invalidate cached subscription coach list, force re-fetch
       invalidatesTags: ['SubscriptionCoaches']
     }),
     
-    // 获取教练合适的上课时间
+    // Get coach's appropriate time slots for lessons
     getCoachAppropriateTimeList: builder.query({
       query: (coachId) => ({
         url: `/member/appropriateTimeList/${coachId}`,
         method: 'GET',
-        // 添加时间戳确保获取最新数据
+        // Add timestamp to ensure latest data
         params: { _t: Date.now() }
       }),
       transformResponse: (response) => {
         if (response.code === 0 && response.data) {
           return response.data;
         }
-        // 处理错误情况
-        console.error('Failed to fetch coach appropriate time list:', response.msg);
+        // Handle error cases
         return {};
       },
-      // 禁用缓存，确保每次查询都是全新的请求
-      keepUnusedDataFor: 0, // 设置为0，不保留未使用的数据
-      // 不提供任何 tag，避免缓存管理
+      // Disable cache, ensure each query is a fresh request
+      keepUnusedDataFor: 0, // Set to 0, don't keep unused data
+      // Don't provide any tags to avoid cache management
     }),
     
-    // 预约课程时间
+    // Book session time
     bookSession: builder.mutation({
       query: (bookingData) => ({
         url: '/member/bookingSession',
         method: 'POST',
         body: bookingData
       }),
-      // 当预约成功时，使缓存的时间槽数据和教练列表数据失效，强制重新获取
+      // When booking is successful, invalidate cached time slot data and coach list data, force re-fetch
       invalidatesTags: ['SubscriptionCoaches']
     }),
 
-    // 撤回Session请求
+    // Withdraw session request
     withdrawSessionRequest: builder.mutation({
       query: (requestId) => ({
         url: `/member/withdrawRequest/${requestId}`,
         method: 'DELETE'
       }),
-      // 撤回成功后，使相关缓存失效，强制重新获取
+      // After successful withdrawal, invalidate related caches, force re-fetch
       invalidatesTags: ['MemberSessionRequests', 'MemberUnreadSessionCount']
     }),
 
-    // 获取会员训练日程表
+    // Get member's training schedule
     getMemberSessionSchedule: builder.query({
       query: () => ({
         url: '/member/sessionSchedule',
         method: 'GET',
-        // 添加时间戳确保获取最新数据
+        // Add timestamp to ensure latest data
         params: { _t: Date.now() }
       }),
       transformResponse: (response) => {
         if (response.code === 0 && response.data) {
           return response.data;
         }
-        // 处理错误情况
-        console.error('Failed to fetch member session schedule:', response.msg);
+        // Handle error cases
         return { calenderView: {}, listView: [] };
       },
-      // 禁用缓存，确保每次查询都是全新的请求
+      // Disable cache, ensure each query is a fresh request
       keepUnusedDataFor: 0,
       providesTags: ['MemberSessionSchedule']
     }),
 
-    // 会员取消Session
+    // Member cancel session
     cancelMemberSession: builder.mutation({
       query: (sessionId) => ({
         url: `/member/cancelSession/${sessionId}`,
@@ -223,12 +220,12 @@ export const memberApi = baseApi.injectEndpoints({
       invalidatesTags: ['MemberSessionSchedule']
     }),
 
-    // 获取会员训练历史记录
+    // Get member's training history
     getMemberTrainingHistory: builder.query({
       query: (params) => {
         const { pageNow = 1, pageSize = 10, startDate, endDate } = params;
         
-        // 确保startDate和endDate存在
+        // Ensure startDate and endDate exist
         if (!startDate || !endDate) {
           throw new Error('startDate and endDate are required');
         }
@@ -239,15 +236,15 @@ export const memberApi = baseApi.injectEndpoints({
           params: {
             pageNow,
             pageSize,
-            startDate, // 格式应为 yyyy/MM/dd
-            endDate    // 格式应为 yyyy/MM/dd
+            startDate, // Should be in format yyyy/MM/dd
+            endDate    // Should be in format yyyy/MM/dd
           }
         };
       },
       providesTags: ['MemberTrainingHistory']
     }),
 
-    // 标记训练历史为已读
+    // Mark training history as read
     markTrainingHistoryAsRead: builder.mutation({
       query: (id) => ({
         url: `/member/training/history/${id}/read`,
@@ -256,12 +253,12 @@ export const memberApi = baseApi.injectEndpoints({
       invalidatesTags: ['MemberTrainingHistory']
     }),
 
-    // 获取会员未读训练历史数量
+    // Get member's unread training history count
     getMemberUnreadTrainingHistoryCount: builder.query({
       query: () => ({
         url: '/member/training/unreadHistory/count',
         method: 'GET',
-        // 添加时间戳参数，确保不使用缓存
+        // Add timestamp parameter to ensure cache is not used
         params: { _t: Date.now() }
       }),
       transformResponse: (response) => {
@@ -270,56 +267,48 @@ export const memberApi = baseApi.injectEndpoints({
         }
         return 0;
       },
-      // 确保每次调用都是新的请求，不使用缓存
+      // Ensure each call is a new request, not using cache
       keepUnusedDataFor: 0,
       providesTags: ['MemberTrainingHistory']
     }),
 
-    // 获取教练位置信息用于地图显示
+    // Get coach location information for map display
     getCoachLocationInfo: builder.query({
       query: () => ({
         url: '/member/location/info',
         method: 'GET',
-        // 添加时间戳确保获取最新数据
+        // Add timestamp to ensure latest data
         params: { _t: Date.now() }
       }),
       transformResponse: (response, meta, arg) => {
-        console.log('位置API响应:', response);
-        console.log('位置API元数据:', meta);
-        
         if (response.code === 0 && response.data) {
-          // 确保数据是数组格式
+          // Ensure data is in array format
           if (Array.isArray(response.data)) {
-            console.log('位置数据是数组，长度:', response.data.length);
             return response.data;
           } else {
-            console.log('位置数据不是数组，尝试适配:', response.data);
-            // 尝试适配不同的数据格式
+            // Try to adapt different data formats
             if (typeof response.data === 'object') {
-              // 可能是对象格式，尝试转换为数组
+              // May be in object format, try to convert to array
               const locations = Object.values(response.data);
               if (locations.length > 0) {
-                console.log('转换后的位置数据:', locations);
                 return locations;
               }
             }
-            // 如果无法适配，返回空数组
-            console.error('无法处理位置数据格式，返回空数组');
+            // If unable to adapt, return empty array
             return [];
           }
         }
-        console.error('位置API返回错误:', response);
         return [];
       },
-      // 添加缓存控制，缓存5分钟
+      // Add cache control, cache for 5 minutes
       keepUnusedDataFor: 300,
-      // 添加标签，方便重新获取
+      // Add tags for easy refetching
       providesTags: ['LocationInfo']
     }),
   }),
 });
 
-// 导出自动生成的hooks
+// Export auto-generated hooks
 export const {
   useGetMemberSubscriptionRequestsQuery,
   useGetMemberUnreadRequestsCountQuery,

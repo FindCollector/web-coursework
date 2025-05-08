@@ -35,31 +35,31 @@ const SessionRequests = () => {
   const [withdrawingId, setWithdrawingId] = useState(null);
   const [isWithdrawing, setIsWithdrawing] = useState(false);
 
-  // 使用RTK Query获取数据
+  // Use RTK Query to get data
   const { data, isLoading, refetch } = useGetMemberSessionRequestsQuery({
     pageNow: currentPage,
     pageSize,
     statusList: selectedStatus
   }, {
     refetchOnMountOrArgChange: true,
-    pollingInterval: 30000 // 每30秒自动刷新一次
+    pollingInterval: 30000 // Auto refresh every 30 seconds
   });
 
-  // 添加标记已读的mutation
+  // Add mark as read mutation
   const [markAsRead] = useMarkSessionRequestAsReadMutation();
   
-  // 获取未读Session数量查询
+  // Get unread session count query
   const { refetch: refetchUnreadCount } = useGetMemberUnreadSessionCountQuery();
   
-  // 添加撤回Session请求的mutation
+  // Add withdraw session request mutation
   const [withdrawRequest] = useWithdrawSessionRequestMutation();
 
-  // 当组件首次加载或被激活时刷新数据
+  // Refresh data when component first loads or is activated
   useEffect(() => {
-    // 组件挂载或激活时立即刷新数据
+    // Immediately refresh data when component mounts or is activated
     refetch();
     
-    // 添加事件监听器，在发送新请求后刷新列表
+    // Add event listener to refresh list after sending new requests
     const handleRefreshRequests = () => {
       refetch();
     };
@@ -71,7 +71,7 @@ const SessionRequests = () => {
     };
   }, [refetch]);
 
-  // 状态选项
+  // Status options
   const statusOptions = [
     { label: 'Pending', value: 'PENDING' },
     { label: 'Accepted', value: 'ACCEPT' },
@@ -79,13 +79,13 @@ const SessionRequests = () => {
     { label: 'Cancelled', value: 'CANCEL' },
   ];
 
-  // 处理撤回请求
+  // Handle withdraw request
   const handleWithdraw = (record) => {
     setWithdrawingId(record.id);
     setWithdrawModalVisible(true);
   };
 
-  // 确认撤回请求
+  // Confirm withdraw request
   const confirmWithdraw = async () => {
     if (!withdrawingId) return;
     
@@ -98,22 +98,21 @@ const SessionRequests = () => {
         message.success('Session request withdrawn successfully');
         setWithdrawModalVisible(false);
         
-        // 刷新列表
+        // Refresh list
         refetch();
-        // 刷新未读计数
+        // Refresh unread count
         refetchUnreadCount();
       } else {
         message.error(response.msg || 'Failed to withdraw request');
       }
     } catch (error) {
-      console.error('Error withdrawing session request:', error);
       message.error(error.data?.msg || 'Failed to withdraw request. Please try again.');
     } finally {
       setIsWithdrawing(false);
     }
   };
 
-  // 表格列定义
+  // Table column definitions
   const columns = [
     {
       title: 'Member Name',
@@ -138,7 +137,7 @@ const SessionRequests = () => {
       dataIndex: 'status',
       key: 'status',
       render: (status) => {
-        // 创建颜色映射，处理不同大小写的状态值
+        // Create color mapping, handle different case status values
         const colorMap = {
           pending: 'gold',
           accept: 'green',
@@ -150,7 +149,7 @@ const SessionRequests = () => {
           CANCEL: 'grey',
         };
         
-        // 获取颜色，如果状态不在映射中则使用灰色
+        // Get color, if status not in mapping use default
         const color = colorMap[status] || 'default';
         
         return <Tag color={color}>{status}</Tag>;
@@ -209,36 +208,36 @@ const SessionRequests = () => {
 
   const handleStatusChange = (checkedValues) => {
     setSelectedStatus(checkedValues);
-    setCurrentPage(1); // 重置页码
+    setCurrentPage(1); // Reset page number
     
-    // 强制重新获取数据，避免使用缓存
+    // Force data refetch, avoid using cache
     setTimeout(() => {
       refetch();
     }, 0);
   };
 
-  // 查看详情时标记为已读
+  // Mark as read when viewing details
   const showDetails = (record) => {
     setSelectedRequest(record);
     setDetailsVisible(true);
     
-    // 记录原始未读状态
+    // Record original unread status
     const isUnread = record && record.memberIsRead === false;
     setWasUnread(isUnread);
     
-    // 如果是未读消息，则标记为已读
+    // If unread message, mark as read
     if (isUnread) {
       markAsRead(record.id)
         .unwrap()
         .then(() => {
-          // 标记成功后主动刷新未读计数
+          // Actively refresh unread count after marking as successful
           refetchUnreadCount();
           
-          // 触发全局事件，强制刷新侧边栏计数
+          // Trigger global event to force refresh sidebar count
           window.dispatchEvent(new Event('refresh-unread-count'));
         })
         .catch(error => {
-          console.error('Failed to mark as read:', error);
+          // Nothing to do on error
         });
     }
   };
@@ -246,19 +245,19 @@ const SessionRequests = () => {
   const handleCloseDetails = () => {
     setDetailsVisible(false);
     
-    // 只有当查看的请求之前是未读状态时，才刷新计数
+    // Only refresh count if the previously viewed request was unread
     if (wasUnread) {
-      // 关闭详情时刷新未读计数，确保侧边栏数字更新
+      // Refresh unread count when closing details to ensure sidebar number is updated
       refetchUnreadCount();
-      // 触发全局事件，强制刷新侧边栏计数
+      // Trigger global event to force refresh sidebar count
       window.dispatchEvent(new Event('refresh-unread-count'));
     }
     
-    // 重置未读状态标记
+    // Reset unread status marker
     setWasUnread(false);
   };
 
-  // 确保传递给Table的dataSource始终是数组
+  // Ensure dataSource passed to Table is always an array
   const tableDataSource = Array.isArray(data?.data?.records) ? data.data.records : [];
 
   return (
@@ -266,7 +265,7 @@ const SessionRequests = () => {
       <Card>
         <Title level={3} className="mb-6">My Session Requests</Title>
         
-        {/* 状态过滤器 */}
+        {/* Status filter */}
         <Row className="mb-6">
           <Col>
             <Checkbox.Group
@@ -277,7 +276,7 @@ const SessionRequests = () => {
           </Col>
         </Row>
 
-        {/* 请求列表 */}
+        {/* Request list */}
         <Table
           columns={columns}
           dataSource={tableDataSource}
@@ -301,7 +300,7 @@ const SessionRequests = () => {
         />
       </Card>
 
-      {/* 详情模态框 */}
+      {/* Details modal */}
       <Modal
         title="Session Request Details"
         open={detailsVisible}
@@ -358,7 +357,7 @@ const SessionRequests = () => {
         )}
       </Modal>
 
-      {/* 撤回确认模态框 */}
+      {/* Withdraw confirmation modal */}
       <Modal
         title="Withdraw Session Request"
         open={withdrawModalVisible}

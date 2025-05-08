@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Layout, Typography, Menu, Avatar, Button, Badge } from 'antd';
+import { Layout, Typography, Menu, Avatar, Button, Badge, message } from 'antd';
 import {
   UserOutlined,
   CalendarOutlined,
@@ -38,44 +38,42 @@ const MemberDashboard = ({ initialActiveMenu }) => {
   const userName = auth?.userName || 'Member';
   const [logout, { isLoading: isLoggingOut }] = useLogoutMutation();
   
-  // 获取未读数量
+  // Get unread counts
   const { data: unreadSubscriptionData, refetch: refetchUnreadSubscriptionCount } = useGetMemberUnreadRequestsCountQuery();
   const { data: unreadSessionData, refetch: refetchUnreadSessionCount } = useGetMemberUnreadSessionCountQuery();
   const { data: unreadTrainingHistoryData, refetch: refetchUnreadTrainingHistoryCount } = useGetMemberUnreadTrainingHistoryCountQuery();
 
-  // 计算未读数量
+  // Calculate unread counts
   const unreadSubscriptionCount = unreadSubscriptionData?.data || 0;
   const unreadSessionCount = unreadSessionData?.data || 0;
   const unreadTrainingHistoryCount = unreadTrainingHistoryData || 0;
-  // 请求相关的未读消息总数（不包含训练历史）
+  // Total unread messages related to requests (excluding training history)
   const requestsUnreadCount = unreadSubscriptionCount + unreadSessionCount;
-  // 所有未读消息总数
+  // Total of all unread messages
   const totalUnreadCount = requestsUnreadCount + unreadTrainingHistoryCount;
 
   useEffect(() => {
-    console.log('Current user state:', auth);
-    
-    // 组件挂载时立即刷新未读计数
+    // Refresh unread counts immediately when component mounts
     refetchUnreadSubscriptionCount();
     refetchUnreadSessionCount();
     refetchUnreadTrainingHistoryCount();
   }, [auth, refetchUnreadSubscriptionCount, refetchUnreadSessionCount, refetchUnreadTrainingHistoryCount]);
   
-  // 监听initialActiveMenu变化
+  // Listen for initialActiveMenu changes
   useEffect(() => {
     if (initialActiveMenu) {
       setActiveMenu(initialActiveMenu);
     }
   }, [initialActiveMenu]);
   
-  // 监听刷新未读计数事件
+  // Listen for refresh unread count events
   useEffect(() => {
     const handleRefreshUnreadCount = () => {
       refetchUnreadSubscriptionCount();
       refetchUnreadSessionCount();
       refetchUnreadTrainingHistoryCount();
       
-      // 如果当前在请求页面，自动刷新请求列表
+      // If currently on requests page, automatically refresh the request list
       if (activeMenu === 'subscription-requests' || activeMenu === 'session-requests') {
         if (activeMenu === 'subscription-requests') {
           window.dispatchEvent(new Event('refresh-requests'));
@@ -92,7 +90,7 @@ const MemberDashboard = ({ initialActiveMenu }) => {
     };
   }, [refetchUnreadSubscriptionCount, refetchUnreadSessionCount, refetchUnreadTrainingHistoryCount, activeMenu]);
   
-  // 监听未读计数变化，如果当前在请求页面且有未读消息，自动刷新请求列表
+  // Listen for unread count changes, if currently on requests page and there are unread messages, automatically refresh request list
   useEffect(() => {
     if (activeMenu === 'subscription-requests' && unreadSubscriptionCount > 0) {
       window.dispatchEvent(new Event('refresh-requests'));
@@ -109,10 +107,10 @@ const MemberDashboard = ({ initialActiveMenu }) => {
         dispatch(logoutAction());
         navigate('/login');
       } else {
-        console.error('Logout failed:', response.msg);
+        message.error(response.msg || 'Logout failed');
       }
     } catch (error) {
-      console.error('Logout failed:', error);
+      message.error('Logout failed. Please try again.');
     }
   };
 
@@ -217,23 +215,23 @@ const MemberDashboard = ({ initialActiveMenu }) => {
   ];
 
   const getPageTitle = (key) => {
-    // 处理子菜单项
+    // Handle submenu items
     if (key === 'subscription-requests') {
       return 'Subscription Requests';
     } else if (key === 'session-requests') {
       return 'Session Requests';
     }
     
-    // 处理主菜单项
+    // Handle main menu items
     const item = menuItems.find(item => item.key === key);
     return item ? item.label : 'Fitness Center';
   };
 
-  // 切换菜单时的处理函数
+  // Menu change handler function
   const handleMenuChange = (key) => {
     setActiveMenu(key);
     
-    // 导航到相应的URL路径
+    // Navigate to the corresponding URL path
     if (key === 'coaches') {
       navigate('/member/coaches');
       return;
@@ -246,7 +244,7 @@ const MemberDashboard = ({ initialActiveMenu }) => {
     
     if (key === 'subscription-requests') {
       window.dispatchEvent(new Event('refresh-requests'));
-      // 同时刷新未读计数
+      // Also refresh unread count
       refetchUnreadSubscriptionCount();
       navigate('/member/subscription-requests');
       return;
@@ -254,7 +252,7 @@ const MemberDashboard = ({ initialActiveMenu }) => {
     
     if (key === 'session-requests') {
       window.dispatchEvent(new Event('refresh-session-requests'));
-      // 同时刷新未读计数
+      // Also refresh unread count
       refetchUnreadSessionCount();
       navigate('/member/session-requests');
       return;
@@ -267,14 +265,14 @@ const MemberDashboard = ({ initialActiveMenu }) => {
     
     if (key === 'history') {
       window.dispatchEvent(new Event('refresh-training-history'));
-      // 同时刷新未读计数
+      // Also refresh unread count
       refetchUnreadTrainingHistoryCount();
       navigate('/member/history');
       return;
     }
     
     if (key === 'requests') {
-      // 默认导航到subscription-requests子菜单
+      // Default navigate to subscription-requests submenu
       if (unreadSubscriptionCount > 0) {
         setActiveMenu('subscription-requests');
         navigate('/member/subscription-requests');
@@ -282,7 +280,7 @@ const MemberDashboard = ({ initialActiveMenu }) => {
         setActiveMenu('session-requests');
         navigate('/member/session-requests');
       } else {
-        // 如果两者都没有未读消息，默认导航到subscription
+        // If neither has unread messages, default to subscription
         setActiveMenu('subscription-requests');
         navigate('/member/subscription-requests');
       }

@@ -1,21 +1,21 @@
 import { baseApi } from './baseApi';
 
-// 扩展基础API，添加教练相关的端点
+// Extend base API with coach-related endpoints
 export const coachApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    // 检查教练信息完整性
+    // Check coach details completeness
     checkCoachDetails: builder.query({
       query: () => '/coach/details/check',
       providesTags: ['Coach']
     }),
     
-    // 获取教练详情
+    // Get coach details
     getCoachDetail: builder.query({
       query: () => '/coach/details',
       providesTags: ['Coach']
     }),
     
-    // 更新教练介绍
+    // Update coach introduction
     updateCoachIntro: builder.mutation({
       query: (intro) => ({
         url: '/coach/update/intro',
@@ -25,13 +25,13 @@ export const coachApi = baseApi.injectEndpoints({
       invalidatesTags: ['Coach']
     }),
     
-    // 上传教练照片
+    // Upload coach photo
     uploadCoachPhoto: builder.mutation({
       query: (formData) => ({
         url: '/coach/photo',
         method: 'POST',
         body: formData,
-        // 不设置Content-Type，让浏览器自动设置为multipart/form-data
+        // Don't set Content-Type, let browser automatically set it to multipart/form-data
         formData: true,
       }),
       transformResponse: (response) => {
@@ -47,7 +47,7 @@ export const coachApi = baseApi.injectEndpoints({
       invalidatesTags: ['Coach']
     }),
     
-    // 更新教练标签
+    // Update coach tags
     updateCoachTags: builder.mutation({
       query: (tagIds) => ({
         url: '/coach/update/tags',
@@ -57,7 +57,7 @@ export const coachApi = baseApi.injectEndpoints({
       invalidatesTags: ['Coach']
     }),
 
-    // 更新教练位置
+    // Update coach locations
     updateCoachLocations: builder.mutation({
       query: (locationIds) => ({
         url: '/coach/update/locations',
@@ -67,7 +67,7 @@ export const coachApi = baseApi.injectEndpoints({
       invalidatesTags: ['Coach']
     }),
 
-    // 更新教练详情
+    // Update coach details
     updateCoachDetails: builder.mutation({
       query: (details) => ({
         url: '/coach/details',
@@ -77,7 +77,7 @@ export const coachApi = baseApi.injectEndpoints({
       invalidatesTags: ['Coach']
     }),
 
-    // 获取教练列表
+    // Get coach list
     getCoachList: builder.query({
       query: (params = {}) => {
         const { userName, tags, locations, pageNow = 1, pageSize = 10 } = params;
@@ -106,7 +106,7 @@ export const coachApi = baseApi.injectEndpoints({
       providesTags: ['CoachList']
     }),
 
-    // 获取教练过滤器选项
+    // Get coach filter options
     getCoachFilterOptions: builder.query({
       query: () => ({
         url: '/member/coach/filter',
@@ -132,7 +132,7 @@ export const coachApi = baseApi.injectEndpoints({
       }
     }),
 
-    // 发送订阅请求
+    // Send subscription request
     sendSubscriptionRequest: builder.mutation({
       query: (data) => ({
         url: '/member/subscription',
@@ -141,7 +141,7 @@ export const coachApi = baseApi.injectEndpoints({
       })
     }),
 
-    // 获取订阅请求列表
+    // Get subscription requests list
     getSubscriptionRequests: builder.query({
       query: (params = {}) => {
         const { pageNow = 1, pageSize = 10, statusList } = params;
@@ -150,10 +150,10 @@ export const coachApi = baseApi.injectEndpoints({
         const queryParams = new URLSearchParams();
         queryParams.append('pageNow', pageNow);
         queryParams.append('pageSize', pageSize);
-        // 添加时间戳参数，确保不使用缓存
+        // Add timestamp parameter to ensure cache is not used
         queryParams.append('_t', Date.now());
         
-        // 处理状态列表
+        // Handle status list
         if (statusList && statusList.length > 0) {
           statusList.forEach(status => {
             queryParams.append('statusList', status);
@@ -165,17 +165,17 @@ export const coachApi = baseApi.injectEndpoints({
           method: 'GET'
         };
       },
-      // 确保每次调用都是新的请求，不使用缓存
+      // Ensure each call is a new request, not using cache
       keepUnusedDataFor: 0,
       providesTags: ['SubscriptionRequests']
     }),
 
-    // 获取未读订阅请求计数
+    // Get unread subscription requests count
     getUnreadRequestsCount: builder.query({
       query: () => ({
         url: '/coach/subscription/unreadRequest/count',
         method: 'GET',
-        // 添加时间戳参数，确保不使用缓存
+        // Add timestamp parameter to ensure cache is not used
         params: { _t: Date.now() }
       }),
       transformResponse: (response) => {
@@ -184,17 +184,17 @@ export const coachApi = baseApi.injectEndpoints({
         }
         return 0;
       },
-      // 确保每次调用都是新的请求，不使用缓存
+      // Ensure each call is a new request, not using cache
       keepUnusedDataFor: 0,
       providesTags: (result) => ['UnreadCount', 'SubscriptionRequests']
     }),
     
-    // 获取未读Session请求计数
+    // Get unread session requests count
     getUnreadSessionCount: builder.query({
       query: () => ({
         url: '/coach/session/unreadRequest/count',
         method: 'GET',
-        // 添加时间戳参数，确保不使用缓存
+        // Add timestamp parameter to ensure cache is not used
         params: { _t: Date.now() }
       }),
       transformResponse: (response) => {
@@ -203,12 +203,12 @@ export const coachApi = baseApi.injectEndpoints({
         }
         return 0;
       },
-      // 确保每次调用都是新的请求，不使用缓存
+      // Ensure each call is a new request, not using cache
       keepUnusedDataFor: 0,
       providesTags: ['UnreadSessionCount', 'SessionRequests']
     }),
     
-    // 标记订阅请求为已读
+    // Mark subscription request as read
     markRequestAsRead: builder.mutation({
       query: (requestId) => ({
         url: `/coach/subscription/${requestId}/read`,
@@ -217,7 +217,7 @@ export const coachApi = baseApi.injectEndpoints({
       invalidatesTags: ['UnreadCount', 'SubscriptionRequests']
     }),
     
-    // 处理订阅请求（接受或拒绝）
+    // Handle subscription request (accept or reject)
     handleSubscriptionRequest: builder.mutation({
       query: ({ requestId, status, reply }) => ({
         url: '/coach/subscriptionRequest/handle',
@@ -227,7 +227,7 @@ export const coachApi = baseApi.injectEndpoints({
       invalidatesTags: ['UnreadCount', 'SubscriptionRequests']
     }),
     
-    // 接受订阅请求
+    // Accept subscription request
     acceptSubscriptionRequest: builder.mutation({
       query: ({ requestId, reply }) => ({
         url: `/coach/subscription/${requestId}/accept`,
@@ -237,7 +237,7 @@ export const coachApi = baseApi.injectEndpoints({
       invalidatesTags: ['UnreadCount', 'SubscriptionRequests']
     }),
     
-    // 拒绝订阅请求
+    // Reject subscription request
     rejectSubscriptionRequest: builder.mutation({
       query: ({ requestId, reply }) => ({
         url: `/coach/subscription/${requestId}/reject`,
@@ -247,14 +247,14 @@ export const coachApi = baseApi.injectEndpoints({
       invalidatesTags: ['UnreadCount', 'SubscriptionRequests']
     }),
 
-    // 获取未记录的 Session 列表
+    // Get unrecorded sessions list
     getUnrecordedSessions: builder.query({
       query: (params = {}) => {
         const { pageNow = 1, pageSize = 10 } = params;
         const queryParams = new URLSearchParams();
         queryParams.append('pageNow', pageNow);
         queryParams.append('pageSize', pageSize);
-        queryParams.append('_t', Date.now()); // 防止缓存
+        queryParams.append('_t', Date.now()); // Prevent caching
         
         return {
           url: `/coach/session/unrecord?${queryParams.toString()}`,
@@ -263,25 +263,25 @@ export const coachApi = baseApi.injectEndpoints({
       },
       transformResponse: (response) => {
         if (response.code === 0 && response.data) {
-          // 转换时间格式，如果需要的话
+          // Transform time format if needed
           // response.data.records = response.data.records.map(record => ({ ...record, startTime: dayjs(record.startTime), endTime: dayjs(record.endTime) }));
-          return response.data; // 返回 data 部分，包含 records, total, size, current, pages
+          return response.data; // Return data part, includes records, total, size, current, pages
         }
-        return { records: [], total: 0, size: 10, current: 1, pages: 0 }; // 返回默认空结构
+        return { records: [], total: 0, size: 10, current: 1, pages: 0 }; // Return default empty structure
       },
       providesTags: (result, error, arg) => 
         result
           ? [...result.records.map(({ id }) => ({ type: 'UnrecordedSession', id })), { type: 'UnrecordedSession', id: 'LIST' }]
           : [{ type: 'UnrecordedSession', id: 'LIST' }],
-      keepUnusedDataFor: 5 // 缓存5秒
+      keepUnusedDataFor: 5 // Cache for 5 seconds
     }),
 
-    // 获取未记录 Session 计数
+    // Get unrecorded session count
     getUnrecordedSessionCountData: builder.query({
       query: () => ({
         url: '/coach/session/unrecord/count',
         method: 'GET',
-        // 添加时间戳参数，确保不使用缓存
+        // Add timestamp parameter to ensure cache is not used
         params: { _t: Date.now() }
       }),
       transformResponse: (response) => {
@@ -290,56 +290,56 @@ export const coachApi = baseApi.injectEndpoints({
         }
         return 0;
       },
-      // 确保每次调用都是新的请求，不使用缓存
+      // Ensure each call is a new request, not using cache
       keepUnusedDataFor: 0,
-      providesTags: ['UnrecordedSessionCount'] // 添加唯一 Tag
+      providesTags: ['UnrecordedSessionCount'] // Add unique tag
     }),
 
-    // 获取教练所有可用标签
+    // Get all available coach tags
     getCoachTags: builder.query({
       query: () => '/coach/tags',
       transformResponse: (response) => {
         if (response.code === 0 && response.data) {
-          // 将 { id: name } 格式转换为 [{ value: id, label: name }] 格式
+          // Convert { id: name } format to [{ value: id, label: name }] format
           return Object.entries(response.data).map(([id, name]) => ({
-            value: id, // 使用 ID 作为 value
-            label: name, // 使用名称作为 label
+            value: id, // Use ID as value
+            label: name, // Use name as label
           }));
         }
-        return []; // 返回空数组以防出错
+        return []; // Return empty array in case of error
       },
-      providesTags: ['CoachTags'] // 添加 Tag
+      providesTags: ['CoachTags'] // Add tag
     }),
 
-    // 记录 Session 历史反馈和标签
+    // Record session history feedback and tags
     recordSessionHistory: builder.mutation({
       query: ({ sessionId, feedback, tagList }) => ({
         url: '/coach/training/history',
         method: 'POST',
         body: {
-          sessionId: String(sessionId), // 确保 sessionId 是字符串或数字，根据后端需要调整
+          sessionId: String(sessionId), // Ensure sessionId is string or number, adjust according to backend needs
           feedback,
-          tagList: tagList.map(tagId => Number(tagId)) // 确保 tagList 包含的是数字 ID
+          tagList: tagList.map(tagId => Number(tagId)) // Ensure tagList contains number IDs
         }
       }),
       invalidatesTags: (result, error, arg) => [
-        { type: 'UnrecordedSession', id: 'LIST' }, // 使未记录 Session 列表失效
-        { type: 'UnrecordedSession', id: arg.sessionId }, // 使特定 Session 失效 (如果提供)
-        'UnrecordedSessionCount' // 使未记录 Session 计数失效
+        { type: 'UnrecordedSession', id: 'LIST' }, // Invalidate unrecorded sessions list
+        { type: 'UnrecordedSession', id: arg.sessionId }, // Invalidate specific session (if provided)
+        'UnrecordedSessionCount' // Invalidate unrecorded sessions count
       ] 
     }),
 
-    // 添加教练空闲时间
+    // Add coach availability
     addAvailability: builder.mutation({
       query: (availability) => ({
         url: '/coach/availability',
         method: 'POST',
         body: availability
       }),
-      invalidatesTags: ['Availability'] // 成功后使'Availability'标签失效，触发重新获取
+      invalidatesTags: ['Availability'] // Invalidate 'Availability' tag after success, trigger re-fetch
     }),
 
-    // 获取教练空闲时间
+    // Get coach availability
     getAvailability: builder.query({
       query: () => ({
         url: '/coach/availability',
@@ -348,26 +348,26 @@ export const coachApi = baseApi.injectEndpoints({
       providesTags: ['Availability']
     }),
 
-    // 删除教练空闲时间
+    // Delete coach availability
     deleteAvailability: builder.mutation({
       query: (id) => ({
         url: `/coach/availability/${id}`,
         method: 'DELETE'
       }),
-      invalidatesTags: ['Availability'] // 成功后使'Availability'标签失效，触发重新获取
+      invalidatesTags: ['Availability'] // Invalidate 'Availability' tag after success, trigger re-fetch
     }),
 
-    // 更新教练空闲时间
+    // Update coach availability
     updateAvailability: builder.mutation({
-      query: ({ id, ...patch }) => ({ // 接受 id 和包含更新数据的对象
+      query: ({ id, ...patch }) => ({ // Accept id and object containing update data
         url: `/coach/availability/${id}`,
         method: 'PATCH',
-        body: patch // 发送包含 dayOfWeek, startTime, endTime 的对象
+        body: patch // Send object containing dayOfWeek, startTime, endTime
       }),
-      invalidatesTags: ['Availability'] // 成功后刷新数据
+      invalidatesTags: ['Availability'] // Refresh data after success
     }),
 
-    // 获取Session请求列表
+    // Get session requests list
     getSessionRequests: builder.query({
       query: (params = {}) => {
         const { pageNow = 1, pageSize = 10, statusList } = params;
@@ -376,10 +376,10 @@ export const coachApi = baseApi.injectEndpoints({
         const queryParams = new URLSearchParams();
         queryParams.append('pageNow', pageNow);
         queryParams.append('pageSize', pageSize);
-        // 添加时间戳参数，确保不使用缓存
+        // Add timestamp parameter to ensure cache is not used
         queryParams.append('_t', Date.now());
         
-        // 处理状态列表
+        // Handle status list
         if (statusList && statusList.length > 0) {
           statusList.forEach(status => {
             queryParams.append('statusList', status);
@@ -391,12 +391,12 @@ export const coachApi = baseApi.injectEndpoints({
           method: 'GET'
         };
       },
-      // 确保每次调用都是新的请求，不使用缓存
+      // Ensure each call is a new request, not using cache
       keepUnusedDataFor: 0,
       providesTags: ['SessionRequests']
     }),
     
-    // 标记Session请求为已读
+    // Mark session request as read
     markCoachSessionRequestAsRead: builder.mutation({
       query: (requestId) => ({
         url: `/coach/session/request/${requestId}/read`,
@@ -405,7 +405,7 @@ export const coachApi = baseApi.injectEndpoints({
       invalidatesTags: ['UnreadCount', 'SessionRequests', 'UnreadSessionCount']
     }),
     
-    // 处理Session请求（接受或拒绝）
+    // Handle session request (accept or reject)
     handleSessionRequest: builder.mutation({
       query: ({ requestId, status, reply }) => ({
         url: `/coach/session/request/${requestId}/handle`,
@@ -415,30 +415,29 @@ export const coachApi = baseApi.injectEndpoints({
       invalidatesTags: ['UnreadCount', 'SessionRequests', 'UnreadSessionCount']
     }),
 
-    // 获取教练训练日程表
+    // Get coach training schedule
     getCoachSessionSchedule: builder.query({
       query: () => ({
         url: '/coach/sessionSchedule',
         method: 'GET',
-        // 添加时间戳确保获取最新数据
+        // Add timestamp to ensure latest data
         params: { _t: Date.now() }
       }),
       transformResponse: (response) => {
         if (response.code === 0 && response.data) {
           return response.data;
         }
-        // 处理错误情况
-        console.error('Failed to fetch coach session schedule:', response.msg);
-        return { calenderView: {}, listView: [] }; // 保持与 memberApi 一致的错误处理
+        // Handle error cases
+        return { calenderView: {}, listView: [] }; // Keep error handling consistent with memberApi
       },
-      // 禁用缓存，确保每次查询都是全新的请求
+      // Disable cache, ensure each query is a fresh request
       keepUnusedDataFor: 0,
-      providesTags: ['CoachSessionSchedule'] // 提供标签
+      providesTags: ['CoachSessionSchedule'] // Provide tag
     }),
   })
 });
 
-// 导出自动生成的hooks
+// Export auto-generated hooks
 export const {
   useCheckCoachDetailsQuery,
   useGetCoachDetailQuery,

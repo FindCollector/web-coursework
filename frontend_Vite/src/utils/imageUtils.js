@@ -1,8 +1,8 @@
-// 图片工具函数
+// Image utility functions
 
 /**
- * 获取服务器完整URL
- * @returns {string} 服务器基础URL
+ * Get full server URL
+ * @returns {string} Server base URL
  */
 export const getBaseUrl = () => {
   return process.env.NODE_ENV === 'production' 
@@ -11,29 +11,29 @@ export const getBaseUrl = () => {
 };
 
 /**
- * 构建完整的图片URL
- * @param {string} path - 图片相对路径
- * @returns {string} 完整的图片URL
+ * Build complete image URL
+ * @param {string} path - Image relative path
+ * @returns {string} Complete image URL
  */
 export const getFullImageUrl = (path) => {
   if (!path) return '';
   
-  // 如果已经是完整URL，则直接返回
+  // If already a complete URL, return directly
   if (path.startsWith('http://') || path.startsWith('https://')) {
     return path;
   }
   
-  // 确保路径以 / 开头
+  // Ensure path starts with /
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   return `${getBaseUrl()}${normalizedPath}`;
 };
 
 /**
- * 从sessionStorage获取认证token
- * @returns {string|null} 认证token或null
+ * Get authentication token from sessionStorage
+ * @returns {string|null} Authentication token or null
  */
 export const getToken = () => {
-  // 获取带页面ID的存储键名
+  // Get storage key with page ID
   const getStorageKey = (key) => {
     return window.PAGE_INSTANCE_ID ? `${key}_${window.PAGE_INSTANCE_ID}` : key;
   };
@@ -42,14 +42,13 @@ export const getToken = () => {
 };
 
 /**
- * 创建包含认证信息的请求头
- * @returns {Object} 包含认证信息的请求头对象
+ * Create request headers with authentication information
+ * @returns {Object} Request headers object with authentication info
  */
 export const getAuthHeaders = () => {
   const token = getToken();
   
   if (!token) {
-    console.warn('No authentication token found');
     return {};
   }
   
@@ -60,9 +59,9 @@ export const getAuthHeaders = () => {
 };
 
 /**
- * 创建图片URL对象，包含源和认证头信息
- * @param {string} path - 图片路径
- * @returns {Object} 包含src和headers的对象
+ * Create image URL object with source and authentication headers
+ * @param {string} path - Image path
+ * @returns {Object} Object with src and headers
  */
 export const createImageSrcObject = (path) => {
   const url = getFullImageUrl(path);
@@ -75,10 +74,10 @@ export const createImageSrcObject = (path) => {
 };
 
 /**
- * 创建带认证参数的图片URL
- * 用于img标签等无法设置请求头的场景
- * @param {string} path - 图片路径
- * @returns {string} 带认证参数的完整URL
+ * Create image URL with authentication parameters
+ * For scenarios where request headers cannot be set, like img tags
+ * @param {string} path - Image path
+ * @returns {string} Complete URL with authentication parameters
  */
 export const createImageUrlWithToken = (path) => {
   const baseUrl = getFullImageUrl(path);
@@ -86,9 +85,9 @@ export const createImageUrlWithToken = (path) => {
 };
 
 /**
- * 创建CSS背景图片样式，包含认证信息
- * @param {string} path - 图片路径
- * @returns {Object} CSS样式对象
+ * Create CSS background image style with authentication information
+ * @param {string} path - Image path
+ * @returns {Object} CSS style object
  */
 export const createBackgroundImageStyle = (path) => {
   const imageUrl = createImageUrlWithToken(path);

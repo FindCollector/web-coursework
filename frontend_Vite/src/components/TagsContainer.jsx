@@ -7,55 +7,30 @@ import DraggableTag from './DraggableTag';
 const { Title } = Typography;
 
 const TagsContainer = ({ title, tags, type, onMove, onRemove, style }) => {
-  // 组件挂载后记录容器信息
+  // Component initialization - no action needed after removal of console logs
   useEffect(() => {
-    console.log(`TagContainer initialized - Type: ${type}, Tags count: ${tags.length}`);
+    // Container initialization
   }, [type, tags.length]);
   
-  // 当标签数量变化时输出日志
+  // Monitor tags count changes
   useEffect(() => {
-    console.log(`TagContainer updated - Type: ${type}, Current tags count: ${tags.length}`);
-    if (tags.length > 0) {
-      console.log(`${type} container tags:`, tags.map(tag => tag.tagName));
-    }
+    // Tags updated
   }, [tags, type]);
   
-  // 启用容器级别的拖放功能，允许直接拖放到空容器
+  // Enable container-level drag and drop, allowing direct drops to empty containers
   const [{ isOver, canDrop }, drop] = useDrop({
     accept: 'tag',
     drop: (item, monitor) => {
-      // 记录拖放完成
-      console.log(`Tag dropped in ${type} container:`, { 
-        item, 
-        isDroppedOnSelf: item.sourceType === type,
-        didDrop: monitor.didDrop()
-      });
-      
-      // 只处理来自其他容器的拖放，同一容器的由标签组件处理
+      // Only handle drops from other containers, same container drops are handled by tag components
       if (item.sourceType !== type) {
-        console.log(`Cross-container drag - From ${item.sourceType} to ${type}:`, { 
-          tagId: item.id,
-          tagName: item.name,
-          targetPosition: tags.length 
-        });
-        
-        // 放到容器末尾
+        // Drop at the end of the container
         onMove(item.index, tags.length, item.sourceType, type, item.id);
       }
       
       return { dropped: true, targetType: type };
     },
     hover: (item, monitor) => {
-      if (item.sourceType !== type) {
-        // 只在首次悬停或进入新容器时记录，避免过多日志
-        if (!isOver) {
-          console.log(`Tag hovering over ${type} container:`, {
-            tagId: item.id,
-            tagName: item.name,
-            sourceType: item.sourceType
-          });
-        }
-      }
+      // Hover handling
     },
     collect: (monitor) => ({
       isOver: monitor.isOver(),
@@ -63,7 +38,7 @@ const TagsContainer = ({ title, tags, type, onMove, onRemove, style }) => {
     }),
   });
 
-  // 使用白色背景，彩色边框
+  // Use white background with colored border
   const defaultStyle = type === 'coach' 
     ? { 
         background: 'white',
@@ -74,7 +49,7 @@ const TagsContainer = ({ title, tags, type, onMove, onRemove, style }) => {
         borderLeft: '4px solid #fa8c16'
       };
   
-  // 增加拖放状态的样式变化
+  // Add style changes for drag and drop states
   const isActive = isOver && canDrop;
   
   const containerStyle = {
@@ -89,10 +64,10 @@ const TagsContainer = ({ title, tags, type, onMove, onRemove, style }) => {
       ? (type === 'coach' ? 'rgba(217, 247, 190, 0.3)' : 'rgba(255, 231, 186, 0.3)') 
       : defaultStyle.background,
     borderLeft: defaultStyle.borderLeft,
-    ...style // 允许覆盖默认样式
+    ...style // Allow overriding default styles
   };
   
-  // 使用useMemo优化标签渲染性能
+  // Use useMemo to optimize tag rendering performance
   const renderedTags = useMemo(() => {
     return tags.map((tag, index) => (
       <DraggableTag
@@ -107,7 +82,7 @@ const TagsContainer = ({ title, tags, type, onMove, onRemove, style }) => {
     ));
   }, [tags, type, onMove, onRemove]);
   
-  // 获取卡片标题样式
+  // Get card title style
   const getTitleStyle = () => {
     return {
       display: 'flex',
@@ -118,7 +93,7 @@ const TagsContainer = ({ title, tags, type, onMove, onRemove, style }) => {
     };
   };
   
-  // 获取卡片标题图标
+  // Get card title icon
   const getTitleIcon = () => {
     return (
       <TagsOutlined 
@@ -131,7 +106,7 @@ const TagsContainer = ({ title, tags, type, onMove, onRemove, style }) => {
     );
   };
 
-  // 拖放提示样式
+  // Drag and drop prompt style
   const dropPromptStyle = {
     border: '2px dashed #d9d9d9',
     borderRadius: '8px',

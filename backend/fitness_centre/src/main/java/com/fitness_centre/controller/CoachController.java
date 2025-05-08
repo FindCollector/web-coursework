@@ -51,7 +51,7 @@ public class CoachController {
     @Autowired
     private TagService tagService;
 
-    //上传文件
+    //Upload file
     @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).COACH.getRole())")
     @PostMapping("/photo")
     public GeneralResponseResult uploadFile(MultipartFile file,Authentication authentication){
@@ -133,7 +133,7 @@ public class CoachController {
         String reply = (String)requestBody.get("reply");
         return subscriptionService.coachHandleRequest(requestId,userId, RequestStatus.REJECT,reply);
     }
-    //--------------------------------------- 空闲时间 --------------------------------------------
+    //--------------------------------------- Availability --------------------------------------------
 
     @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).COACH.getRole())")
     @PatchMapping("/availability/{id}")
@@ -164,7 +164,7 @@ public class CoachController {
         return availabilityService.getAllAvailability(userId);
     }
 
-    //--------------------------------------- 课程预定 --------------------------------------------
+    //--------------------------------------- Session Booking --------------------------------------------
     @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).COACH.getRole())")
     @GetMapping("/session-requests")
     public GeneralResponseResult sessionRequestList(Authentication authentication,
@@ -209,7 +209,7 @@ public class CoachController {
         return sessionBookingService.getBookingSchedule(userId,UserRole.COACH);
     }
 
-    //--------------------------------------- 添加member课程历史 --------------------------------------------
+    //--------------------------------------- Add Member Training History --------------------------------------------
     @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).COACH.getRole())")
     @PostMapping("/training/history")
     public GeneralResponseResult addSessionHistory(Authentication authentication, @RequestBody AddHistoryRequest request){

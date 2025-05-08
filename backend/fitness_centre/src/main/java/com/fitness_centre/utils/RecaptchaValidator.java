@@ -16,7 +16,7 @@ import java.util.Objects;
 /**
  * @author
  * @Classname RecaptchaValidator
- * @Description TODO 需要修改google上的域名允许的范围
+ * @Description TODO Need to modify the allowed domain range on Google
  * @date 09/03/2025
  */
 @Component

@@ -9,7 +9,7 @@ import PageTransition from '../components/PageTransition';
 
 const { Title, Text } = Typography;
 
-// 创建链接 Google 账号的 mutation
+// Create Google account linking mutation
 const linkGoogleAccountApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     linkGoogleAccount: builder.mutation({
@@ -25,7 +25,7 @@ const linkGoogleAccountApi = baseApi.injectEndpoints({
   })
 });
 
-// 导出 hook
+// Export hook
 export const { useLinkGoogleAccountMutation } = linkGoogleAccountApi;
 
 const LinkGoogleAccount = () => {
@@ -34,19 +34,19 @@ const LinkGoogleAccount = () => {
   const dispatch = useDispatch();
   const [isLoading, setIsLoading] = useState(false);
   
-  // 从路由状态中获取 email 和 googleToken
+  // Get email and googleToken from route state
   const { email, googleToken } = location.state || {};
   
-  // 使用 API mutation
+  // Use API mutation
   const [linkGoogleAccount] = useLinkGoogleAccountMutation();
   
-  // 如果没有必要的数据，重定向到登录页
+  // If no necessary data, redirect to login page
   if (!email || !googleToken) {
     navigate('/login', { replace: true });
     return null;
   }
   
-  // 处理确认链接
+  // Handle confirm link
   const handleConfirmLink = async () => {
     try {
       setIsLoading(true);
@@ -57,10 +57,10 @@ const LinkGoogleAccount = () => {
       }).unwrap();
       
       if (response && response.code === 0) {
-        // 获取用户信息
+        // Get user information
         const userInfo = response.data?.userInfo || {};
         
-        // 从userInfo中获取token和角色
+        // Get token and role from userInfo
         const token = userInfo.token;
         const userType = userInfo.role;
         const userName = userInfo.userName || 'User';
@@ -70,7 +70,7 @@ const LinkGoogleAccount = () => {
           return;
         }
 
-        // 自动登录：分发登录成功action
+        // Auto login: dispatch login success action
         dispatch(loginSuccess({
           token,
           userType,
@@ -79,11 +79,10 @@ const LinkGoogleAccount = () => {
 
         message.success('Google account linked successfully!');
         
-        // 使用工具函数获取重定向路径
+        // Use utility function to get redirect path
         const redirectPath = getRedirectPath(userType);
-        console.log('Google account linked, redirecting to:', redirectPath);
         
-        // 添加一个小延迟，确保 Redux store 已经更新
+        // Add a small delay to ensure Redux store has updated
         setTimeout(() => {
           navigate(redirectPath, { replace: true });
         }, 100);
@@ -91,7 +90,6 @@ const LinkGoogleAccount = () => {
         message.error(response?.msg || 'Failed to link Google account');
       }
     } catch (error) {
-      console.error('Error linking Google account:', error);
       const errorMessage = error?.data?.msg || error?.message || 'An error occurred while linking your Google account';
       message.error(errorMessage);
     } finally {
@@ -99,7 +97,7 @@ const LinkGoogleAccount = () => {
     }
   };
   
-  // 取消链接
+  // Cancel linking
   const handleCancel = () => {
     navigate('/login', { replace: true });
   };

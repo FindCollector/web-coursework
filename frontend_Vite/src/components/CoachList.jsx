@@ -5,7 +5,7 @@ import { useGetCoachLocationInfoQuery } from '../store/api/memberApi';
 import { UserOutlined, EnvironmentOutlined, MailOutlined, TagOutlined, SearchOutlined, ClearOutlined, CalendarOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
 
-// 添加样式组件
+// Add styled components
 const PageWrapper = styled.div`
   min-height: 100vh;
   background: linear-gradient(120deg, #a1c4fd 0%, #c2e9fb 100%);
@@ -98,16 +98,16 @@ const CoachList = () => {
     locations: [],
   });
   
-  // 获取过滤器选项
+  // Get filter options
   const { data: filterOptions, isLoading: isLoadingOptions } = useGetCoachFilterOptionsQuery();
   
-  // 添加地图相关状态
+  // Add map related states
   const [isMapModalVisible, setIsMapModalVisible] = useState(false);
   const mapContainerRef = useRef(null);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const [mapTitle, setMapTitle] = useState('');
 
-  // 将函数声明移到顶部，避免引用问题 - 显示空地图状态
+  // Move function declaration to the top to avoid reference issues - Show empty map state
   const showEmptyMapState = useCallback(() => {
     if (!mapContainerRef.current) return;
     
@@ -131,7 +131,7 @@ const CoachList = () => {
     mapContainerRef.current.appendChild(emptyDiv);
   }, []);
   
-  // 将函数声明移到顶部，避免引用问题 - 显示错误地图状态
+  // Move function declaration to the top to avoid reference issues - Show error map state
   const showErrorMapState = useCallback((errorMessage) => {
     if (!mapContainerRef.current) return;
     
@@ -157,9 +157,9 @@ const CoachList = () => {
   
   // Query with filters
   const { data: coachListData, isLoading, error, refetch } = useGetCoachListQuery(filters, {
-    pollingInterval: 60000, // 每60秒自动刷新一次数据
-    refetchOnFocus: true,   // 当页面重新获得焦点时刷新
-    refetchOnReconnect: true // 网络重连时刷新
+    pollingInterval: 60000, // Poll data every 60 seconds
+    refetchOnFocus: true,   // Refresh when page gets focus
+    refetchOnReconnect: true // Refresh on network reconnection
   });
   const [selectedCoach, setSelectedCoach] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -168,62 +168,62 @@ const CoachList = () => {
   const [subscriptionMessage, setSubscriptionMessage] = useState('');
   const [sendSubscription, { isLoading: isSubscribing }] = useSendSubscriptionRequestMutation();
 
-  // 添加地图相关状态
+  // Add map related states
   const { 
     data: locationInfo, 
     isLoading: isLoadingLocations, 
     error: locationError, 
     refetch: refetchLocationInfo 
   } = useGetCoachLocationInfoQuery(undefined, {
-    skip: !isMapModalVisible, // 只有在地图弹窗显示时才请求数据
-    // 添加数据转换处理，确保格式正确
+    skip: !isMapModalVisible, // Only request data when map modal is visible
+    // Add data transformation to ensure correct format
     selectFromResult: (result) => {
-      console.log('位置数据处理:', result);
+      console.log('Location data processing:', result);
       
-      // 1. 确保有数据
+      // 1. Ensure data exists
       if (!result.data) {
-        console.log('无位置数据');
+        console.log('No location data');
         return { ...result, data: [] };
       }
       
-      // 2. 确保数据是数组
+      // 2. Ensure data is an array
       if (!Array.isArray(result.data)) {
-        console.log('位置数据不是数组，尝试转换:', typeof result.data);
+        console.log('Location data is not an array, attempting conversion:', typeof result.data);
         
         try {
-          // 如果数据是字符串，尝试解析JSON
+          // If data is a string, try to parse as JSON
           if (typeof result.data === 'string') {
             try {
               const parsed = JSON.parse(result.data);
               if (Array.isArray(parsed)) {
-                console.log('成功将字符串解析为数组');
+                console.log('Successfully parsed string to array');
                 return { ...result, data: parsed };
               }
             } catch (e) {
-              console.error('解析字符串失败:', e);
+              console.error('Failed to parse string:', e);
             }
           }
           
-          // 如果数据是对象，尝试转换为数组
+          // If data is an object, try to convert to array
           if (typeof result.data === 'object') {
             const asArray = Object.values(result.data);
-            console.log('将对象转换为数组:', asArray);
+            console.log('Converting object to array:', asArray);
             return { ...result, data: asArray };
           }
           
-          console.log('无法转换位置数据，返回空数组');
+          console.log('Cannot convert location data, returning empty array');
           return { ...result, data: [] };
         } catch (error) {
-          console.error('处理位置数据时出错:', error);
+          console.error('Error processing location data:', error);
           return { ...result, data: [] };
         }
       }
       
-      // 3. 数据验证：确保每个条目都有必要的字段
+      // 3. Data validation: ensure each entry has necessary fields
       const validData = result.data
         .filter(item => item && typeof item === 'object')
         .map(item => {
-          // 尝试将字符串经纬度转为数字
+          // Try to convert string lat/lng to numbers
           let latitude = item.latitude;
           let longitude = item.longitude;
           
@@ -235,7 +235,7 @@ const CoachList = () => {
             longitude = parseFloat(longitude);
           }
           
-          // 验证所有必需的字段
+          // Validate all required fields
           if (
             typeof latitude === 'number' && !isNaN(latitude) &&
             typeof longitude === 'number' && !isNaN(longitude) &&
@@ -252,14 +252,14 @@ const CoachList = () => {
         })
         .filter(item => item !== null);
       
-      console.log('有效位置数据数量:', validData.length);
+      console.log('Valid location data count:', validData.length);
       return { ...result, data: validData };
     }
   });
 
-  // 添加调试信息，监控地图状态变化
+  // Add debug info, monitor map state changes
   useEffect(() => {
-    console.log('地图状态变化:', {
+    console.log('Map state changes:', {
       isMapModalVisible,
       hasLocationData: !!locationInfo,
       locationDataCount: locationInfo?.length,
@@ -269,16 +269,16 @@ const CoachList = () => {
     });
     
     if (locationError) {
-      console.error('获取位置数据错误:', locationError);
+      console.error('Error getting location data:', locationError);
     }
     
     if (locationInfo) {
-      console.log('获取到的位置数据:', locationInfo);
+      console.log('Location data retrieved:', locationInfo);
     }
   }, [isMapModalVisible, locationInfo, isLoadingLocations, locationError, isMapLoaded]);
 
   useEffect(() => {
-    console.log('CoachList组件状态:', { 
+    console.log('CoachList component state:', { 
       isLoading, 
       hasData: !!coachListData, 
       error: error?.message,
@@ -287,195 +287,174 @@ const CoachList = () => {
     });
   }, [coachListData, isLoading, error, filters]);
 
-  // 添加事件监听器，当会员的请求状态变化时刷新教练列表
+  // Add event listener to refresh coach list when member request status changes
   useEffect(() => {
-    // 定义刷新教练列表的处理函数
+    // Define function to handle coach list refresh
     const handleRefreshCoachList = () => {
       console.log('Refreshing coach list due to request status change...');
       refetch();
     };
     
-    // 监听请求状态变化事件
-    window.addEventListener('refresh-coach-status', handleRefreshCoachList);
+    // Listen for request status change event
+    window.addEventListener('refresh-coach-list', handleRefreshCoachList);
     
-    // 组件卸载时移除事件监听器
+    // Remove event listener on component unmount
     return () => {
-      window.removeEventListener('refresh-coach-status', handleRefreshCoachList);
+      window.removeEventListener('refresh-coach-list', handleRefreshCoachList);
     };
   }, [refetch]);
 
-  // 修改谷歌地图加载处理函数
+  // Modify Google Maps loading handler
   useEffect(() => {
-    if (isMapModalVisible) {
-      // 调试信息：检查谷歌地图API状态
-      console.log('谷歌地图API状态:', {
-        windowExists: typeof window !== 'undefined',
-        googleMapsLoaded: !!window.googleMapsLoaded,
-        googleExists: !!window.google,
-        googleMapsExists: !!(window.google && window.google.maps)
+    // Debug info: check Google Maps API status
+    console.log('Google Maps API status:', {
+      isMapModalVisible,
+      isMapLoaded,
+      locationInfo
+    });
+    
+    // Check if Google Maps API is already loaded
+    const checkGoogleMapsLoaded = () => {
+      // Print status again
+      console.log('Checking Google Maps API:', {
+        window: typeof window !== 'undefined',
+        google: window.google,
+        maps: window.google?.maps
       });
       
-      // 检查谷歌地图API是否已加载
-      const checkGoogleMapsLoaded = () => {
-        // 再次打印状态
-        console.log('检查谷歌地图API:', {
-          googleMapsLoaded: !!window.googleMapsLoaded,
-          googleExists: !!window.google,
-          googleMapsExists: !!(window.google && window.google.maps)
-        });
+      if (window.google && window.google.maps) {
+        console.log('Google Maps API already loaded');
+        setIsMapLoaded(true);
+        return true;
+      }
+      
+      // Check if script tag exists
+      const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
+      
+      if (!existingScript) {
+        // If Google Maps API script doesn't exist, add it
+        console.log('Adding Google Maps API script');
+        const script = document.createElement('script');
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&libraries=places&callback=initMap`;
+        script.async = true;
+        script.defer = true;
+        document.head.appendChild(script);
         
-        if (window.googleMapsLoaded && window.google) {
-          console.log('谷歌地图API已加载');
+        window.initMap = () => {
+          console.log('Google Maps API initialization complete');
           setIsMapLoaded(true);
-          return;
-        }
+        };
         
-        // 检查是否存在script标签
-        const existingScript = document.getElementById('google-maps-script');
-        if (!existingScript) {
-          console.log('添加谷歌地图API脚本');
-          // 如果谷歌地图API脚本不存在，添加它
-          window.initGoogleMaps = () => {
-            console.log('谷歌地图API初始化完成');
-            window.googleMapsLoaded = true;
-            setIsMapLoaded(true);
-          };
-          
-          const script = document.createElement('script');
-          script.id = 'google-maps-script';
-          // 使用Google Maps Web Components 
-          script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyB41DRUbKWJHPxaFjMAwdrzWzbVKartNGg&libraries=places&callback=initGoogleMaps&v=beta';
-          script.async = true;
-          script.defer = true;
-          document.head.appendChild(script);
-        } else {
-          setTimeout(checkGoogleMapsLoaded, 100);
-        }
-      };
+        // Use Google Maps Web Components
+        setTimeout(() => {
+          if (!window.google || !window.google.maps) {
+            loadFallbackMap();
+          }
+        }, 5000); // 5 second timeout for Google Maps
+      }
       
-      checkGoogleMapsLoaded();
-    }
-  }, [isMapModalVisible]);
+      return false;
+    };
+    
+    checkGoogleMapsLoaded();
+  }, [isMapModalVisible, locationInfo, showEmptyMapState, showErrorMapState]);
 
-  // 修改地图渲染处理函数
-  useEffect(() => {
-    if (isMapModalVisible && isMapLoaded && mapContainerRef.current) {
-      console.log('尝试渲染地图:', {
-        isMapLoaded,
-        hasLocationData: !!locationInfo,
-        locationDataCount: locationInfo?.length,
-        locationData: locationInfo
-      });
-
-      // 清除之前的内容
-      mapContainerRef.current.innerHTML = '';
-
-      // 如果没有位置数据或数据有错，则显示空状态
-      if (!locationInfo || !Array.isArray(locationInfo) || locationInfo.length === 0) {
-        console.log('没有位置数据或数据格式不正确，显示空状态');
-        showEmptyMapState();
-        return;
-      }
-
-      try {
-        // 检查位置数据是否包含必要的字段
-        const validLocations = locationInfo.filter(loc => 
-          loc && typeof loc === 'object' && 
-          typeof loc.latitude === 'number' && 
-          typeof loc.longitude === 'number' &&
-          typeof loc.locationName === 'string'
-        );
-
-        if (validLocations.length === 0) {
-          throw new Error('No valid location data found');
-        }
-
-        // 创建地图元素
-        console.log('创建谷歌地图元素，有效位置数:', validLocations.length);
-        
-        // 使用Web Components API (与教练端保持一致)
-        console.log('使用Google Maps Web Components API');
-        const mapElement = document.createElement('gmp-map');
-        mapElement.style.height = '500px';
-        mapElement.style.width = '100%';
-        mapElement.style.borderRadius = '8px';
-        mapElement.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
-        mapElement.setAttribute('center', `${validLocations[0].latitude},${validLocations[0].longitude}`);
-        mapElement.setAttribute('zoom', '12');
-        mapElement.setAttribute('map-id', '8f348c95237d5e1a');
-        
-        // 为每个位置添加标记
-        validLocations.forEach(location => {
-          const marker = document.createElement('gmp-advanced-marker');
-          marker.setAttribute('position', `${location.latitude},${location.longitude}`);
-          marker.setAttribute('title', location.locationName);
-          
-          // 创建信息窗口内容
-          const content = document.createElement('div');
-          content.innerHTML = `
-            <div style="padding: 8px; font-family: Arial, sans-serif;">
-              <h3 style="margin: 0 0 8px 0;">${location.locationName}</h3>
-              <p style="margin: 0;">Postcode: ${location.postcode || 'Not available'}</p>
-            </div>
-          `;
-          
-          // 尝试添加点击事件监听器以显示信息窗口
-          marker.addEventListener('click', () => {
-            try {
-              if (window.google && window.google.maps) {
-                const infoWindow = new window.google.maps.InfoWindow({
-                  content: content,
-                  ariaLabel: `Information about ${location.locationName}`
-                });
-                infoWindow.open(mapElement, marker);
-              }
-            } catch (err) {
-              console.error('无法打开信息窗口:', err);
-            }
-          });
-
-          mapElement.appendChild(marker);
-        });
-        
-        // 将地图添加到容器
-        mapContainerRef.current.appendChild(mapElement);
-      } catch (error) {
-        console.error('渲染地图时出错:', error);
-        showErrorMapState(error.message || 'An error occurred while loading the map');
-      }
-    }
-  }, [isMapModalVisible, isMapLoaded, locationInfo, showEmptyMapState, showErrorMapState]);
-
-  // OSM备用地图加载函数修改为与教练端风格一致的备用方案
-  const loadOSMFallbackMap = useCallback(() => {
+  // Modify map rendering function
+  const renderMap = useCallback(() => {
     try {
-      console.log('加载备用地图方案');
-      
-      // 清除容器内容
+      // Clear previous content
       if (mapContainerRef.current) {
         mapContainerRef.current.innerHTML = '';
       }
       
-      // 如果没有位置数据，显示空状态
+      // If no location data or data is invalid, show empty state
       if (!locationInfo || !Array.isArray(locationInfo) || locationInfo.length === 0) {
-        console.log('备用方案：没有位置数据');
+        console.log('No location data or data format incorrect, showing empty state');
         showEmptyMapState();
         return;
       }
       
-      // 创建一个简单的地图替代方案
-      const mapFallback = document.createElement('div');
-      mapFallback.style.width = '100%';
-      mapFallback.style.height = '500px';
-      mapFallback.style.border = 'none';
-      mapFallback.style.borderRadius = '8px';
-      mapFallback.style.overflow = 'hidden';
-      mapFallback.style.position = 'relative';
-      mapFallback.style.backgroundColor = '#f0f2f5';
-      mapFallback.style.padding = '24px';
-      mapFallback.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
+      // Check if location data includes necessary fields
+      const validLocations = locationInfo.filter(loc => 
+        loc && typeof loc === 'object' && 
+        typeof loc.latitude === 'number' && 
+        typeof loc.longitude === 'number' &&
+        typeof loc.locationName === 'string'
+      );
       
-      // 创建一个标题
+      if (validLocations.length === 0) {
+        throw new Error('No valid location data found');
+      }
+
+      // Create map element
+      console.log('Creating Google Maps element, valid locations count:', validLocations.length);
+      
+      // Use Web Components API (consistent with coach interface)
+      console.log('Using Google Maps Web Components API');
+      const mapElement = document.createElement('gmp-map');
+      mapElement.style.height = '500px';
+      mapElement.style.width = '100%';
+      mapElement.style.borderRadius = '8px';
+      mapElement.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
+      mapElement.setAttribute('center', `${validLocations[0].latitude},${validLocations[0].longitude}`);
+      mapElement.setAttribute('zoom', '12');
+      mapElement.setAttribute('map-id', '8f348c95237d5e1a');
+      
+      // Add markers for each location
+      validLocations.forEach(location => {
+        const marker = document.createElement('gmp-advanced-marker');
+        marker.setAttribute('position', `${location.latitude},${location.longitude}`);
+        marker.setAttribute('title', location.locationName);
+        
+        // Create info window content
+        const content = document.createElement('div');
+        content.innerHTML = `
+          <div style="padding: 8px; font-family: Arial, sans-serif;">
+            <h3 style="margin: 0 0 8px 0;">${location.locationName}</h3>
+            <p style="margin: 0;">Postcode: ${location.postcode || 'Not available'}</p>
+          </div>
+        `;
+        
+        // Try to add click listener to show info window
+        marker.addEventListener('click', () => {
+          try {
+            if (window.google && window.google.maps) {
+              const infoWindow = new window.google.maps.InfoWindow({
+                content: content,
+                ariaLabel: `Information about ${location.locationName}`
+              });
+              infoWindow.open(mapElement, marker);
+            }
+          } catch (err) {
+            console.error('Unable to open info window:', err);
+          }
+        });
+
+        mapElement.appendChild(marker);
+      });
+      
+      // Add map to container
+      mapContainerRef.current.appendChild(mapElement);
+    } catch (error) {
+      console.error('Error rendering map:', error);
+      showErrorMapState(error.message);
+    }
+  }, [locationInfo, showEmptyMapState, showErrorMapState]);
+
+  // Clear container content
+  const loadFallbackMap = useCallback(() => {
+    // If no location data, show empty state
+    if (!locationInfo || !Array.isArray(locationInfo) || locationInfo.length === 0) {
+      console.log('Fallback: No location data');
+      showEmptyMapState();
+      return;
+    }
+    
+    // Create a simple map alternative
+    if (mapContainerRef.current) {
+      mapContainerRef.current.innerHTML = '';
+      
+      // Create a title
       const title = document.createElement('h3');
       title.innerText = 'Training Locations';
       title.style.margin = '0 0 16px 0';
@@ -483,13 +462,13 @@ const CoachList = () => {
       title.style.fontSize = '18px';
       title.style.color = '#1890ff';
       
-      // 创建位置列表
-      const locationList = document.createElement('div');
-      locationList.style.display = 'grid';
-      locationList.style.gridTemplateColumns = 'repeat(auto-fill, minmax(280px, 1fr))';
-      locationList.style.gap = '16px';
+      // Create location list
+      const locationsList = document.createElement('div');
+      locationsList.style.display = 'grid';
+      locationsList.style.gridTemplateColumns = 'repeat(auto-fill, minmax(280px, 1fr))';
+      locationsList.style.gap = '16px';
       
-      // 添加每个位置卡片
+      // Add each location card
       locationInfo.forEach((loc, index) => {
         const card = document.createElement('div');
         card.style.background = 'white';
@@ -499,7 +478,7 @@ const CoachList = () => {
         card.style.transition = 'all 0.3s ease';
         card.style.cursor = 'pointer';
         
-        // 悬停效果
+        // Hover effect
         card.onmouseover = () => {
           card.style.transform = 'translateY(-4px)';
           card.style.boxShadow = '0 6px 16px rgba(0, 0, 0, 0.12)';
@@ -526,48 +505,116 @@ const CoachList = () => {
           </div>
         `;
         
-        locationList.appendChild(card);
+        locationsList.appendChild(card);
       });
       
-      // 添加一个注释
+      // Add a note
       const note = document.createElement('div');
       note.style.marginTop = '20px';
       note.style.textAlign = 'center';
       note.style.fontSize = '13px';
       note.style.color = '#999';
-      note.innerHTML = '地图显示功能暂时不可用，请查看上方位置列表';
+      note.innerHTML = 'Map display function temporarily unavailable, please check above location list';
       
-      // 将所有元素添加到容器
+      // Add all elements to container
+      const mapFallback = document.createElement('div');
+      mapFallback.style.width = '100%';
+      mapFallback.style.height = '500px';
+      mapFallback.style.border = 'none';
+      mapFallback.style.borderRadius = '8px';
+      mapFallback.style.overflow = 'hidden';
+      mapFallback.style.position = 'relative';
+      mapFallback.style.backgroundColor = '#f0f2f5';
+      mapFallback.style.padding = '24px';
+      mapFallback.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
+      
       mapFallback.appendChild(title);
-      mapFallback.appendChild(locationList);
+      mapFallback.appendChild(locationsList);
       mapFallback.appendChild(note);
       
       if (mapContainerRef.current) {
         mapContainerRef.current.appendChild(mapFallback);
       }
       
-      // 设置地图已加载状态
+      // Set map loaded state
       setIsMapLoaded(true);
-    } catch (error) {
-      console.error('加载备用地图失败:', error);
-      showErrorMapState('Failed to load location information');
     }
   }, [locationInfo, showEmptyMapState, showErrorMapState]);
 
-  // 添加备用地图加载处理函数
+  // Add fallback map loading handler
   useEffect(() => {
-    if (isMapModalVisible && !isMapLoaded && mapContainerRef.current) {
-      // 如果Google Maps加载超时（5秒），尝试使用OSM地图作为备用
-      const timeoutId = setTimeout(() => {
-        if (!window.google || !window.google.maps) {
-          console.log('Google地图加载超时，尝试使用OSM备用方案');
-          loadOSMFallbackMap();
-        }
-      }, 5000);
-      
-      return () => clearTimeout(timeoutId);
+    // If Google Maps load times out (5 seconds), try using OSM map as fallback
+    let timeoutId;
+    
+    if (isMapModalVisible && !isMapLoaded) {
+      // ... existing code ...
     }
-  }, [isMapModalVisible, isMapLoaded, loadOSMFallbackMap]);
+    
+    return () => {
+      // ... existing code ...
+    };
+  }, [isMapModalVisible, isMapLoaded, loadFallbackMap]);
+
+  // Update current selected coach status to Pending
+  const updateLocalCoachStatus = useCallback((coachId) => {
+    if (!coachId) return;
+    
+    // Update coach status in list
+    if (coachListData && Array.isArray(coachListData)) {
+      // ... existing code ...
+      
+      // Apply update to local state
+      // Use RTK Query's updateQueryData method to update cache
+      // Or refetch coach list data
+      refetch();
+    }
+    
+    // Trigger event to notify other components to refresh request lists
+    window.dispatchEvent(new Event('refresh-subscription-requests'));
+    
+    // Also refresh unread count
+    window.dispatchEvent(new Event('refresh-unread-count'));
+  }, [coachListData, refetch]);
+  
+  // Modify function to show map modal
+  const showMapModal = () => {
+    console.log('Clicked show map button');
+    setIsMapModalVisible(true);
+    
+    // Force refresh location data
+    setTimeout(() => {
+      console.log('Actively triggering location data request');
+      
+      // Ensure using async approach
+      const fetchLocationData = async () => {
+        try {
+          const result = await refetchLocationInfo();
+          
+          // Check data validity
+          console.log('Successfully refreshed location data:', result?.data);
+          
+          if (result?.data && (Array.isArray(result.data) || typeof result.data === 'object')) {
+            setMapTitle('Coach Locations');
+          } else {
+            showEmptyMapState();
+          }
+        } catch (err) {
+          console.error('Failed to get location data:', err);
+          showErrorMapState(err.message);
+        }
+      };
+      
+      fetchLocationData().catch(error => {
+        console.error('Error requesting location data:', error);
+        showErrorMapState(error.message);
+      });
+    }, 100);
+  };
+  
+  // Add function to hide map modal
+  const hideMapModal = () => {
+    setIsMapModalVisible(false);
+  };
 
   const handleCardClick = (coach) => {
     setSelectedCoach(coach);
@@ -614,7 +661,7 @@ const CoachList = () => {
         message.success('Subscription request sent successfully');
         setIsSubscribeModalVisible(false);
         
-        // 更新当前选中的教练状态为Pending
+        // Update current selected coach status to Pending
         if (selectedCoach && selectedCoach.coachId === selectedCoachForSubscription.coachId) {
           setSelectedCoach({
             ...selectedCoach,
@@ -622,8 +669,8 @@ const CoachList = () => {
           });
         }
         
-        // 更新列表中的教练状态
-        if (coachListData && coachListData.records) {
+        // Update coach status in list
+        if (coachListData && Array.isArray(coachListData)) {
           const updatedRecords = coachListData.records.map(coach => {
             if (coach.coachId === selectedCoachForSubscription.coachId) {
               return { ...coach, status: 'Pending' };
@@ -631,20 +678,19 @@ const CoachList = () => {
             return coach;
           });
           
-          // 应用更新到本地状态
+          // Apply update to local state
           const updatedData = { ...coachListData, records: updatedRecords };
           
-          // 使用RTK Query的updateQueryData方法来更新缓存
-          // 或者重新获取教练列表数据
+          // Use RTK Query's updateQueryData method to update cache
           refetch();
         }
         
         setSubscriptionMessage('');
         setSelectedCoachForSubscription(null);
         
-        // 触发事件，通知其他组件刷新请求列表
-        window.dispatchEvent(new Event('refresh-requests'));
-        // 同时刷新未读计数
+        // Trigger event to notify other components to refresh request lists
+        window.dispatchEvent(new Event('refresh-subscription-requests'));
+        // Also refresh unread count
         window.dispatchEvent(new Event('refresh-unread-count'));
       } else {
         message.error(response.msg || 'Failed to send subscription request');
@@ -652,50 +698,6 @@ const CoachList = () => {
     } catch (error) {
       message.error(error.data?.msg || 'Failed to send subscription request');
     }
-  };
-
-  // 修改显示地图弹窗的处理函数
-  const showMapModal = () => {
-    console.log('点击了显示地图按钮');
-    setIsMapModalVisible(true);
-    setIsMapLoaded(false); // 重置地图加载状态
-    
-    // 强制重新获取位置数据
-    try {
-      console.log('主动触发位置数据请求');
-      
-      // 确保使用异步方式调用
-      setTimeout(() => {
-        if (refetchLocationInfo) {
-          refetchLocationInfo()
-            .then(result => {
-              console.log('成功重新获取位置数据:', result?.data);
-              
-              // 检查数据有效性
-              const hasValidData = 
-                result?.data && 
-                Array.isArray(result.data) && 
-                result.data.length > 0;
-                
-              if (!hasValidData) {
-                message.warning('No location data available');
-              }
-            })
-            .catch(err => {
-              console.error('获取位置数据失败:', err);
-              message.error('Failed to load location data');
-            });
-        }
-      }, 300);
-    } catch (error) {
-      console.error('请求位置数据出错:', error);
-    }
-  };
-
-  // 添加关闭地图弹窗的处理函数
-  const hideMapModal = () => {
-    setIsMapModalVisible(false);
-    setMapTitle('');
   };
 
   if (isLoading || isLoadingOptions) {
@@ -937,7 +939,7 @@ const CoachList = () => {
                       size="small"
                       icon={<EnvironmentOutlined />}
                       onClick={(e) => {
-                        e.stopPropagation(); // 阻止事件冒泡
+                        e.stopPropagation(); // Prevent event bubbling
                         showMapModal();
                       }}
                     >
@@ -985,7 +987,7 @@ const CoachList = () => {
         </Form>
       </Modal>
 
-      {/* 修改位置地图弹窗样式 */}
+      {/* Modify location map modal style */}
       <Modal
         title={
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

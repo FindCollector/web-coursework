@@ -50,6 +50,9 @@ public class SessionBookingServiceImpl extends ServiceImpl<SessionBookingMapper,
     @Autowired
     private TrainingHistoryMapper historyMapper;
 
+    @Autowired
+    private SessionBookingMapper sessionBookingMapper; // 显式注入，供单元测试 Mock
+
     //检查可用时间的步长
     private static final int BOOKING_STEP_MINUTES = 15;
 
@@ -661,7 +664,6 @@ public class SessionBookingServiceImpl extends ServiceImpl<SessionBookingMapper,
         if(rows <= 0){
             throw new SystemException(ErrorCode.DB_OPERATION_ERROR.getCode(),"Database connection error");
         }
-        //todo 其他相同时间的课要直接拒绝，填写默认的信息
         LambdaQueryWrapper<SessionBooking> sessionBookingLambdaQueryWrapper = new LambdaQueryWrapper<>();
         sessionBookingLambdaQueryWrapper.eq(SessionBooking::getId,requestId);
         SessionBooking sessionBooking = this.baseMapper.selectOne(sessionBookingLambdaQueryWrapper);
@@ -712,5 +714,11 @@ public class SessionBookingServiceImpl extends ServiceImpl<SessionBookingMapper,
         return new GeneralResponseResult(ErrorCode.SUCCESS,dataMap);
     }
 
+    // setter 注入在单元测试 @InjectMocks 时也会被调用，从而同步 baseMapper
+    @Autowired
+    public void setSessionBookingMapper(SessionBookingMapper sessionBookingMapper) {
+        this.sessionBookingMapper = sessionBookingMapper;
+        super.baseMapper = sessionBookingMapper;
+    }
 
 }

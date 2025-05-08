@@ -67,7 +67,7 @@ public class MemberController {
         map.put("locations",locationService.getAllLocations());
         return new GeneralResponseResult(ErrorCode.SUCCESS,map);
     }
-    //--------------------------------------- 教练订阅 --------------------------------------------
+    //--------------------------------------- Coach Subscription --------------------------------------------
 
     @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).MEMBER.getRole())")
     @PostMapping("/subscription")
@@ -119,7 +119,7 @@ public class MemberController {
         Long userId = loginUser.getId();
         return subscriptionService.memberCancelSubscription(userId,coachId);
     }
-    //--------------------------------------- 课程订阅 --------------------------------------------
+    //--------------------------------------- Session Booking --------------------------------------------
 
     @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).MEMBER.getRole())")
     @GetMapping("/appropriateTimeList/{coachId}")
@@ -187,7 +187,7 @@ public class MemberController {
         return sessionBookingService.countUnreadRequest(userId,UserRole.MEMBER);
     }
 
-    //--------------------------------------- 训练历史 --------------------------------------------
+    //--------------------------------------- Training History --------------------------------------------
     @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).MEMBER.getRole())")
     @GetMapping("/training/history")
     public GeneralResponseResult viewTrainingHistory(Authentication authentication,

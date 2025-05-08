@@ -26,17 +26,17 @@ export const validateToken = async () => {
     }
     
     // Send a request to any protected endpoint (using user info as a simple check)
-    // 改用实际存在的API端点，而不是专门的validate-token端点
+    // Using an actual API endpoint instead of a dedicated validate-token endpoint
     const response = await fetch('http://localhost:8080/auth/user', {
       method: 'GET',
       headers: {
-        // 只传递token字段，去掉Authorization头
+        // Use the standard Bearer scheme and keep the legacy "token" header for backward compatibility
+        'Authorization': `Bearer ${token}`,
         'token': token
       }
     });
     
     const data = await response.json();
-    console.log('Token validation response:', data);
     
     // Check if token is valid based on response code
     if (response.ok && data.code !== 3000) {
@@ -47,14 +47,12 @@ export const validateToken = async () => {
     if (data.code === 3000 || 
         data.msg === 'Not logged in or login expired' || 
         (data.data && data.data.includes('authentication is required'))) {
-      console.log('Token validation failed - expired token detected');
       handleTokenExpiration();
       return false;
     }
     
     return true; // For other status codes, don't auto-logout
   } catch (error) {
-    console.error('Token validation error:', error);
     // Don't auto-logout on network errors, as it might be temporary
     return true; 
   }
@@ -64,15 +62,13 @@ export const validateToken = async () => {
  * Handle token expiration by logging out and redirecting
  */
 export const handleTokenExpiration = () => {
-  // 防止重复处理，使用标记避免多次调用
+  // Prevent duplicate handling, use a flag to avoid multiple calls
   if (window.__handlingTokenExpiration) {
     return;
   }
   
-  // 设置标记，防止重复处理
+  // Set flag to prevent duplicate handling
   window.__handlingTokenExpiration = true;
-  
-  console.log('Handling token expiration - logging out user');
   
   // Clear local storage
   localStorage.removeItem(getStorageKey('token'));
@@ -117,12 +113,10 @@ export const startTokenValidation = () => {
     // Only run validation if token exists
     const token = localStorage.getItem(getStorageKey('token'));
     if (token) {
-      console.log('Performing periodic token validation');
       await validateToken();
     }
   }, TOKEN_VALIDATION_INTERVAL);
   
-  console.log('Token validation service started, interval:', TOKEN_VALIDATION_INTERVAL, 'ms');
   return tokenValidationTimer;
 };
 
@@ -133,6 +127,5 @@ export const stopTokenValidation = () => {
   if (tokenValidationTimer) {
     clearInterval(tokenValidationTimer);
     tokenValidationTimer = null;
-    console.log('Token validation service stopped');
   }
 }; 

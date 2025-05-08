@@ -31,19 +31,19 @@ import java.util.stream.Collectors;
 public class GlobalExceptionHandler {
 
 
-    //字段的格式检查
+    //Field format validation
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public void handleMethodArgumentNotValidException(MethodArgumentNotValidException ex){
-        // 用来存放字段的错误信息（key：字段名，value：错误信息）
+        // Store field error messages (key: field name, value: error message)
         Map<String, String> fieldErrors = new HashMap<>();
 
         ex.getBindingResult().getAllErrors().forEach(error -> {
             if (error instanceof FieldError fieldError) {
-                // 1. fieldError.getField() 是字段名
-                // 2. fieldError.getDefaultMessage() 对应 @NotBlank、@Email、@Size 等注解的 message
+                // 1. fieldError.getField() is the field name
+                // 2. fieldError.getDefaultMessage() corresponds to the message in annotations like @NotBlank, @Email, @Size, etc.
                 fieldErrors.put(fieldError.getField(), fieldError.getDefaultMessage());
             } else {
-                // 如果是类级别错误（比如 @Valid 对象级别校验），用 objectName 作为 key
+                // If it's a class-level error (such as @Valid object-level validation), use objectName as key
                 fieldErrors.put(error.getObjectName(), error.getDefaultMessage());
             }
         });
@@ -57,7 +57,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public void handleHttpMessageNotReadableException(HttpMessageNotReadableException ex) {
-        // 打印异常信息
+        // Print exception information
         // log.error("JSON parse error", e);
         Throwable rootCause = ex.getMostSpecificCause();
         GeneralResponseResult result;
@@ -95,9 +95,9 @@ public class GlobalExceptionHandler {
 
         GeneralResponseResult<?> result = new GeneralResponseResult<>(
                 ex.getCode(),
-                "The server is busy, please try again later"  // 可以不直接使用 ex.getMessage()，以免暴露系统细节
+                "The server is busy, please try again later"  // We can avoid using ex.getMessage() directly to prevent exposing system details
         );
-        // 系统层面错误，典型地返回 500 INTERNAL_SERVER_ERROR
+        // System-level errors typically return 500 INTERNAL_SERVER_ERROR
         return result;
     }
 
@@ -111,15 +111,15 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 兜底异常（Exception）
-     * - 用来捕获任何未被上面方法捕获的异常，防止返回 500 堆栈给前端
+     * Fallback exception (Exception)
+     * - Used to catch any exceptions not caught by the methods above, to prevent returning a 500 stack trace to the frontend
      */
     @ExceptionHandler(Exception.class)
     public GeneralResponseResult<?> handleException(Exception ex) {
         // log.error("Unknown exception: {}", ex.getMessage(), ex);
 
-        // 这里可以返回一个通用的错误码，比如 9999 或 500
-        // 也可以在配置文件中做“自定义错误码表”
+        // Here we can return a general error code, such as 9999 or 500
+        // We can also define a 'custom error code table' in the configuration file
         GeneralResponseResult<?> result = new GeneralResponseResult<>(
                 9999,
                 "The system is busy, please try again later"

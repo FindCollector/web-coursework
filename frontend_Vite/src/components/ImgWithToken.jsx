@@ -3,20 +3,6 @@ import { UserOutlined } from '@ant-design/icons';
 import { useTokenizedImage } from '../hooks';
 import { useState, useEffect, useRef } from 'react';
 
-/**
- * 带认证token的图片组件，支持懒加载
- * 使用方法一：直接渲染带token的图片
- * <ImgWithToken src="/path/to/image.jpg" lazy />
- * 
- * 使用方法二：渲染Avatar组件
- * <ImgWithToken 
- *   src="/path/to/image.jpg" 
- *   avatar 
- *   size={100} 
- *   fallbackIcon={<CustomIcon />} 
- *   lazy
- * />
- */
 const ImgWithToken = ({ 
   src, 
   alt = "Image", 

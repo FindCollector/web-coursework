@@ -23,10 +23,10 @@ public class BookingRequest {
     @JsonSerialize(using = ToStringSerializer.class)
     private Long coachId;
     private Integer dayOfWeek;
-    @JsonFormat(pattern = "HH:mm") // 控制 JSON 输出格式为 HH:mm
+    @JsonFormat(pattern = "HH:mm") // Control JSON output format to HH:mm
     private LocalTime startTime;
 
-    @JsonFormat(pattern = "HH:mm") // 控制 JSON 输出格式为 HH:mm
+    @JsonFormat(pattern = "HH:mm") // Control JSON output format to HH:mm
     private LocalTime endTime;
 
     private String message;

@@ -2,28 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { Modal, Spin } from 'antd';
 import PropTypes from 'prop-types';
 
-/**
- * Location object type definition
- * @typedef {Object} Location
- * @property {string} locationName - The name of the location
- * @property {number} latitude - The latitude coordinate
- * @property {number} longitude - The longitude coordinate
- */
-
-/**
- * A reusable Google Map component that can be used in modal or standalone mode
- * @param {Object} props
- * @param {Location[]} props.locations - Array of locations to display on the map
- * @param {boolean} [props.isModal=false] - Whether to show the map in a modal
- * @param {boolean} [props.visible=false] - Controls modal visibility when isModal is true
- * @param {function} [props.onClose] - Modal close handler when isModal is true
- * @param {string} [props.title="Location Map"] - Modal title when isModal is true
- * @param {Object} [props.modalProps] - Additional props for the Modal component
- * @param {Object} [props.mapProps] - Additional props for the map
- * @param {string} [props.mapProps.mapId="8f348c95237d5e1a"] - Google Maps style ID
- * @param {number} [props.mapProps.zoom=12] - Initial zoom level
- * @param {Object} [props.style] - Style object for the map container
- */
 const GoogleMap = ({ 
   locations,
   isModal = false,

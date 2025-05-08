@@ -31,13 +31,13 @@ const CompleteProfile = () => {
   const dispatch = useDispatch();
   const [isLoading, setIsLoading] = useState(false);
   
-  // 使用RTK Query的mutation
+  // Use RTK Query mutation
   const [completeProfile] = useCompleteProfileMutation();
   
-  // 从location state中获取email
+  // Get email from location state
   const email = location.state?.email;
   
-  // 如果没有email，重定向到登录页
+  // If no email, redirect to login page
   if (!email) {
     navigate('/login', { replace: true });
     return null;
@@ -60,20 +60,20 @@ const CompleteProfile = () => {
     try {
       setIsLoading(true);
       
-      // 转换日期格式并添加email
+      // Convert date format and add email
       const submitData = {
         ...formData,
         birthday: formData.birthday ? dayjs(formData.birthday).format('YYYY-MM-DD') : null,
-        email: email, // 添加email到提交数据中
+        email: email, // Add email to submission data
       };
       
       const response = await completeProfile(submitData).unwrap();
       
       if (response && response.code === 0) {
-        // 获取用户信息
+        // Get user information
         const userInfo = response.data?.userInfo || {};
         
-        // 从userInfo中获取token和角色
+        // Get token and role from userInfo
         const token = userInfo.token;
         const userType = userInfo.role;
         const userName = userInfo.userName || 'User';
@@ -83,7 +83,7 @@ const CompleteProfile = () => {
           return;
         }
 
-        // 自动登录：分发登录成功action
+        // Auto login: dispatch login success action
         dispatch(loginSuccess({
           token,
           userType,
@@ -92,15 +92,10 @@ const CompleteProfile = () => {
 
         message.success('Profile completed successfully!');
         
-        // 使用工具函数获取重定向路径
+        // Use utility function to get redirect path
         const redirectPath = getRedirectPath(userType);
-        console.log('Profile completed, redirecting to:', redirectPath, {
-          token,
-          userType,
-          userName
-        });
         
-        // 添加一个小延迟，确保 Redux store 已经更新
+        // Add a small delay to ensure Redux store has updated
         setTimeout(() => {
           navigate(redirectPath, { replace: true });
         }, 100);
@@ -108,8 +103,7 @@ const CompleteProfile = () => {
         message.error(response?.msg || 'Failed to complete profile');
       }
     } catch (error) {
-      console.error('Error completing profile:', error);
-      // 处理错误响应
+      // Handle error response
       const errorMessage = error?.data?.msg || error?.message || 'An error occurred while completing your profile';
       message.error(errorMessage);
     } finally {
@@ -117,7 +111,7 @@ const CompleteProfile = () => {
     }
   };
 
-  // 禁用未来日期
+  // Disable future dates
   const disabledDate = (current) => {
     return current && current > dayjs().endOf('day');
   };

@@ -32,13 +32,13 @@ const TrainingHistory = () => {
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [wasUnread, setWasUnread] = useState(false);
   
-  // 添加日期范围状态
+  // Add date range state
   const [dateRange, setDateRange] = useState([
-    dayjs().subtract(30, 'day'), // 默认开始日期：30天前
-    dayjs() // 默认结束日期：今天
+    dayjs().subtract(30, 'day'), // Default start date: 30 days ago
+    dayjs() // Default end date: today
   ]);
 
-  // 使用RTK Query获取数据
+  // Use RTK Query to get data
   const { data, isLoading, refetch, isFetching } = useGetMemberTrainingHistoryQuery({
     pageNow: currentPage,
     pageSize,
@@ -46,13 +46,13 @@ const TrainingHistory = () => {
     endDate: dateRange[1].format('YYYY/MM/DD')
   }, {
     refetchOnMountOrArgChange: true,
-    pollingInterval: 30000 // 每30秒自动刷新一次
+    pollingInterval: 30000 // Automatically refresh every 30 seconds
   });
 
-  // 标记已读mutation
+  // Mark as read mutation
   const [markAsRead] = useMarkTrainingHistoryAsReadMutation();
 
-  // 监听刷新事件
+  // Listen for refresh events
   useEffect(() => {
     const handleRefresh = () => {
       refetch();
@@ -65,15 +65,15 @@ const TrainingHistory = () => {
     };
   }, [refetch]);
 
-  // 日期范围变化处理函数
+  // Date range change handler
   const handleDateRangeChange = (dates) => {
     if (dates && dates.length === 2) {
       setDateRange(dates);
-      setCurrentPage(1); // 重置到第一页
+      setCurrentPage(1); // Reset to first page
     }
   };
 
-  // 表格列定义
+  // Table column definitions
   const columns = [
     {
       title: 'Coach Name',
@@ -126,33 +126,32 @@ const TrainingHistory = () => {
     },
   ];
 
-  // 查看详情并标记为已读
+  // View details and mark as read
   const showDetails = (record) => {
     setSelectedRecord(record);
     setDetailsVisible(true);
     
-    // 记录原始未读状态
+    // Record original unread status
     const isUnread = record && record.memberIsRead === false;
     setWasUnread(isUnread);
     
-    // 如果是未读消息，则标记为已读
+    // If unread message, mark as read
     if (isUnread) {
       markAsRead(record.id)
         .unwrap()
         .then((response) => {
           if (response.code === 0) {
-            // 标记成功后刷新数据
+            // Refresh data after marking successfully
             refetch();
-            // 触发全局事件，强制刷新侧边栏计数
+            // Trigger global event to force sidebar count refresh
             window.dispatchEvent(new Event('refresh-unread-count'));
           } else {
-            // 显示后端返回的错误信息
+            // Display backend error message
             message.error(response.msg || 'Failed to mark as read');
           }
         })
         .catch(error => {
-          console.error('Failed to mark as read:', error);
-          // 显示后端返回的错误信息
+          // Display backend error message
           message.error(error.data?.msg || 'Failed to mark as read');
         });
     }
@@ -161,18 +160,18 @@ const TrainingHistory = () => {
   const handleCloseDetails = () => {
     setDetailsVisible(false);
     
-    // 如果查看的记录之前是未读状态，关闭详情时刷新列表
+    // If viewed record was previously unread, refresh list when closing details
     if (wasUnread) {
       refetch();
-      // 触发全局事件，强制刷新侧边栏计数
+      // Trigger global event to force sidebar count refresh
       window.dispatchEvent(new Event('refresh-unread-count'));
     }
     
-    // 重置未读状态标记
+    // Reset unread status marker
     setWasUnread(false);
   };
 
-  // 确保传递给Table的dataSource始终是数组
+  // Ensure dataSource passed to Table is always an array
   const tableDataSource = Array.isArray(data?.data?.records) ? data.data.records : [];
 
   return (
@@ -180,7 +179,7 @@ const TrainingHistory = () => {
       <Card>
         <Title level={3} className="mb-6">Training History</Title>
 
-        {/* 日期范围选择器 */}
+        {/* Date range selector */}
         <Form layout="inline" className="mb-6">
           <Form.Item label="Date Range">
             <RangePicker 
@@ -192,7 +191,7 @@ const TrainingHistory = () => {
           </Form.Item>
         </Form>
 
-        {/* 训练历史列表 */}
+        {/* Training history list */}
         <Table
           columns={columns}
           dataSource={tableDataSource}
@@ -216,7 +215,7 @@ const TrainingHistory = () => {
         />
       </Card>
 
-      {/* 详情模态框 */}
+      {/* Details modal */}
       <Modal
         title="Training Session Details"
         open={detailsVisible}

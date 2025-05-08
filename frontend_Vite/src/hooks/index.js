@@ -1,5 +1,5 @@
 /**
- * 自定义 hooks 索引
+ * Custom hooks index
  */
 
 export { default as useReCaptcha } from './useReCaptcha';

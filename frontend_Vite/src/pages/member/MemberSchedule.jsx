@@ -170,7 +170,6 @@ const MemberSchedule = () => {
         message.error(response.msg || 'Failed to cancel session.');
       }
     } catch (err) {
-      console.error('Error cancelling session:', err);
       message.error(err.data?.msg || 'An error occurred while cancelling the session.');
     }
   };

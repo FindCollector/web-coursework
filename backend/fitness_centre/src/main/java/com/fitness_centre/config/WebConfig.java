@@ -20,7 +20,7 @@ public class WebConfig implements WebMvcConfigurer {
     private String formalPath;
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-//        空实现不需要
+//        Empty implementation not needed
 //        WebMvcConfigurer.super.addResourceHandlers(registry);
         registry.addResourceHandler("/temp/**")
                 .addResourceLocations("file:" + tempPath + "/");

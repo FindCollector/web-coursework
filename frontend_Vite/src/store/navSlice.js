@@ -1,16 +1,16 @@
 import { createSlice } from '@reduxjs/toolkit';
 
 /**
- * 导航状态管理slice
- * 用于管理侧边栏菜单的活动状态
+ * Navigation state management slice
+ * Used to manage the active state of the sidebar menu
  */
 const navSlice = createSlice({
   name: 'navigation',
   initialState: {
-    activeMenu: 'dashboard' // 默认活动菜单为'dashboard'
+    activeMenu: 'dashboard' // Default active menu is 'dashboard'
   },
   reducers: {
-    // 设置当前活动菜单
+    // Set current active menu
     setActiveMenu: (state, action) => {
       state.activeMenu = action.payload;
     }

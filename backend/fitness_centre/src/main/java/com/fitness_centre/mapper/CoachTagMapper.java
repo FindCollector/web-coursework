@@ -16,7 +16,7 @@ import java.util.List;
  */
 @Mapper
 public interface CoachTagMapper extends BaseMapper<CoachTag> {
-    //选出某个教练对应的Tag
+    //Select tags associated with a specific coach
     @Select("""
         SELECT t.*
         FROM tag t 
@@ -25,10 +25,10 @@ public interface CoachTagMapper extends BaseMapper<CoachTag> {
 """)
     List<Tag> selectTagsByCoachId(@Param("coachId") Long coachId);
 
-    //选出某个Tag对应的教练
+    //Select coaches associated with a specific tag
 
 
-    //选出教练没有选择的Tag
+    //Select tags not chosen by a coach
     @Select("""
         SELECT t.*
         FROM tag t 

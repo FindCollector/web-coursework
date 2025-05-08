@@ -15,15 +15,15 @@ import lombok.Data;
 public class GeneralResponseResult<T> {
 
     /**
-     * 状态码
+     * Status code
      */
     private Integer code;
     /**
-     * 提示信息，如果有错误时，前端可以获取该字段进行提示
+     * Prompt message, if there is an error, the frontend can get this field for prompt
      */
     private String msg;
     /**
-     * 查询到的结果数据，
+     * Query result data
      */
     private T data;
 

@@ -67,7 +67,7 @@ const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
 const { Header, Content, Sider } = Layout;
 
-// 添加自定义滚动条样式
+// Add custom scrollbar styles
 const scrollbarStyles = `
   .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
@@ -189,21 +189,18 @@ const CoachDetails = () => {
   const { token, userName: authUserName } = useSelector(state => state.auth);
   const { token: themeToken } = theme.useToken();
   
-  // 在组件加载时设置activeMenu为profile
+  // Set activeMenu to profile when component loads
   useEffect(() => {
     dispatch(setActiveMenu('profile'));
   }, [dispatch]);
   
-  // 添加 RTK Query 的 logout mutation hook
+  // Add RTK Query logout mutation hook
   const [logout, { isLoading: isLoggingOut }] = useLogoutMutation();
-  
-  // 添加调试日志
-  console.log('CoachDetails 组件渲染 - Auth Token:', token);
   
   // Add state for map modal
   const [isMapModalVisible, setIsMapModalVisible] = useState(false);
   
-  // 获取教练详情数据
+  // Get coach details data
   const { 
     data: coachData, 
     isLoading: isLoadingDetails, 
@@ -212,26 +209,6 @@ const CoachDetails = () => {
     refetch: refetchDetails 
   } = useGetCoachDetailQuery();
   
-  // 添加更详细的调试日志
-  useEffect(() => {
-    console.log('CoachDetails API 响应:', {
-      data: coachData,
-      isLoading: isLoadingDetails,
-      isError: isErrorDetails,
-      error: error,
-      token: token
-    });
-    
-    // 检查是否为认证错误
-    if (error) {
-      console.error('API 错误详情:', {
-        status: error.status,
-        data: error.data,
-        message: error.message
-      });
-    }
-  }, [coachData, isLoadingDetails, isErrorDetails, error, token]);
-  
   // API mutations
   const [updateIntro, { isLoading: isUpdatingIntro }] = useUpdateCoachIntroMutation();
   const [uploadPhoto, { isLoading: isUploadingPhoto }] = useUploadCoachPhotoMutation();
@@ -239,10 +216,10 @@ const CoachDetails = () => {
   const [updateLocations, { isLoading: isUpdatingLocations }] = useUpdateCoachLocationsMutation();
   const [updateDetails, { isLoading: isUpdatingDetails }] = useUpdateCoachDetailsMutation();
 
-  // 状态管理
+  // State management
   const [intro, setIntro] = useState('');
   const [photoUrl, setPhotoUrl] = useState('');
-  const [tempPhotoUrl, setTempPhotoUrl] = useState(''); // 添加临时照片URL状态
+  const [tempPhotoUrl, setTempPhotoUrl] = useState(''); // Add temporary photo URL state
   const [coachTags, setCoachTags] = useState([]);
   const [otherTags, setOtherTags] = useState([]);
   const [fileList, setFileList] = useState([]);
@@ -252,45 +229,33 @@ const CoachDetails = () => {
   const [address, setAddress] = useState('');
   const [birthday, setBirthday] = useState(null);
   
-  // 加载教练数据
+  // Load coach data
   useEffect(() => {
     if (coachData && coachData.code === 0) {
       const data = coachData.data;
       
-      // 添加详细的数据检查
-      console.log('API响应完整数据:', data);
-      
-      // 设置基本信息
+      // Set basic information
       setIntro(data.intro || '');
       setPhotoUrl(data.photo || '');
-      setTempPhotoUrl(''); // 重置临时照片URL
+      setTempPhotoUrl(''); // Reset temporary photo URL
       setUserName(data.userName || '');
       setAddress(data.address || '');
       setBirthday(data.birthday ? dayjs(data.birthday) : null);
       
-      // 设置标签数据并检查
+      // Set tag data and check
       const coachTagsData = Array.isArray(data.coachTags) ? data.coachTags : [];
       const otherTagsData = Array.isArray(data.otherTags) ? data.otherTags : [];
       setCoachTags(coachTagsData);
       setOtherTags(otherTagsData);
-      console.log('设置标签数据 - 教练标签:', coachTagsData);
-      console.log('设置标签数据 - 其他标签:', otherTagsData);
       
-      // 设置位置数据并检查
+      // Set location data and check
       const coachLocationsData = Array.isArray(data.coachLocations) ? data.coachLocations : [];
       const otherLocationsData = Array.isArray(data.otherLocations) ? data.otherLocations : [];
-      console.log('设置位置数据 - 教练位置:', coachLocationsData);
-      console.log('设置位置数据 - 其他位置:', otherLocationsData);
-      
-      // 检查位置数据结构
-      if (coachLocationsData.length > 0) {
-        console.log('位置数据示例:', coachLocationsData[0]);
-      }
       
       setCoachLocations(coachLocationsData);
       setOtherLocations(otherLocationsData);
       
-      // 设置文件列表用于Upload组件
+      // Set file list for Upload component
       if (data.photo) {
         const imageUrlWithToken = createImageUrlWithToken(data.photo);
         setFileList([
@@ -303,81 +268,65 @@ const CoachDetails = () => {
         ]);
       }
     } else if (coachData) {
-      // API返回了错误
-      console.error('API返回错误:', coachData);
-      message.error(coachData.msg || '获取教练数据失败');
+      // API returned an error
+      message.error(coachData.msg || 'Failed to get coach data');
     }
   }, [coachData]);
   
-  // 处理标签移动
+  // Handle tag movement
   const handleTagMove = (dragIndex, hoverIndex, sourceType, targetType, tagId) => {
-    // 调试信息: 标签移动参数
-    console.log('Tag Movement:', { 
-      dragIndex, 
-      hoverIndex, 
-      sourceType, 
-      targetType, 
-      tagId 
-    });
-    
     if (sourceType === targetType) {
-      // 同一容器内排序
+      // Reorder within the same container
       const items = sourceType === 'coach' ? [...coachTags] : [...otherTags];
       const dragItem = items[dragIndex];
       
-      // 删除源位置的项
+      // Remove from source position
       items.splice(dragIndex, 1);
-      // 插入到目标位置
+      // Insert at target position
       items.splice(hoverIndex, 0, dragItem);
       
-      // 更新状态
+      // Update state
       if (sourceType === 'coach') {
         setCoachTags(items);
-        console.log('Reordered coach tags:', items);
       } else {
         setOtherTags(items);
-        console.log('Reordered other tags:', items);
       }
     } else {
-      // 跨容器拖拽
+      // Drag between containers
       const sourceItems = sourceType === 'coach' ? [...coachTags] : [...otherTags];
       const targetItems = targetType === 'coach' ? [...coachTags] : [...otherTags];
       
-      // 找到被拖拽的标签
+      // Find the dragged tag
       const draggedTag = sourceItems.find(tag => tag.id === tagId);
-      console.log('Dragged tag:', draggedTag);
       
       if (!draggedTag) {
-        console.error('Tag not found:', tagId);
         return;
       }
       
-      // 从源容器中删除
+      // Remove from source container
       const newSourceItems = sourceItems.filter(tag => tag.id !== tagId);
       
-      // 添加到目标容器
+      // Add to target container
       const newTargetItems = [...targetItems];
       newTargetItems.splice(hoverIndex, 0, draggedTag);
       
-      // 更新状态
+      // Update state
       if (sourceType === 'coach') {
         setCoachTags(newSourceItems);
         setOtherTags(newTargetItems);
-        console.log('Moved from coach to other:', { newSourceItems, newTargetItems });
       } else {
         setOtherTags(newSourceItems);
         setCoachTags(newTargetItems);
-        console.log('Moved from other to coach:', { newSourceItems, newTargetItems });
       }
     }
   };
   
-  // 处理照片上传
+  // Handle photo upload
   const handleUpload = async (options) => {
     const { file, onSuccess, onError } = options;
     
     try {
-      // 检查文件是否有效
+      // Check if file is valid
       if (!file) {
         message.error('Please select a file');
         onError(new Error('No file selected'));
@@ -385,18 +334,13 @@ const CoachDetails = () => {
       }
 
       const formData = new FormData();
-      // 确保使用正确的字段名 'file'，与后端参数名对应
+      // Make sure to use the correct field name 'file', corresponding to backend parameter name
       formData.append('file', file);
-      
-      // 打印日志以便调试
-      console.log('Uploading file:', file);
-      console.log('File size:', file.size);
-      console.log('File type:', file.type);
       
       const response = await uploadPhoto(formData).unwrap();
       
       if (response.code === 0) {
-        setTempPhotoUrl(response.photoUrl); // 保存临时照片URL
+        setTempPhotoUrl(response.photoUrl); // Save temporary photo URL
         const imageUrlWithToken = createImageUrlWithToken(response.photoUrl);
         setFileList([
           {
@@ -409,34 +353,33 @@ const CoachDetails = () => {
         message.success('Photo uploaded successfully');
         onSuccess(response, file);
         
-        // 上传成功后刷新整个页面
+        // Refresh the entire page after successful upload
         window.location.reload();
       } else {
         message.error(response.msg || 'Failed to upload photo');
         onError(new Error('Upload failed'));
       }
     } catch (error) {
-      console.error('Error uploading photo:', error);
       message.error(error.data?.msg || 'Failed to upload photo');
       onError(error);
     }
   };
   
-  // 统一处理所有保存操作
+  // Handle all save operations
   const handleSaveAll = async () => {
     try {
-      // 显示加载中状态
+      // Show loading state
       const loadingMessage = message.loading('Saving changes...', 0);
       
-      // 准备要更新的数据
+      // Prepare data to update
       const updatedData = {};
       
-      // 只添加修改过的字段
+      // Only add modified fields
       if (intro !== coachData?.data?.intro) {
         updatedData.intro = intro;
       }
       
-      // 如果有临时照片URL，则添加到更新数据中
+      // If there's a temporary photo URL, add it to update data
       if (tempPhotoUrl) {
         updatedData.photo = tempPhotoUrl;
       }
@@ -463,21 +406,21 @@ const CoachDetails = () => {
         updatedData.coachLocationIds = locationIds;
       }
       
-      // 如果有修改的数据，则发送请求
+      // If there's modified data, send request
       if (Object.keys(updatedData).length > 0) {
         const response = await updateDetails(updatedData).unwrap();
         
-        // 关闭加载中状态
+        // Close loading state
         loadingMessage();
         
         if (response.code === 0) {
-          // 如果用户名被更新了，同时更新 Redux store
+          // If username was updated, also update Redux store
           if (updatedData.userName) {
-            // 从 sessionStorage 获取当前的认证信息
+            // Get current auth info from sessionStorage
             const token = sessionStorage.getItem('token');
             const userType = sessionStorage.getItem('userType');
             
-            // 更新 Redux store 中的用户信息
+            // Update user info in Redux store
             dispatch(loginSuccess({
               token,
               userType,
@@ -489,11 +432,11 @@ const CoachDetails = () => {
             content: 'All changes saved successfully!',
             duration: 3
           });
-          setTempPhotoUrl(''); // 清除临时照片URL
-          // 刷新数据
+          setTempPhotoUrl(''); // Clear temporary photo URL
+          // Refresh data
           refetchDetails();
         } else {
-          // 使用Modal显示错误信息
+          // Use Modal to display error message
           Modal.error({
             title: 'Save Failed',
             content: response.msg || 'An error occurred while saving changes',
@@ -501,63 +444,49 @@ const CoachDetails = () => {
           });
         }
       } else {
-        // 关闭加载中状态
+        // Close loading state
         loadingMessage();
         message.info('No changes to save');
       }
     } catch (error) {
-      // 关闭加载中状态并显示错误
+      // Close loading state and show error
       message.destroy();
       Modal.error({
         title: 'Save Failed',
         content: error.data?.msg || 'An error occurred while saving changes',
         okText: 'OK'
       });
-      console.error('Error saving changes:', error);
     }
   };
   
-  // 处理位置选择变化
+  // Handle location selection change
   const handleLocationChange = (locationId) => {
-    console.log('位置选择变更 - ID:', locationId);
-    
-    // 合并所有位置数据进行查找
+    // Combine all location data for searching
     const allLocations = [...coachLocations, ...otherLocations];
     const location = allLocations.find(loc => loc.id === locationId);
     
-    console.log('找到位置对象:', location);
-    
     if (!location) {
-      console.error('未找到位置对象, ID:', locationId);
       return;
     }
     
     if (coachLocations.some(loc => loc.id === locationId)) {
-      // 如果已选中，则取消选中
-      console.log('取消选择位置:', location.locationName);
+      // If already selected, deselect
       const newCoachLocations = coachLocations.filter(loc => loc.id !== locationId);
       const newOtherLocations = [...otherLocations, location];
-      
-      console.log('更新后的教练位置:', newCoachLocations);
-      console.log('更新后的其他位置:', newOtherLocations);
       
       setCoachLocations(newCoachLocations);
       setOtherLocations(newOtherLocations);
     } else {
-      // 如果未选中，则选中
-      console.log('选择位置:', location.locationName);
+      // If not selected, select
       const newOtherLocations = otherLocations.filter(loc => loc.id !== locationId);
       const newCoachLocations = [...coachLocations, location];
-      
-      console.log('更新后的教练位置:', newCoachLocations);
-      console.log('更新后的其他位置:', newOtherLocations);
       
       setOtherLocations(newOtherLocations);
       setCoachLocations(newCoachLocations);
     }
   };
 
-  // 处理位置保存
+  // Handle saving locations
   const handleSaveLocations = async () => {
     try {
       const locationIds = coachLocations.map(location => location.id);
@@ -570,23 +499,21 @@ const CoachDetails = () => {
       }
     } catch (error) {
       message.error('Failed to update locations');
-      console.error('Error updating locations:', error);
     }
   };
   
-  // 处理登出
+  // Handle logout
   const handleLogout = () => {
     Modal.confirm({
       title: 'Logout Confirmation',
       content: 'Are you sure you want to logout?',
       onOk: async () => {
         try {
-          // 调用 RTK Query 的 logout mutation
+          // Call RTK Query logout mutation
           const response = await logout().unwrap();
           dispatch(logoutAction());
           navigate('/login');
         } catch (error) {
-          console.error('Logout failed:', error);
           message.error('Logout failed. Please try again.');
         }
       },
@@ -595,12 +522,12 @@ const CoachDetails = () => {
     });
   };
   
-  // 返回Dashboard
+  // Return to Dashboard
   const goToDashboard = () => {
     navigate('/coach/dashboard');
   };
   
-  // 导航到其他菜单
+  // Navigate to other menus
   const handleMenuClick = ({ key }) => {
     if (key !== 'profile') {
       dispatch(setActiveMenu(key));
@@ -608,22 +535,22 @@ const CoachDetails = () => {
     }
   };
   
-  // 上传组件属性
+  // Upload component properties
   const uploadProps = {
-    name: 'file', // 修改为与后端参数名一致
+    name: 'file', // Changed to match backend parameter name
     listType: 'picture',
     fileList: fileList,
     customRequest: handleUpload,
     onChange: ({ fileList }) => setFileList(fileList),
     headers: getAuthHeaders(),
     beforeUpload: (file) => {
-      // 检查文件类型
+      // Check file type
       const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png';
       if (!isJpgOrPng) {
         message.error('You can only upload JPG/PNG file!');
         return false;
       }
-      // 检查文件大小（限制为2MB）
+      // Check file size (limit to 2MB)
       const isLt2M = file.size / 1024 / 1024 < 2;
       if (!isLt2M) {
         message.error('Image must be smaller than 2MB!');
@@ -631,14 +558,14 @@ const CoachDetails = () => {
       }
       return isJpgOrPng && isLt2M;
     },
-    accept: 'image/jpeg,image/png', // 限制文件选择类型
+    accept: 'image/jpeg,image/png', // Limit file selection type
   };
   
   // Add map modal visibility handlers
   const showMapModal = () => setIsMapModalVisible(true);
   const hideMapModal = () => setIsMapModalVisible(false);
 
-  // 在class或function组件内部添加sidebarCollapsed状态
+  // Add sidebarCollapsed state in class or function component
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   if (isLoadingDetails) {
@@ -650,7 +577,7 @@ const CoachDetails = () => {
           <div style={{ textAlign: 'center' }}>
             <Spin size="large" />
             <div style={{ marginTop: 16, fontSize: 16, color: '#1890ff' }}>
-              加载教练详情中，请稍候...
+              Loading coach details, please wait...
             </div>
           </div>
         </div>
@@ -666,8 +593,8 @@ const CoachDetails = () => {
           padding: '20px'
         }}>
           <Alert
-            message="加载失败"
-            description={error?.data?.msg || error?.error || "无法加载教练详情，请稍后重试或联系管理员"}
+            message="Loading Failed"
+            description={error?.data?.msg || error?.error || "Unable to load coach details, please try again later or contact an administrator"}
             type="error"
             showIcon
             style={{ marginBottom: 20, width: '100%', maxWidth: 500 }}
@@ -678,13 +605,13 @@ const CoachDetails = () => {
               onClick={refetchDetails} 
               icon={<ReloadOutlined />}
             >
-              重试
+              Retry
             </Button>
             <Button 
               onClick={() => navigate('/coach/dashboard')}
               icon={<ArrowLeftOutlined />}
             >
-              返回仪表板
+              Return to Dashboard
             </Button>
           </div>
         </div>
@@ -773,7 +700,7 @@ const CoachDetails = () => {
               overflow: 'initial'
             }}>
               <Row gutter={[24, 24]}>
-                {/* 左侧面板：个人资料和基本信息 */}
+                {/* Left Panel: Profile and Basic Information */}
                 <Col xs={24} lg={8}>
                   <motion.div
                     initial={{ opacity: 0, y: 50 }}
@@ -817,7 +744,7 @@ const CoachDetails = () => {
                       </div>
                     </Card>
 
-                    {/* 基本信息卡片 */}
+                    {/* Basic Information Card */}
                     <Card
                       title={
                         <Space>
@@ -866,7 +793,7 @@ const CoachDetails = () => {
                             format="YYYY-MM-DD"
                             prefix={<CalendarOutlined className="text-gray-400" />}
                             disabledDate={(current) => {
-                              // 禁用今天及之后的日期
+                              // Disable today and future dates
                               return current && current.isAfter(dayjs().endOf('day'));
                             }}
                           />
@@ -901,7 +828,7 @@ const CoachDetails = () => {
                   </motion.div>
                 </Col>
                 
-                {/* 右侧面板：专业标签和位置选择 */}
+                {/* Right Panel: Professional Tags and Location Selection */}
                 <Col xs={24} lg={16}>
                   <motion.div
                     initial={{ opacity: 0, y: 50 }}
@@ -909,13 +836,13 @@ const CoachDetails = () => {
                     transition={{ duration: 0.5, delay: 0.2 }}
                     style={{ 
                       position: 'relative',
-                      height: 'calc(100vh - 104px)',  // 减去顶部导航栏高度和内边距
+                      height: 'calc(100vh - 104px)',  // Subtract height of top nav bar and padding
                       overflowY: 'auto',
-                      paddingRight: '12px'  // 为滚动条预留空间
+                      paddingRight: '12px'  // Reserve space for scrollbar
                     }}
-                    className="custom-scrollbar"  // 添加自定义滚动条样式
+                    className="custom-scrollbar"  // Add custom scrollbar style
                   >
-                    {/* 专业标签部分 */}
+                    {/* Professional Tags Section */}
                     <Card
                       title={
                         <Space>
@@ -987,7 +914,7 @@ const CoachDetails = () => {
                       </DndProvider>
                     </Card>
 
-                    {/* 位置选择卡片 */}
+                    {/* Location Selection Card */}
                     <Card
                       title={
                         <Space>
@@ -1026,11 +953,9 @@ const CoachDetails = () => {
                       <div style={{ maxHeight: '300px', overflowY: 'auto', padding: '8px' }}>
                         {[...coachLocations, ...otherLocations].length > 0 ? (
                           [...coachLocations, ...otherLocations]
-                            .filter(location => location && location.locationName) // 使用locationName替代name
+                            .filter(location => location && location.locationName) // Use locationName instead of name
                             .sort((a, b) => (a.locationName || '').localeCompare(b.locationName || ''))
                             .map(location => {
-                              // 增加调试信息
-                              console.log('渲染位置条目:', location);
                               return (
                                 <div 
                                   key={location.id} 
@@ -1052,7 +977,7 @@ const CoachDetails = () => {
                                     checked={coachLocations.some(loc => loc.id === location.id)}
                                     style={{ marginRight: '12px', marginTop: '2px', flexShrink: 0 }}
                                     onChange={(e) => {
-                                      // 阻止事件冒泡
+                                      // Prevent event bubbling
                                       e.stopPropagation();
                                       handleLocationChange(location.id);
                                     }}

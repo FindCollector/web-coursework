@@ -15,7 +15,7 @@ import {
 
 const { Title } = Typography;
 
-// 表单验证规则
+// Form validation rules
 const schema = yup.object({
   code: yup.string()
     .required('Please enter the verification code')
@@ -23,13 +23,13 @@ const schema = yup.object({
 }).required();
 
 const VerifyCode = () => {
-  // 使用自定义 hooks
+  // Use custom hooks
   const { executeReCaptcha, isScriptLoaded } = useReCaptcha('6Lcq_e4qAAAAAEJYKkGw-zQ6CN74yjbiWByLBo6Y');
   const [isErrorModalVisible, showErrorModal, hideErrorModal] = useModalState(false);
   const [isTimeoutModalVisible, showTimeoutModal, hideTimeoutModal] = useModalState(false);
   const [isSuccessModalVisible, showSuccessModal, hideSuccessModal] = useModalState(false);
   
-  // 添加一个标志，表示页面已完全初始化
+  // Add a flag indicating the page has been fully initialized
   const [isPageInitialized, setIsPageInitialized] = useState(false);
   
   const [isVerifying, setVerifying, withVerifying] = useButtonLoading(false);
@@ -40,96 +40,50 @@ const VerifyCode = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // 使用RTK Query hooks
+  // Use RTK Query hooks
   const [verifyCode, verifyCodeResult] = useVerifyCodeMutation();
   const [resendCode, resendCodeResult] = useResendVerificationCodeMutation();
   
-  // 获取从注册页面传递的邮箱和用户名
+  // Get email and username passed from registration page
   const userEmail = location.state?.email;
   const userName = location.state?.userName;
   const userRole = location.state?.role;
   
-  // Log location.state on every render
-  console.log("VerifyCode Render - location.state:", location.state);
-  
-  // 添加一个状态来跟踪是否已经验证成功
+  // Add a state to track if verification is successful
   const [isVerified, setIsVerified] = useState(false);
   
-  // 添加错误处理状态
+  // Add error handling state
   const [hasError, setHasError] = useState(false);
   const [errorInfo, setErrorInfo] = useState(null);
 
-  // 添加一个状态来跟踪页面是否准备好渲染
+  // Add a state to track if the page is ready to render
   const [isReady, setIsReady] = useState(false);
   
-  // 添加ref跟踪是否尝试显示过成功弹窗
+  // Add ref to track if success modal has been displayed
   const successModalDisplayed = useRef(false);
   
-  // 添加一个标志，表示是否已经手动验证过
+  // Add a flag to indicate if manual verification has been attempted
   const [hasManuallyVerified, setHasManuallyVerified] = useState(false);
   
-  // 添加一个ref来跟踪弹窗是否应该强制显示
+  // Add a ref to track if the modal should be forcibly displayed
   const forceShowSuccess = useRef(false);
   
-  // 页面初始化完成
+  // Page initialization complete
   useEffect(() => {
-    // 设置页面初始化标志 - 添加一个更长的延迟
+    // Set page initialization flag - add a longer delay
     const timer = setTimeout(() => {
       setIsPageInitialized(true);
-      console.log("页面初始化完成，可以开始计时器");
-    }, 2000); // 延长到2秒钟，给页面充分加载时间
+    }, 2000); // Extended to 2 seconds to give page sufficient loading time
     
     return () => clearTimeout(timer);
   }, []);
   
-  // 添加调试日志
-  useEffect(() => {
-    console.log("VerifyCode页面状态:", { 
-      userEmail, 
-      userName, 
-      userRole,
-      locationState: location.state,
-      countdown,
-      isCountdownActive,
-      isScriptLoaded
-    });
-  }, [userEmail, userName, userRole, location.state, countdown, isCountdownActive, isScriptLoaded]);
-  
-  // 监控reCAPTCHA状态
-  useEffect(() => {
-    console.log("reCAPTCHA状态变化:", { 
-      isScriptLoaded,
-      grecaptchaLoaded: window.grecaptcha !== undefined,
-      grecaptchaEnterpriseLoaded: window.grecaptcha?.enterprise !== undefined
-    });
-  }, [isScriptLoaded]);
-  
-  // 页面第一次加载时倒计时检查
-  useEffect(() => {
-    // 只在页面首次加载时启动倒计时
-    if (userEmail && userRole && !isCountdownActive) {
-      console.log("页面首次加载，启动倒计时");
-      startCountdown(60);
-    }
-  }, [userEmail, userRole]);
-  
-  // 移除自动重启倒计时的效果
-  useEffect(() => {
-    if (countdown === 0) {
-      console.log("倒计时结束");
-    } else if (countdown % 10 === 0 && countdown > 0) {
-      console.log(`倒计时: ${countdown}秒`);
-    }
-  }, [countdown]);
-  
-  // 监听页面可见性变化
+  // Page visibility change monitoring
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        console.log("页面重新变为可见，检查倒计时状态...");
-        // 只在倒计时进行中但不活跃时重新启动
+        // Only restart countdown if it was in progress but not active
         if (!isCountdownActive && countdown > 0 && userEmail && userRole) {
-          console.log("恢复倒计时，剩余:", countdown);
           startCountdown(countdown);
         }
       }
@@ -141,12 +95,11 @@ const VerifyCode = () => {
     };
   }, [isCountdownActive, countdown, userEmail, userRole, startCountdown]);
   
-  // 如果没有邮箱信息，重定向回注册页面
+  // If there's no email information, redirect back to registration page
   useEffect(() => {
-    // 添加一个小延迟以确保state已完全加载
+    // Add a small delay to ensure state has fully loaded
     const timer = setTimeout(() => {
       if (!userEmail || !userRole) {
-        console.log("未找到必要信息，重定向回注册页面");
         navigate('/register');
       }
     }, 100);
@@ -154,83 +107,66 @@ const VerifyCode = () => {
     return () => clearTimeout(timer);
   }, [userEmail, userRole, navigate]);
   
-  // 加载reCAPTCHA Enterprise脚本
+  // First page load countdown check
   useEffect(() => {
-    // 检查是否已经加载了脚本
+    // Only start countdown when page first loads
+    if (userEmail && userRole && !isCountdownActive) {
+      startCountdown(60);
+    }
+  }, [userEmail, userRole, isCountdownActive, startCountdown]);
+  
+  // Load reCAPTCHA Enterprise script
+  useEffect(() => {
+    // Check if script is already loaded
     if (document.querySelector('script[src*="recaptcha/enterprise.js"]')) {
-      console.log('reCAPTCHA script already loaded, skipping...');
       return;
     }
     
-    console.log('Loading reCAPTCHA script...');
     const script = document.createElement('script');
     script.src = 'https://www.google.com/recaptcha/enterprise.js?render=6Lcq_e4qAAAAAEJYKkGw-zQ6CN74yjbiWByLBo6Y';
     script.async = true;
     script.id = 'recaptcha-script';
-    script.onload = () => {
-      console.log('reCAPTCHA script loaded successfully.');
-    };
-    script.onerror = (error) => {
-      console.error('Error loading reCAPTCHA script:', error);
-    };
     document.body.appendChild(script);
     
     return () => {
-      // 不要在卸载组件时移除脚本，因为其他页面可能需要使用
-      // 改为只在开发环境中输出日志
+      // Don't remove the script when unmounting the component, as other pages may need to use it
+      // Only output logs in development environment
       if (process.env.NODE_ENV !== 'production') {
-        console.log('VerifyCode component unmounted, reCAPTCHA script remains for other components');
+        // Script remains for other components
       }
     };
   }, []);
 
-  // 45分钟超时检查 - 完全重写这部分
+  // 45-minute timeout check - completely rewritten this part
   useEffect(() => {
     let timeoutId;
-    console.log("[Timeout Effect] Triggered. isPageInitialized:", isPageInitialized, "isVerified:", isVerified, "userEmail:", userEmail, "userRole:", userRole);
     
-    // 只有当页面初始化完成、没有验证成功且有邮箱和角色信息时才设置超时
-    // 增加更严格的条件判断，确保不会在刚加载页面时就显示超时弹窗
+    // Only set timeout when page is initialized, verification hasn't succeeded, and email and role information exist
+    // Add stricter conditional checks to ensure timeout modal isn't displayed right when the page loads
     if (isPageInitialized && !isVerified && userEmail && userRole && countdown > 0) {
-      console.log(`[Timeout Effect] Conditions met. Setting ${2700000 / 60000} minute timeout.`);
-      
-      // 设置45分钟超时 (45 * 60 * 1000 = 2700000 毫秒)
+      // Set 45-minute timeout (45 * 60 * 1000 = 2700000 milliseconds)
       timeoutId = setTimeout(() => {
-        console.log("[Timeout Callback] Timeout reached. Checking conditions...");
-        console.log("[Timeout Callback] State: isVerified:", isVerified);
-        
-        // 再次检查条件，确保不会错误显示
-        // 增加额外条件：确保其他弹窗未显示
+        // Double-check conditions to avoid incorrect display
+        // Add additional condition: ensure other modals aren't displayed
         if (!isVerified && !isSuccessModalVisible && !isErrorModalVisible) {
-          console.log("[Timeout Callback] Conditions met (not verified). Showing Timeout Modal!");
-          // 清理其他可能存在的弹窗，确保只显示超时弹窗
+          // Clean up other possible modals to ensure only timeout modal is displayed
           hideErrorModal();
           hideSuccessModal();
           showTimeoutModal(); 
-        } else {
-          console.log("[Timeout Callback] Conditions NOT met. Ignoring timeout.");
         }
-      }, 2700000); // 45分钟超时
-      
-      console.log("[Timeout Effect] Timeout ID set:", timeoutId);
-
-    } else {
-      console.log("[Timeout Effect] Conditions not met. Timer not set.");
+      }, 2700000); // 45-minute timeout
     }
     
-    // 清理函数
+    // Cleanup function
     return () => {
       if (timeoutId) {
-        console.log("[Timeout Cleanup] Clearing timeout ID:", timeoutId);
         clearTimeout(timeoutId);
-      } else {
-         console.log("[Timeout Cleanup] No timeout ID to clear.");
       }
     };
-  // 减少依赖项，只保留必要的状态
+  // Reduce dependencies, only keep necessary states
   }, [isPageInitialized, userEmail, userRole, isVerified, isSuccessModalVisible, isErrorModalVisible, countdown, showTimeoutModal, hideErrorModal, hideSuccessModal]);
   
-  // 表单控制
+  // Form control
   const { control, handleSubmit, formState: { errors } } = useForm({
     resolver: yupResolver(schema),
     defaultValues: {
@@ -238,455 +174,271 @@ const VerifyCode = () => {
     }
   });
 
-  // 监控验证结果状态
-  useEffect(() => {
-    // 检查验证是否成功 - 这个 effect 可能不再需要，因为成功处理在 onSubmit 中
-    if (verifyCodeResult.data && verifyCodeResult.data.code === 0 /* && !successModalOpen */) {
-      console.log("检测到验证成功 (via effect)，但不在这里显示弹窗");
-    }
-  }, [verifyCodeResult.data /*, successModalOpen */]); // 更新依赖项
-
-  // 创建一个函数来清除所有模态框
+  // Create a function to clear all modals
   const clearAllModals = () => {
-    console.log("Clearing all modals");
-    // 移除对不存在的状态变量的引用
-    // setIsModalVisible(false); // 这行导致错误，因为这个组件中没有setIsModalVisible
     hideErrorModal();
-    hideTimeoutModal();
     hideSuccessModal();
+    hideTimeoutModal();
   };
-
-  // 验证码校验函数
-  const validateCode = (code) => {
-    if (!code || code.length !== 6 || !/^\d{6}$/.test(code)) {
-      setErrorMessage('Please enter a valid 6-digit verification code');
-      // 确保其他弹窗关闭
-      hideSuccessModal();
-      hideTimeoutModal();
+  
+  // Validate code
+  const validateCode = useCallback(async (code) => {
+    // Clear any existing modals
+    clearAllModals();
+    
+    if (!userEmail || !userName || !userRole) {
+      setErrorMessage('Missing required information. Please go back to registration.');
       showErrorModal();
       return false;
     }
-    return true;
-  };
-
-  // 使用useEffect在组件挂载时强制隐藏所有弹窗
-  useEffect(() => {
-    console.log("组件挂载，确保所有弹窗都是关闭的");
-    // 强制关闭所有弹窗
-    hideErrorModal();
-    hideSuccessModal();
-    hideTimeoutModal();
-    // 重置验证状态
-    setIsVerified(false);
-    setHasManuallyVerified(false);
-  }, []);
-
-  // 成功验证后的处理函数
-  const handleSuccessVerification = useCallback(() => {
-    console.log("执行成功验证处理函数");
-    
-    // 设置所有必要的状态
-    setIsVerified(true);
-    setHasManuallyVerified(true);
-    successModalDisplayed.current = true;
-    forceShowSuccess.current = true;
-    
-    // 关闭其他弹窗
-    hideErrorModal();
-    hideTimeoutModal();
-    
-    // 触发彩带动画
-    confetti({
-      particleCount: 200,
-      spread: 100,
-      origin: { y: 0.6 },
-      zIndex: 10000, 
-      colors: ['#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#03a9f4', '#00bcd4', '#009688', '#4CAF50', '#8BC34A', '#CDDC39', '#FFEB3B', '#FFC107', '#FF9800', '#FF5722'],
-      startVelocity: 30,
-      scalar: 1.2,
-      ticks: 150
-    });
-    
-    // 延迟显示成功弹窗
-    setTimeout(() => {
-      console.log("准备显示成功弹窗 (通用处理函数)");
-      showSuccessModal();
-      
-      // 添加额外检查
-      setTimeout(() => {
-        console.log("成功弹窗状态检查:", {
-          isSuccessModalVisible,
-          isVerified,
-          hasManuallyVerified,
-          forceShow: forceShowSuccess.current
-        });
-        
-        if (!isSuccessModalVisible) {
-          console.log("弹窗未显示，强制设置为显示状态");
-          showSuccessModal();
-        }
-      }, 300);
-    }, 500);
-  }, [hideErrorModal, hideTimeoutModal, isSuccessModalVisible, isVerified, hasManuallyVerified, showSuccessModal]);
-
-  // 处理表单提交
-  const onSubmit = async (formData) => {
-    // 添加详细调试日志
-    console.log("点击了验证按钮，状态:", {
-      code: formData.code,
-      email: userEmail,
-      isVerifying,
-      isPending: verifyCodeResult.isPending,
-      isScriptLoaded
-    });
-    
-    // 设置已手动验证标志
-    setHasManuallyVerified(true);
-    
-    // 检查验证码是否为空
-    if (!validateCode(formData.code)) {
-      return;
-    }
-    
-    // 检查邮箱是否存在
-    if (!userEmail) {
-      setErrorMessage('Email address is missing. Please go back to registration.');
-      // 确保其他弹窗关闭
-      hideSuccessModal();
-      hideTimeoutModal();
-      showErrorModal();
-      return;
-    }
-    
-    // 设置验证中状态
-    setVerifying(true);
     
     try {
-      console.log("开始验证流程...");
-      
-      // 设置请求头
-      let headers = {};
-      
-      // 尝试获取reCAPTCHA token
-      if (window.grecaptcha && window.grecaptcha.enterprise) {
-        try {
-          console.log("尝试获取reCAPTCHA token...");
-          const token = await window.grecaptcha.enterprise.execute(
-            '6Lcq_e4qAAAAAEJYKkGw-zQ6CN74yjbiWByLBo6Y',
-            { action: 'verifyCode' }
-          );
-          console.log("获取token成功:", token.substring(0, 10) + "...");
-          headers = {
-            'X-Recaptcha-Token': token,
-            'X-Action': 'verifyCode'
-          };
-        } catch (err) {
-          console.error("获取reCAPTCHA token失败:", err);
+      // Get reCAPTCHA token
+      let recaptchaToken;
+      try {
+        if (!window.grecaptcha?.enterprise) {
+          setErrorMessage('Security verification not loaded. Please refresh and try again.');
+          showErrorModal();
+          return false;
         }
-      } else {
-        console.log("reCAPTCHA还未加载");
+        
+        recaptchaToken = await executeReCaptcha('verify_code');
+        
+        if (!recaptchaToken) {
+          setErrorMessage('Failed to verify human presence. Please try again.');
+          showErrorModal();
+          return false;
+        }
+      } catch (error) {
+        setErrorMessage('Security verification failed. Please try again.');
+        showErrorModal();
+        return false;
       }
       
-      // 创建请求数据
-      const requestData = {
+      // Prepare verification data
+      const verificationData = {
         email: userEmail,
-        code: formData.code,
-        headers: headers
+        code,
+        userName,
+        role: userRole,
+        headers: {
+          'X-Recaptcha-Token': recaptchaToken,
+          'X-Action': 'verifyCode'
+        }
       };
       
-      console.log("发送验证请求:", requestData);
+      // Call verification API
+      const response = await verifyCode(verificationData).unwrap();
       
-      // 发送请求验证验证码
-      const result = await verifyCode(requestData).unwrap();
-      console.log("收到验证响应:", result);
-      
-      if (result.code === 0) {
-        // 使用通用处理函数
-        handleSuccessVerification();
+      // Process response
+      if (response.code === 0) {
+        setIsVerified(true);
+        return true;
       } else {
-        setErrorMessage(result.msg || 'Verification failed');
-        // 确保其他弹窗关闭
-        hideSuccessModal();
-        hideTimeoutModal();
+        setErrorMessage(response.msg || 'Verification failed. Please try again.');
         showErrorModal();
+        return false;
       }
     } catch (error) {
-      console.error('验证请求失败:', error);
+      let errorMsg = 'An error occurred during verification.';
       
-      // 检查错误是否实际上是成功的响应，但API格式可能不一致
-      if (error.data && error.data.code === 0) {
-        // 使用通用处理函数
-        handleSuccessVerification();
-        return;
-      }
-      
-      let errorMsg = 'Verification failed';
-      
-      if (error.data) {
-        errorMsg = error.data.msg || errorMsg;
-      } else if (error.response && error.response.data) {
-        errorMsg = error.response.data.msg || errorMsg;
+      if (error.data?.msg) {
+        errorMsg = error.data.msg;
       } else if (error.message) {
         errorMsg = error.message;
       }
       
       setErrorMessage(errorMsg);
-      // 确保其他弹窗关闭
-      hideSuccessModal();
-      hideTimeoutModal();
       showErrorModal();
-    } finally {
-      // 无论成功失败都重置验证状态
-      setVerifying(false);
+      return false;
+    }
+  }, [userEmail, userName, userRole, executeReCaptcha, verifyCode, showErrorModal, clearAllModals]);
+
+  // Form submission
+  const onSubmit = async (formData) => {
+    setHasManuallyVerified(true);
+    
+    const success = await withVerifying(() => validateCode(formData.code));
+    
+    if (success) {
+      // Display success modal
+      showSuccessModal();
+      successModalDisplayed.current = true;
+      
+      // Create celebration effect
+      const duration = 3 * 1000;
+      const animationEnd = Date.now() + duration;
+      const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+      const randomInRange = (min, max) => Math.random() * (max - min) + min;
+
+      const interval = setInterval(() => {
+        const timeLeft = animationEnd - Date.now();
+
+        if (timeLeft <= 0) {
+          clearInterval(interval);
+          // After confetti, navigate to complete profile page
+          setTimeout(() => {
+            navigate('/complete-profile', {
+              state: { 
+                email: userEmail,
+                userName,
+                role: userRole,
+                verified: true
+              },
+              replace: true
+            });
+          }, 2000);
+          return;
+        }
+
+        const particleCount = 50 * (timeLeft / duration);
+        
+        // Use confetti for celebration
+        confetti({
+          ...defaults,
+          particleCount,
+          origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
+        });
+        confetti({
+          ...defaults,
+          particleCount,
+          origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
+        });
+      }, 250);
     }
   };
 
-  // 重新发送验证码
+  // Resend verification code
   const handleResendCode = async () => {
-    // 添加调试日志
-    console.log("点击了重发按钮，状态:", {
-      countdown,
-      isResending,
-      isVerifying,
-      isPendingVerify: verifyCodeResult.isPending,
-      isPendingResend: resendCodeResult.isPending,
-      isDisabled: countdown > 0 || isResending,
-      isScriptLoaded
+    // Only allow resending when countdown is not active
+    if (isCountdownActive) {
+      return;
+    }
+    
+    // Get required information
+    if (!userEmail || !userName) {
+      setErrorMessage('Missing required information. Please go back to registration.');
+      showErrorModal();
+      return;
+    }
+    
+    const success = await withResending(async () => {
+      try {
+        // Get reCAPTCHA token
+        let recaptchaToken;
+        try {
+          if (!window.grecaptcha?.enterprise) {
+            setErrorMessage('Security verification not loaded. Please refresh and try again.');
+            showErrorModal();
+            return false;
+          }
+          
+          recaptchaToken = await executeReCaptcha('resend_code');
+          
+          if (!recaptchaToken) {
+            setErrorMessage('Failed to verify human presence. Please try again.');
+            showErrorModal();
+            return false;
+          }
+        } catch (error) {
+          setErrorMessage('Security verification failed. Please try again.');
+          showErrorModal();
+          return false;
+        }
+        
+        // Prepare resend data
+        const resendData = {
+          email: userEmail,
+          role: userRole,
+          userName,
+          headers: {
+            'X-Recaptcha-Token': recaptchaToken,
+            'X-Action': 'resendCode'
+          }
+        };
+        
+        // Call resend API
+        const response = await resendCode(resendData).unwrap();
+        
+        // Process response
+        if (response.code === 0) {
+          // Show success message
+          message.success('Verification code resent successfully!');
+          
+          // Start countdown
+          startCountdown(60);
+          return true;
+        } else {
+          setErrorMessage(response.msg || 'Failed to resend verification code.');
+          showErrorModal();
+          return false;
+        }
+      } catch (error) {
+        let errorMsg = 'An error occurred while resending the code.';
+        
+        if (error.data?.msg) {
+          errorMsg = error.data.msg;
+        } else if (error.message) {
+          errorMsg = error.message;
+        }
+        
+        setErrorMessage(errorMsg);
+        showErrorModal();
+        return false;
+      }
     });
     
-    // 防止重复点击或在倒计时期间点击
-    if (countdown > 0 || isResending) {
-      console.log("重发被阻止: 正在倒计时或已在发送中");
-      return;
-    }
-    
-    // 确保没有弹窗在显示
-    hideErrorModal();
-    hideSuccessModal();
-    hideTimeoutModal();
-    
-    try {
-      console.log("开始重发流程");
-      
-      // 检查邮箱是否存在
-      if (!userEmail) {
-        console.error("邮箱为空，无法发送重发请求");
-        message.error("Email address is missing. Please go back to registration.");
-        return;
-      }
-      
-      // 准备发送请求
-      console.log(`准备重发验证码到: ${userEmail}`);
-      
-      // 设置请求头
-      let headers = {};
-      
-      // 尝试获取reCAPTCHA token
-      if (window.grecaptcha && window.grecaptcha.enterprise) {
-        try {
-          console.log("尝试获取reCAPTCHA token...");
-          const token = await window.grecaptcha.enterprise.execute(
-            '6Lcq_e4qAAAAAEJYKkGw-zQ6CN74yjbiWByLBo6Y',
-            { action: 'resendCode' }
-          );
-          console.log("获取token成功:", token.substring(0, 10) + "...");
-          headers = {
-            'X-Recaptcha-Token': token,
-            'X-Action': 'resendCode'
-          };
-        } catch (err) {
-          console.error("获取reCAPTCHA token失败:", err);
-        }
-      } else {
-        console.log("reCAPTCHA还未加载，继续不使用token");
-      }
-      
-      // 设置加载状态
-      setResending(true);
-      
-      // 纯粹使用RTK Query发送请求
-      console.log("使用RTK Query发送请求...");
-      
-      // 创建请求数据
-      const requestData = {
-        email: userEmail,
-        headers: headers
-      };
-      
-      console.log("RTK Query请求数据:", requestData);
-      
-      // 发送请求
-      const result = await resendCode(requestData).unwrap();
-      console.log("收到重发验证码响应:", result);
-      
-      // 处理响应
-      if (result.code === 0) {
-        message.success('A new verification code has been sent to your email!');
-        // 请求成功后再开始倒计时
-        startCountdown(60);
-      } else {
-        message.error(result.msg || 'Failed to resend code, please try again later');
-      }
-    } catch (error) {
-      console.error("重发验证码请求失败:", error);
-      message.error('Failed to send request. Please try again later.');
-    } finally {
-      // 无论成功失败都重置loading状态
-      setResending(false);
+    if (success) {
+      // Start countdown after successful resend
+      startCountdown(60);
     }
   };
 
-  // 处理超时 - 更新这个函数
+  // Handle timeout
   const handleTimeout = () => {
-    // 先确保其他弹窗都关闭
-    hideErrorModal();
-    hideSuccessModal();
-    
-    // 隐藏超时弹窗
     hideTimeoutModal();
-    
-    // 如果已经验证成功，则不要重定向
-    if (isVerified) {
-      console.log("已经验证成功，忽略超时重定向");
-      return;
-    }
-    
-    // 否则重定向到注册页面
-    console.log("验证超时，重定向到注册页面");
-    navigate('/register');
+    navigate('/register', { replace: true });
   };
 
-  // 返回登录
+  // Error modal OK handler
+  const handleErrorOk = () => {
+    hideErrorModal();
+  };
+
+  // Back to login button handler
   const handleBackToLogin = () => {
     navigate('/login');
   };
 
-  // 添加调试函数以检查 URL 参数
-  useEffect(() => {
-    // 清理 URL 以移除可能的重复参数
-    const url = new URL(window.location.href);
-    const searchParams = url.searchParams;
-    
-    // 检查是否有重复的参数
-    if (searchParams.getAll('clrk').length > 1 || searchParams.getAll('reload').length > 1) {
-      console.log('发现重复的 URL 参数，尝试清理...');
-      
-      // 创建新的参数集合
-      const newParams = new URLSearchParams();
-      
-      // 只保留每个参数的第一个值
-      for (const [key, value] of Array.from(searchParams.entries())) {
-        if (!newParams.has(key)) {
-          newParams.set(key, value);
-        }
-      }
-      
-      // 替换当前 URL
-      url.search = newParams.toString();
-      window.history.replaceState({}, '', url.toString());
-      console.log('URL 已清理');
-    }
-  }, []);
-
-  // 检查路径是否为验证码页面
-  useEffect(() => {
-    console.log('当前页面路径:', location.pathname);
-  }, [location.pathname]);
-
-  const isVerifyCodePage = location.pathname === '/verify-code';
-
-  // 添加倒计时变化的日志
-  useEffect(() => {
-    if (countdown === 0 && isCountdownActive === false) {
-      console.log("倒计时结束");
-    } else if (countdown % 10 === 0 && countdown > 0) {
-      console.log(`倒计时: ${countdown}秒`);
-    }
-  }, [countdown, isCountdownActive]);
-
-  // 组件卸载时清理所有状态和定时器
-  useEffect(() => {
-    // 返回清理函数
-    return () => {
-      console.log("组件卸载，清理所有状态和定时器");
-      // 清理所有弹窗状态
-      clearAllModals();
-      // 重置验证状态
-      setVerifying(false);
-      setResending(false);
-      forceShowSuccess.current = false;
-    };
-  }, []);
-
-  // 添加错误边界效果
-  useEffect(() => {
-    try {
-      setIsReady(true);
-      console.log("页面准备好渲染");
-    } catch (error) {
-      console.error("初始化页面时出错:", error);
-      setHasError(true);
-      setErrorInfo(error);
-    }
-  }, []);
-
-  // 修改shouldShowSuccessModal逻辑，加入强制显示选项
-  const shouldShowSuccessModal = forceShowSuccess.current || (isSuccessModalVisible && isVerified && hasManuallyVerified);
-
-  // 如果有错误，显示错误信息而不是白屏
-  if (hasError) {
-    return (
-      <div style={{ 
-        padding: '20px', 
-        textAlign: 'center', 
-        color: 'red', 
-        background: 'white' 
-      }}>
-        <h2>页面加载出错</h2>
-        <p>请尝试刷新页面或返回注册页面</p>
-        <Button 
-          type="primary" 
-          onClick={() => navigate('/register')}
-          style={{ marginTop: '20px' }}
-        >
-          返回注册
-        </Button>
-        {process.env.NODE_ENV !== 'production' && errorInfo && (
-          <pre style={{ 
-            marginTop: '20px', 
-            textAlign: 'left', 
-            background: '#f0f0f0', 
-            padding: '10px', 
-            borderRadius: '4px', 
-            color: 'black',
-            overflow: 'auto'
-          }}>
-            {errorInfo.toString()}
-          </pre>
-        )}
-      </div>
-    );
-  }
+  // Success modal handler
+  const handleSuccessOk = () => {
+    hideSuccessModal();
+    navigate('/complete-profile', {
+      state: { 
+        email: userEmail,
+        userName,
+        role: userRole,
+        verified: true
+      },
+      replace: true
+    });
+  };
 
   return (
-    <div className="flex justify-center items-center min-h-screen" style={styles.container}>
-      <Card className="w-full max-w-md shadow-md" style={styles.box}>
-        <div className="text-center mb-6">
-          <Title level={2} style={styles.title}>Verify Your Email</Title>
-          <p>We have sent a verification email containing a 6-digit code to <strong>{userEmail}</strong></p>
-        </div>
-        
-        <Form 
-          layout="vertical" 
-          onFinish={handleSubmit(onSubmit)}
-          onSubmitCapture={(e) => {
-            console.log("表单提交被捕获:", e);
-          }}
-        >
+    <div style={styles.container}>
+      <Card style={styles.card}>
+        <Title level={3} style={styles.title}>Verify Your Email</Title>
+        <p style={styles.description}>
+          We've sent a 6-digit code to <strong>{userEmail}</strong>.<br />
+          Please enter the code below to verify your email.
+        </p>
+
+        <Form layout="vertical" onFinish={handleSubmit(onSubmit)} style={styles.form}>
           <Form.Item
-            label="Verification Code"
             validateStatus={errors.code ? 'error' : ''}
             help={errors.code?.message}
+            style={styles.formItem}
           >
             <Controller
               name="code"
@@ -695,279 +447,146 @@ const VerifyCode = () => {
                 <Input
                   {...field}
                   placeholder="Enter 6-digit code"
+                  style={styles.input}
                   maxLength={6}
                   size="large"
-                  style={styles.codeInput}
                 />
               )}
             />
           </Form.Item>
 
-          <Form.Item style={{ textAlign: 'center' }}>
+          <Form.Item style={styles.formItem}>
             <Button
               type="primary"
               htmlType="submit"
-              style={{
-                ...styles.verifyButton,
-                width: '80%',
-                margin: '0 auto',
-              }}
-              loading={isVerifying || verifyCodeResult.isPending}
-              disabled={isVerifying || verifyCodeResult.isPending}
-              onClick={() => {
-                console.log("验证按钮被点击");
-                // 这里只是记录点击，实际提交由Form的onFinish处理
-              }}
+              style={styles.verifyButton}
+              loading={isVerifying}
+              disabled={isVerifying}
             >
-              Verify
+              Verify Code
             </Button>
           </Form.Item>
         </Form>
-        
+
         <div style={styles.resendContainer}>
-          <span>Didn't receive the code?</span>
           <Button
             type="link"
-            onClick={() => {
-              console.log("按钮被点击");
-              handleResendCode();
-            }}
-            disabled={countdown > 0}
-            style={{
-              ...styles.resendLink,
-              color: countdown > 0 ? '#aaa' : '#1976D2',
-            }}
+            onClick={handleResendCode}
+            disabled={isCountdownActive || isResending}
+            style={styles.resendButton}
           >
-            {isResending ? 'Sending...' : countdown > 0 ? `Resend (${countdown}s)` : 'Resend'}
+            {isCountdownActive 
+              ? `Resend code in ${countdown}s` 
+              : 'Resend verification code'}
           </Button>
         </div>
         
-        <div style={styles.footerText}>
-          <Button 
-            type="link" 
-            onClick={() => navigate('/register')} 
-            style={styles.backLink}
-            disabled={isVerifying || verifyCodeResult.isPending}
+        <div style={styles.backToLoginContainer}>
+          <Button
+            type="link"
+            onClick={handleBackToLogin}
+            style={styles.backToLoginButton}
           >
-            Back to Registration
+            Back to Login
           </Button>
         </div>
       </Card>
-      
+
       {/* Error Modal */}
       <Modal
         title="Verification Failed"
-        open={isErrorModalVisible && !isSuccessModalVisible && !isTimeoutModalVisible}
-        onOk={() => {
-          // 先关闭当前弹窗
-          hideErrorModal();
-          // 确保其他弹窗也是关闭的
-          hideSuccessModal();
-          hideTimeoutModal();
-        }}
-        onCancel={() => {
-          // 先关闭当前弹窗
-          hideErrorModal();
-          // 确保其他弹窗也是关闭的
-          hideSuccessModal();
-          hideTimeoutModal();
-        }}
+        open={isErrorModalVisible}
+        onOk={handleErrorOk}
+        onCancel={handleErrorOk}
         cancelButtonProps={{ style: { display: 'none' } }}
-        okText="OK"
+        okText="Try Again"
       >
-        <p style={{ fontSize: '16px' }}>{errorMessage}</p>
+        <p>{errorMessage || 'An error occurred during verification. Please try again.'}</p>
       </Modal>
-      
-      {/* Success Modal - 只在验证成功且手动验证过后才显示 */}
-      <Modal
-        title={<div style={{ textAlign: 'center', fontSize: '22px', fontWeight: 'bold' }}>Success!</div>}
-        open={shouldShowSuccessModal}
-        destroyOnClose={false}
-        maskClosable={false}
-        closable={false}
-        keyboard={false}
-        onOk={() => {
-          console.log("点击了成功弹窗的OK按钮");
-          hideSuccessModal();
-          navigate('/login');
-        }}
-        onCancel={() => {
-          console.log("触发了成功弹窗的Cancel事件");
-          hideSuccessModal();
-          navigate('/login');
-        }}
-        afterClose={() => {
-          console.log("成功弹窗关闭后的回调");
-          navigate('/login');
-        }}
-        cancelButtonProps={{ style: { display: 'none' } }}
-        okText="Back To Login"
-        centered
-        zIndex={9999}
-        afterOpen={() => {
-          console.log("成功弹窗已打开，状态:", {
-            isSuccessModalVisible,
-            isVerified,
-            hasManuallyVerified,
-            shouldShowSuccessModal
-          });
-        }}
-        style={{ textAlign: 'center' }}
-        width={window.innerWidth < 480 ? '90%' : 400}
-        bodyStyle={{ padding: '24px' }}
-        maskStyle={{ background: 'rgba(0, 0, 0, 0.75)' }}
-        okButtonProps={{ 
-          style: { 
-            backgroundColor: '#1976D2', 
-            borderColor: '#1976D2',
-            width: '80%',
-            height: '40px',
-            fontSize: '16px',
-            fontWeight: 'bold',
-            margin: '0 auto'
-          }
-        }}
-        wrapClassName="success-modal"
-      >
-        <div style={{ textAlign: 'center' }}>
-          <CheckCircleOutlined style={{ fontSize: 80, color: '#52c41a', marginBottom: 16 }} />
-          <p style={{ fontSize: '16px', padding: '10px', fontWeight: 'bold' }}>
-            Congratulations! Your account has been successfully verified!
-          </p>
-          <p style={{ fontSize: '14px', padding: '5px' }}>
-             You also need to wait for the administrator's review.
-          </p>
-          <style>
-            {`
-              .success-modal .ant-modal-footer {
-                text-align: center;
-                display: flex;
-                justify-content: center;
-                padding: 20px 16px;
-              }
-              .success-modal .ant-modal-content {
-                text-align: center;
-              }
-              .success-modal .ant-modal-body {
-                padding-bottom: 0;
-              }
-              .success-modal .ant-btn {
-                display: block;
-                margin: 0 auto;
-              }
-            `}
-          </style>
-        </div>
-      </Modal>
-      
+
       {/* Timeout Modal */}
       <Modal
-        title="Session Expired"
-        open={isTimeoutModalVisible && !isVerified && isPageInitialized && !isSuccessModalVisible && !isErrorModalVisible}
-        onOk={() => {
-          // 先处理超时
-          handleTimeout();
-          // 确保所有弹窗关闭
-          hideErrorModal();
-          hideSuccessModal();
-          hideTimeoutModal();
-        }}
-        onCancel={() => {
-          // 先处理超时
-          handleTimeout();
-          // 确保所有弹窗关闭
-          hideErrorModal();
-          hideSuccessModal();
-          hideTimeoutModal();
-        }}
+        title="Verification Timeout"
+        open={isTimeoutModalVisible}
+        onOk={handleTimeout}
+        onCancel={handleTimeout}
         cancelButtonProps={{ style: { display: 'none' } }}
-        okText="Register Again"
-        zIndex={9999}
-        centered
+        okText="Return to Registration"
       >
-        <p style={{ fontSize: '16px' }}>
-          Your verification session has expired. Please register again to receive a new verification code.
-        </p>
+        <p>The verification process has timed out. Please start the registration process again.</p>
+      </Modal>
+
+      {/* Success Modal */}
+      <Modal
+        title="Verification Successful"
+        open={isSuccessModalVisible}
+        onOk={handleSuccessOk}
+        onCancel={handleSuccessOk}
+        cancelButtonProps={{ style: { display: 'none' } }}
+        okText="Continue"
+      >
+        <div style={{ textAlign: 'center', padding: '20px 0' }}>
+          <CheckCircleOutlined style={{ fontSize: 60, color: '#52c41a' }} />
+          <Title level={4} style={{ marginTop: 16 }}>Email Verified!</Title>
+          <p>Your email has been successfully verified. Please continue to complete your profile.</p>
+        </div>
       </Modal>
     </div>
   );
 };
 
-// 样式
 const styles = {
   container: {
-    textAlign: 'center',
-    minHeight: '100vh',
-    width: '100%',
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
-    background: 'linear-gradient(to right, #1a3a6e, #3f78d1, #67a8ff)',
-    overflow: 'hidden',
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    minHeight: '100vh',
+    background: '#f0f2f5',
+    padding: '20px'
   },
-  box: {
-    background: 'rgba(255, 255, 255, 0.95)',
-    padding: '40px 50px',
-    borderRadius: '15px',
-    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.25), 0 15px 35px rgba(0, 0, 0, 0.15)',
-    backdropFilter: 'blur(10px)',
+  card: {
     width: '100%',
-    maxWidth: '450px',
-    textAlign: 'left',
-    transition: 'all 0.3s ease',
-    margin: '20px',
-    zIndex: 10,
+    maxWidth: 400,
+    borderRadius: 12,
+    boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
   },
   title: {
-    fontSize: '30px',
-    fontFamily: "'Poppins', sans-serif",
-    fontWeight: '600',
     textAlign: 'center',
-    color: '#003366',
-    marginBottom: '10px',
+    marginBottom: 24
   },
-  codeInput: {
-    fontSize: '18px',
+  description: {
     textAlign: 'center',
-    letterSpacing: '4px',
-    padding: '10px 8px',
-    fontFamily: 'monospace'
+    marginBottom: 32
+  },
+  form: {
+    width: '100%'
+  },
+  formItem: {
+    marginBottom: 16
+  },
+  input: {
+    fontSize: 18,
+    textAlign: 'center',
+    letterSpacing: 8
   },
   verifyButton: {
-    fontSize: '18px',
-    fontWeight: 'bold',
-    height: '45px',
-    backgroundColor: '#1976D2',
-    border: 'none',
-    transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-    marginTop: '10px',
+    width: '100%',
+    height: 48
   },
   resendContainer: {
     textAlign: 'center',
-    marginTop: '15px',
-    fontSize: '14px',
-    color: '#555',
+    marginTop: 16
   },
-  resendLink: {
-    fontWeight: 'bold',
-    fontSize: '14px',
-    marginLeft: '5px',
+  resendButton: {
+    padding: 0
   },
-  footerText: {
+  backToLoginContainer: {
     textAlign: 'center',
-    marginTop: '30px',
-    fontSize: '14px',
-    color: '#555',
+    marginTop: 16
   },
-  backLink: {
-    fontWeight: 'bold',
-    fontSize: '14px',
-  },
+  backToLoginButton: {
+    padding: 0
+  }
 };
 
 export default VerifyCode; 

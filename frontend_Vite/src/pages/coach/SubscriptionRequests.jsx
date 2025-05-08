@@ -35,39 +35,38 @@ const SubscriptionRequests = () => {
   const [handleVisible, setHandleVisible] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [replyText, setReplyText] = useState('');
-  // 追踪当前查看的请求是否原本是未读状态
+  // Track if currently viewed request was originally unread
   const [wasUnread, setWasUnread] = useState(false);
 
-  // 使用RTK Query获取数据
+  // Use RTK Query to fetch data
   const { data, isLoading, error, refetch } = useGetSubscriptionRequestsQuery({
     pageNow: currentPage,
     pageSize,
     statusList: selectedStatus
   }, {
-    // 组件挂载或参数变化时重新获取
+    // Refetch when component mounts or parameters change
     refetchOnMountOrArgChange: true,
-    // 定期自动刷新
-    pollingInterval: 30000 // 每30秒自动刷新一次
+    // Periodic auto-refresh
+    pollingInterval: 30000 // Auto refresh every 30 seconds
   });
 
-  // 添加标记已读的mutation
+  // Add mark as read mutation
   const [markAsRead] = useMarkRequestAsReadMutation();
   
-  // 获取未读数量查询
+  // Get unread count query
   const { refetch: refetchUnreadCount } = useGetUnreadRequestsCountQuery();
   
-  // 添加处理请求的mutation
+  // Add request handling mutations
   const [acceptRequest, { isLoading: isAccepting }] = useAcceptSubscriptionRequestMutation();
   const [rejectRequest, { isLoading: isRejecting }] = useRejectSubscriptionRequestMutation();
 
-  // 添加监听，当收到刷新事件时重新获取数据
+  // Add listener to refresh data when refresh event is received
   useEffect(() => {
-    // 首次加载时刷新一次
+    // Refresh once on initial load
     refetch();
     
-    // 注册事件监听器
+    // Register event listener
     const handleRefresh = () => {
-      console.log('Refreshing subscription requests...');
       refetch();
     };
     
@@ -78,14 +77,14 @@ const SubscriptionRequests = () => {
     };
   }, [refetch]);
 
-  // 状态选项
+  // Status options
   const statusOptions = [
     { label: 'Pending', value: 'pending' },
     { label: 'Accepted', value: 'accept' },
     { label: 'Rejected', value: 'reject' }
   ];
 
-  // 表格列定义
+  // Table column definitions
   const columns = [
     {
       title: 'Member Name',
@@ -110,7 +109,7 @@ const SubscriptionRequests = () => {
       dataIndex: 'status',
       key: 'status',
       render: (status) => {
-        // 创建颜色映射，处理不同大小写的状态值
+        // Create color mapping, handling different case status values
         const colorMap = {
           pending: 'gold',
           accept: 'green',
@@ -120,7 +119,7 @@ const SubscriptionRequests = () => {
           REJECT: 'red'
         };
         
-        // 获取颜色，如果状态不在映射中则使用灰色
+        // Get color, use grey as default if status not in mapping
         const color = colorMap[status] || 'default';
         
         return <Tag color={color}>{status}</Tag>;
@@ -166,36 +165,35 @@ const SubscriptionRequests = () => {
 
   const handleStatusChange = (checkedValues) => {
     setSelectedStatus(checkedValues);
-    setCurrentPage(1); // 重置页码
+    setCurrentPage(1); // Reset page number
     
-    // 强制重新获取数据，避免使用缓存
+    // Force refetch data to avoid using cache
     setTimeout(() => {
       refetch();
     }, 0);
   };
 
-  // 查看详情时标记为已读
+  // Mark as read when viewing details
   const showDetails = (record) => {
     setSelectedRequest(record);
     setDetailsVisible(true);
     
-    // 记录原始未读状态
+    // Record original unread state
     const isUnread = record && !record.coachIsRead;
     setWasUnread(isUnread);
     
-    // 如果是未读消息，则标记为已读
+    // Mark as read if unread
     if (isUnread) {
       markAsRead(record.id)
         .unwrap()
         .then(() => {
-          // 标记成功后主动刷新未读计数
+          // Actively refresh unread count after successful marking
           refetchUnreadCount();
           
-          // 触发全局事件，强制刷新侧边栏计数
+          // Trigger global event to force refresh sidebar counts
           window.dispatchEvent(new Event('refresh-unread-count'));
         })
         .catch(error => {
-          console.error('Failed to mark as read:', error);
           message.error(error?.data?.msg || 'Failed to mark as read');
         });
     }
@@ -204,15 +202,15 @@ const SubscriptionRequests = () => {
   const handleCloseDetails = () => {
     setDetailsVisible(false);
     
-    // 只有当查看的请求之前是未读状态时，才刷新计数
+    // Only refresh counts if the viewed request was originally unread
     if (wasUnread) {
-      // 关闭详情时刷新未读计数，确保侧边栏数字更新
+      // Refresh unread counts when closing details to ensure sidebar numbers update
       refetchUnreadCount();
-      // 触发全局事件，强制刷新侧边栏计数
+      // Trigger global event to force refresh sidebar counts
       window.dispatchEvent(new Event('refresh-unread-count'));
     }
     
-    // 重置未读状态标记
+    // Reset unread state marker
     setWasUnread(false);
   };
 
@@ -221,23 +219,22 @@ const SubscriptionRequests = () => {
     setReplyText('');
     setHandleVisible(true);
     
-    // 记录原始未读状态
+    // Record original unread state
     const isUnread = record && !record.coachIsRead;
     setWasUnread(isUnread);
     
-    // 如果是未读消息，则标记为已读
+    // Mark as read if unread
     if (isUnread) {
       markAsRead(record.id)
         .unwrap()
         .then(() => {
-          // 标记成功后主动刷新未读计数
+          // Actively refresh unread count after successful marking
           refetchUnreadCount();
           
-          // 触发全局事件，强制刷新侧边栏计数
+          // Trigger global event to force refresh sidebar counts
           window.dispatchEvent(new Event('refresh-unread-count'));
         })
         .catch(error => {
-          console.error('Failed to mark as read:', error);
           message.error(error?.data?.msg || 'Failed to mark as read');
         });
     }
@@ -246,20 +243,20 @@ const SubscriptionRequests = () => {
   const handleCloseHandleModal = () => {
     setHandleVisible(false);
     
-    // 只有当查看的请求之前是未读状态时，才刷新计数
+    // Only refresh counts if the viewed request was originally unread
     if (wasUnread) {
-      // 关闭处理模态框时刷新未读计数
+      // Refresh unread counts when closing handle modal
       refetchUnreadCount();
-      // 触发全局事件，强制刷新侧边栏计数
+      // Trigger global event to force refresh sidebar counts
       window.dispatchEvent(new Event('refresh-unread-count'));
     }
     
-    // 重置未读状态标记
+    // Reset unread state marker
     setWasUnread(false);
   };
 
   const handleAccept = async () => {
-    // 验证reply是否为空
+    // Validate if reply is empty
     if (!replyText.trim()) {
       message.error('Reply cannot be empty');
       return;
@@ -274,24 +271,23 @@ const SubscriptionRequests = () => {
       message.success('Subscription request accepted');
       setHandleVisible(false);
       
-      // 只有原来是未读的请求才需要刷新计数
+      // Only refresh counts if the request was originally unread
       if (wasUnread) {
-        // 处理请求后刷新未读计数
+        // Refresh unread counts after handling request
         refetchUnreadCount();
-        // 触发全局事件，强制刷新侧边栏计数
+        // Trigger global event to force refresh sidebar counts
         window.dispatchEvent(new Event('refresh-unread-count'));
       }
       
-      // 重置未读状态标记
+      // Reset unread state marker
       setWasUnread(false);
     } catch (error) {
-      console.error('Failed to accept request:', error);
       message.error(error?.data?.msg || 'Failed to accept the request');
     }
   };
 
   const handleReject = async () => {
-    // 验证reply是否为空
+    // Validate if reply is empty
     if (!replyText.trim()) {
       message.error('Reply cannot be empty');
       return;
@@ -306,18 +302,17 @@ const SubscriptionRequests = () => {
       message.success('Subscription request rejected');
       setHandleVisible(false);
       
-      // 只有原来是未读的请求才需要刷新计数
+      // Only refresh counts if the request was originally unread
       if (wasUnread) {
-        // 处理请求后刷新未读计数
+        // Refresh unread counts after handling request
         refetchUnreadCount();
-        // 触发全局事件，强制刷新侧边栏计数
+        // Trigger global event to force refresh sidebar counts
         window.dispatchEvent(new Event('refresh-unread-count'));
       }
       
-      // 重置未读状态标记
+      // Reset unread state marker
       setWasUnread(false);
     } catch (error) {
-      console.error('Failed to reject request:', error);
       message.error(error?.data?.msg || 'Failed to reject the request');
     }
   };
@@ -327,7 +322,7 @@ const SubscriptionRequests = () => {
       <Card>
         <Title level={3} className="mb-6">Subscription Requests</Title>
         
-        {/* 状态过滤器 */}
+        {/* Status filter */}
         <Row className="mb-6">
           <Col>
             <Checkbox.Group
@@ -338,7 +333,7 @@ const SubscriptionRequests = () => {
           </Col>
         </Row>
 
-        {/* 请求列表 */}
+        {/* Request list */}
         <Table
           columns={columns}
           dataSource={data?.records || []}
@@ -362,7 +357,7 @@ const SubscriptionRequests = () => {
         />
       </Card>
 
-      {/* 详情模态框 */}
+      {/* Details modal */}
       <Modal
         title="Subscription Request Details"
         open={detailsVisible}
@@ -380,7 +375,7 @@ const SubscriptionRequests = () => {
             <Descriptions.Item label="Coach Name">{selectedRequest.coachName}</Descriptions.Item>
             <Descriptions.Item label="Status">
               {(() => {
-                // 创建颜色映射，处理不同大小写的状态值
+                // Create color mapping, handling different case status values
                 const colorMap = {
                   pending: 'gold',
                   accept: 'green',
@@ -390,7 +385,7 @@ const SubscriptionRequests = () => {
                   REJECT: 'red'
                 };
                 
-                // 获取颜色，如果状态不在映射中则使用灰色
+                // Get color, use grey as default if status not in mapping
                 const color = colorMap[selectedRequest.status] || 'default';
                 
                 return <Tag color={color}>{selectedRequest.status}</Tag>;
@@ -415,7 +410,7 @@ const SubscriptionRequests = () => {
         )}
       </Modal>
 
-      {/* 处理请求模态框 */}
+      {/* Handle request modal */}
       <Modal
         title="Handle Subscription Request"
         open={handleVisible}
