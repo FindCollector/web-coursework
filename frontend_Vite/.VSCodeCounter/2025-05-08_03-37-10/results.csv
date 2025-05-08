@@ -1,0 +1,93 @@
+"filename", "language", "JSON", "Properties", "Markdown", "JavaScript", "HTML", "JavaScript JSX", "XML", "CSS", "comment", "blank", "total"
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/.env", "Properties", 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/.vite/deps/_metadata.json", "JSON", 37, 0, 0, 0, 0, 0, 0, 0, 0, 0, 37
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/.vite/deps/chunk-GFWMZNU4.js", "JavaScript", 0, 0, 0, 1812, 0, 0, 0, 0, 93, 4, 1909
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/.vite/deps/package.json", "JSON", 3, 0, 0, 0, 0, 0, 0, 0, 0, 1, 4
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/.vite/deps/react-dom.js", "JavaScript", 0, 0, 0, 21271, 0, 0, 0, 0, 406, 5, 21682
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/.vite/deps/react.js", "JavaScript", 0, 0, 0, 4, 0, 0, 0, 0, 0, 1, 5
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/.vite/deps/react_jsx-dev-runtime.js", "JavaScript", 0, 0, 0, 886, 0, 0, 0, 0, 23, 3, 912
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/.vite/deps/react_jsx-runtime.js", "JavaScript", 0, 0, 0, 898, 0, 0, 0, 0, 23, 3, 924
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/API_MIGRATION_README.md", "Markdown", 0, 0, 66, 0, 0, 0, 0, 0, 0, 20, 86
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/README.md", "Markdown", 0, 0, 7, 0, 0, 0, 0, 0, 0, 6, 13
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/RTK_QUERY_MIGRATION_GUIDE.md", "Markdown", 0, 0, 140, 0, 0, 0, 0, 0, 0, 38, 178
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/cypress.config.js", "JavaScript", 0, 0, 0, 13, 0, 0, 0, 0, 3, 1, 17
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/cypress/e2e/login.cy.js", "JavaScript", 0, 0, 0, 138, 0, 0, 0, 0, 30, 31, 199
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/cypress/e2e/member-dashboard.cy.js", "JavaScript", 0, 0, 0, 112, 0, 0, 0, 0, 21, 16, 149
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/cypress/e2e/responsive.cy.js", "JavaScript", 0, 0, 0, 119, 0, 0, 0, 0, 24, 18, 161
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/cypress/support/commands.js", "JavaScript", 0, 0, 0, 34, 0, 0, 0, 0, 10, 6, 50
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/cypress/support/e2e.js", "JavaScript", 0, 0, 0, 8, 0, 0, 0, 0, 10, 2, 20
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/docs/API_MIGRATION_PLAN.md", "Markdown", 0, 0, 69, 0, 0, 0, 0, 0, 0, 24, 93
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/eslint.config.js", "JavaScript", 0, 0, 0, 32, 0, 0, 0, 0, 0, 2, 34
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/index.html", "HTML", 0, 0, 0, 0, 36, 0, 0, 0, 0, 1, 37
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/package-lock.json", "JSON", 10909, 0, 0, 0, 0, 0, 0, 0, 0, 1, 10910
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/package.json", "JSON", 65, 0, 0, 0, 0, 0, 0, 0, 0, 1, 66
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/postcss.config.js", "JavaScript", 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 6
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/public/vite.svg", "XML", 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/App.css", "CSS", 0, 0, 0, 0, 0, 0, 0, 40, 0, 6, 46
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/App.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 306, 0, 0, 0, 32, 338
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/assets/react.svg", "XML", 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/components/CoachList.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 916, 0, 0, 72, 108, 1096
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/components/DraggableTag.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 120, 0, 0, 16, 18, 154
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/components/GoogleMap/index.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 129, 0, 0, 10, 18, 157
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/components/ImgLazy.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 87, 0, 0, 18, 13, 118
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/components/ImgWithToken.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 165, 0, 0, 7, 15, 187
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/components/PageTransition.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 56, 0, 0, 0, 7, 63
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/components/TagsContainer.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 145, 0, 0, 14, 14, 173
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/components/common/NoticeModal.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 21, 0, 0, 0, 2, 23
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/components/index.js", "JavaScript", 0, 0, 0, 3, 0, 0, 0, 0, 3, 1, 7
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/components/layout/CoachSidebar.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 290, 0, 0, 44, 31, 365
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/hooks/index.js", "JavaScript", 0, 0, 0, 5, 0, 0, 0, 0, 3, 1, 9
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/hooks/useButtonLoading.js", "JavaScript", 0, 0, 0, 20, 0, 0, 0, 0, 10, 6, 36
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/hooks/useCountdown.js", "JavaScript", 0, 0, 0, 46, 0, 0, 0, 0, 11, 10, 67
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/hooks/useModalState.js", "JavaScript", 0, 0, 0, 15, 0, 0, 0, 0, 14, 6, 35
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/hooks/useReCaptcha.js", "JavaScript", 0, 0, 0, 74, 0, 0, 0, 0, 7, 17, 98
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/hooks/useTokenizedImage.js", "JavaScript", 0, 0, 0, 50, 0, 0, 0, 0, 3, 8, 61
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/index.css", "CSS", 0, 0, 0, 0, 0, 0, 0, 66, 0, 10, 76
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/main.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 44, 0, 0, 0, 6, 50
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/pages/CompleteProfile.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 192, 0, 0, 14, 27, 233
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/pages/LandingPage.css", "CSS", 0, 0, 0, 0, 0, 0, 0, 92, 2, 13, 107
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/pages/LandingPage.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 160, 0, 0, 1, 13, 174
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/pages/LinkGoogleAccount.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 107, 0, 0, 12, 21, 140
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/pages/Login.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 381, 0, 0, 49, 59, 489
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/pages/Register.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 439, 0, 0, 27, 38, 504
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/pages/VerifyCode.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 454, 0, 0, 63, 75, 592
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/pages/admin/Dashboard.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 149, 0, 0, 11, 10, 170
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/pages/admin/UserManagement.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 438, 0, 0, 48, 51, 537
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/pages/coach/Availability.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 417, 0, 0, 24, 39, 480
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/pages/coach/CoachSchedule.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 275, 0, 0, 27, 29, 331
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/pages/coach/Dashboard.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 316, 0, 0, 20, 22, 358
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/pages/coach/Details.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 881, 0, 0, 71, 84, 1036
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/pages/coach/SessionRequests.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 394, 0, 0, 38, 45, 477
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/pages/coach/SubscriptionRequests.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 380, 0, 0, 48, 51, 479
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/pages/coach/UnrecordedSessions.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 208, 0, 0, 27, 25, 260
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/pages/member/BookingSession.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 506, 0, 0, 37, 47, 590
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/pages/member/Dashboard.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 368, 0, 0, 19, 29, 416
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/pages/member/MemberSchedule.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 356, 0, 0, 42, 37, 435
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/pages/member/SessionRequests.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 318, 0, 0, 31, 37, 386
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/pages/member/SubscriptionRequests.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 239, 0, 0, 31, 31, 301
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/pages/member/TrainingHistory.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 212, 0, 0, 20, 22, 254
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/store/api/authApi.js", "JavaScript", 0, 0, 0, 134, 0, 0, 0, 0, 16, 11, 161
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/store/api/baseApi.js", "JavaScript", 0, 0, 0, 86, 0, 0, 0, 0, 26, 19, 131
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/store/api/coachApi.js", "JavaScript", 0, 0, 0, 375, 0, 0, 0, 0, 54, 42, 471
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/store/api/memberApi.js", "JavaScript", 0, 0, 0, 247, 0, 0, 0, 0, 57, 26, 330
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/store/api/userApi.js", "JavaScript", 0, 0, 0, 117, 0, 0, 0, 0, 26, 15, 158
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/store/authSlice.js", "JavaScript", 0, 0, 0, 67, 0, 0, 0, 0, 10, 10, 87
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/store/index.js", "JavaScript", 0, 0, 0, 25, 0, 0, 0, 0, 5, 4, 34
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/store/navSlice.js", "JavaScript", 0, 0, 0, 14, 0, 0, 0, 0, 5, 2, 21
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/utils/authUtils.js", "JavaScript", 0, 0, 0, 78, 0, 0, 0, 0, 32, 20, 130
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/utils/debugTools.js", "JavaScript", 0, 0, 0, 106, 0, 0, 0, 0, 32, 29, 167
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/utils/imageUtils.js", "JavaScript", 0, 0, 0, 49, 0, 0, 0, 0, 37, 14, 100
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/src/utils/routeUtils.js", "JavaScript", 0, 0, 0, 63, 0, 0, 0, 0, 36, 17, 116
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/tailwind.config.js", "JavaScript", 0, 0, 0, 13, 0, 0, 0, 0, 0, 1, 14
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/tests/App.test.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 18, 0, 0, 3, 3, 24
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/tests/components/DraggableTag.test.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 52, 0, 0, 6, 11, 69
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/tests/components/TagsContainer.test.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 40, 0, 0, 3, 6, 49
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/tests/mocks/handlers.js", "JavaScript", 0, 0, 0, 79, 0, 0, 0, 0, 8, 8, 95
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/tests/mocks/server.js", "JavaScript", 0, 0, 0, 4, 0, 0, 0, 0, 2, 2, 8
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/tests/pages/Login.test.jsx", "JavaScript JSX", 0, 0, 0, 0, 0, 81, 0, 0, 10, 15, 106
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/tests/setupTests.js", "JavaScript", 0, 0, 0, 27, 0, 0, 0, 0, 9, 5, 41
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/tests/store/authSlice.test.js", "JavaScript", 0, 0, 0, 62, 0, 0, 0, 0, 5, 11, 78
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/tests/store/navSlice.test.js", "JavaScript", 0, 0, 0, 11, 0, 0, 0, 0, 0, 2, 13
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/vite.config.js", "JavaScript", 0, 0, 0, 25, 0, 0, 0, 0, 0, 4, 29
+"/Users/huyanjie/Documents/fitness_centres/frontend_Vite/健身中心前端项目规范.md", "Markdown", 0, 0, 118, 0, 0, 0, 0, 0, 0, 0, 118
+"Total", "-", 11014, 1, 400, 27128, 36, 9660, 2, 198, 1919, 1595, 51953
