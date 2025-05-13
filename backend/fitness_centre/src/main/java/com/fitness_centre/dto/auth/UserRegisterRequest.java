@@ -35,10 +35,8 @@ public class UserRegisterRequest {
     @NotBlank(message = "The password cannot be empty.")
     @Size(min = 6, message = "The password length is at least 6 digits")
     //todo expand password special character requirements
-    @Pattern(
-            regexp = "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]+$",
-            message = "The password must contain both uppercase letters, lowercase letters, numbers and special symbols."
-    )
+    @Pattern(regexp = "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[^A-Za-z\\d])[A-Za-z\\d\\W]{8,}$")
+
     private String password;
 
     private String confirmPassword;

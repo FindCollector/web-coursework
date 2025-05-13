@@ -36,10 +36,20 @@ const CompleteProfile = () => {
   
   // Get email from location state
   const email = location.state?.email;
+  const isGoogleLogin = location.state?.isGoogleLogin === true;
+  const isVerified = location.state?.verified === true;
   
-  // If no email, redirect to login page
-  if (!email) {
-    navigate('/login', { replace: true });
+  // 重定向到登录页面如果:
+  // 1. 没有提供email
+  // 2. 这是一个普通注册用户(非Google登录)且不需要完成个人资料(不是通过登录接口的3004错误码进入的)
+  if (!email || (!isGoogleLogin && isVerified)) {
+    navigate('/login', { 
+      replace: true,
+      state: {
+        message: isVerified ? 'Registration successful! Please login with your credentials.' : undefined,
+        messageId: isVerified ? Date.now() : undefined
+      }
+    });
     return null;
   }
   
@@ -99,6 +109,18 @@ const CompleteProfile = () => {
         setTimeout(() => {
           navigate(redirectPath, { replace: true });
         }, 100);
+      } else if (response && response.code === 3001) {
+        // 处理等待审核的情况
+        message.info(response.msg || 'Your account is waiting for administrator approval');
+        
+        // 跳转回登录页面
+        navigate('/login', { 
+          replace: true,
+          state: { 
+            message: 'Your profile has been completed. Please wait for administrator approval before logging in.',
+            messageId: Date.now()
+          }
+        });
       } else {
         message.error(response?.msg || 'Failed to complete profile');
       }
@@ -197,7 +219,7 @@ const CompleteProfile = () => {
                 render={({ field }) => (
                   <Select {...field} placeholder="Select your role">
                     <Option value="member">Member</Option>
-                    <Option value="trainer">Trainer</Option>
+                    <Option value="coach">Coach</Option>
                   </Select>
                 )}
               />

@@ -149,7 +149,11 @@ const UnrecordedSessions = () => {
   if (isLoadingSessions) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px' }}>
-        <Spin size="large" tip="Loading sessions..." />
+        <Spin size="large">
+          <div style={{ padding: '30px', textAlign: 'center' }}>
+            <div style={{ marginTop: '20px' }}>Loading sessions...</div>
+          </div>
+        </Spin>
       </div>
     );
   }
@@ -243,7 +247,11 @@ const UnrecordedSessions = () => {
             rules={[{ required: true, message: 'Please select at least one tag!' }]}
           >
             {isLoadingTags ? (
-              <Spin tip="Loading tags..." />
+              <div style={{ textAlign: 'center', padding: '20px' }}>
+                <Spin>
+                  <div style={{ marginTop: '10px' }}>Loading tags...</div>
+                </Spin>
+              </div>
             ) : isErrorTags ? (
               <Alert message="Error loading tags" type="error" />
             ) : (

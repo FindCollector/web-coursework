@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, Modal, Spin, Tag, Alert, Empty, Avatar, Row, Col, Space, Form, Input, Select, Button, Divider, message, Tooltip } from 'antd';
 import { useGetCoachListQuery, useGetCoachFilterOptionsQuery, useSendSubscriptionRequestMutation } from '../store/api/coachApi';
 import { useGetCoachLocationInfoQuery } from '../store/api/memberApi';
 import { UserOutlined, EnvironmentOutlined, MailOutlined, TagOutlined, SearchOutlined, ClearOutlined, CalendarOutlined } from '@ant-design/icons';
 import styled from '@emotion/styled';
+import { Link } from 'react-router-dom';
+import { Typography, Pagination } from 'antd';
 
 // Add styled components
 const PageWrapper = styled.div`
@@ -89,6 +91,56 @@ const StyledTag = styled(Tag)`
   }
 `;
 
+const MapModalStyles = `
+.map-container {
+  position: relative;
+  width: 100%;
+  height: 500px;
+}
+
+.map-loading {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(255, 255, 255, 0.8);
+  z-index: 1;
+}
+
+.map-loading p {
+  margin-top: 16px;
+  color: #1890ff;
+}
+
+#map {
+  height: 500px;
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.info-window {
+  padding: 8px;
+  max-width: 250px;
+}
+
+.info-window h3 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.info-window p {
+  margin: 0;
+  font-size: 14px;
+}
+`;
+
 const CoachList = () => {
   // Filter form state
   const [form] = Form.useForm();
@@ -103,56 +155,87 @@ const CoachList = () => {
   
   // Add map related states
   const [isMapModalVisible, setIsMapModalVisible] = useState(false);
-  const mapContainerRef = useRef(null);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const [mapTitle, setMapTitle] = useState('');
+  const [isMapLoading, setIsMapLoading] = useState(false);
+  const [mapError, setMapError] = useState('');
 
   // Move function declaration to the top to avoid reference issues - Show empty map state
   const showEmptyMapState = useCallback(() => {
-    if (!mapContainerRef.current) return;
-    
-    mapContainerRef.current.innerHTML = '';
-    const emptyDiv = document.createElement('div');
-    emptyDiv.style.display = 'flex';
-    emptyDiv.style.flexDirection = 'column';
-    emptyDiv.style.alignItems = 'center';
-    emptyDiv.style.justifyContent = 'center';
-    emptyDiv.style.height = '100%';
-    emptyDiv.style.padding = '20px';
-    emptyDiv.innerHTML = `
-      <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
-        <path d="M32 56C45.2548 56 56 45.2548 56 32C56 18.7452 45.2548 8 32 8C18.7452 8 8 18.7452 8 32C8 45.2548 18.7452 56 32 56Z" stroke="#BFBFBF" stroke-width="2"/>
-        <path d="M32 48V48.01" stroke="#BFBFBF" stroke-width="4" stroke-linecap="round"/>
-        <path d="M32 40L32 24" stroke="#BFBFBF" stroke-width="4" stroke-linecap="round"/>
-      </svg>
-      <p style="margin-top: 16px; color: #8c8c8c; font-size: 16px;">No location data available</p>
-      <p style="color: #8c8c8c; font-size: 14px;">Data format may be incorrect or no data returned</p>
-    `;
-    mapContainerRef.current.appendChild(emptyDiv);
+    console.log('Showing empty map state');
+    const mapContainer = document.getElementById('map');
+    if (mapContainer) {
+      mapContainer.innerHTML = '';
+      
+      const emptyState = document.createElement('div');
+      emptyState.className = 'map-empty-state';
+      emptyState.style.height = '100%';
+      emptyState.style.display = 'flex';
+      emptyState.style.flexDirection = 'column';
+      emptyState.style.alignItems = 'center';
+      emptyState.style.justifyContent = 'center';
+      emptyState.style.backgroundColor = '#f5f5f5';
+      emptyState.style.borderRadius = '8px';
+      
+      const icon = document.createElement('div');
+      icon.style.fontSize = '48px';
+      icon.style.color = '#ccc';
+      icon.style.marginBottom = '16px';
+      icon.innerHTML = '<svg viewBox="64 64 896 896" fill="currentColor" width="1em" height="1em" aria-hidden="true"><path d="M955.7 856l-416-720c-6.2-10.7-16.9-16-27.7-16s-21.6 5.3-27.7 16l-416 720C56 877.4 71.4 904 96 904h832c24.6 0 40-26.6 27.7-48zm-783.5-27.9L512 272l339.8 556.1H172.2z"></path><path d="M512 640m-48 0a48 48 0 1 0 96 0 48 48 0 1 0-96 0z"></path><path d="M512 766c-16.5 0-30 13.5-30 30s13.5 30 30 30 30-13.5 30-30-13.5-30-30-30z"></path></svg>';
+      
+      const text = document.createElement('div');
+      text.style.fontSize = '16px';
+      text.style.color = '#888';
+      text.textContent = 'No location data available';
+      
+      emptyState.appendChild(icon);
+      emptyState.appendChild(text);
+      mapContainer.appendChild(emptyState);
+    }
   }, []);
   
   // Move function declaration to the top to avoid reference issues - Show error map state
   const showErrorMapState = useCallback((errorMessage) => {
-    if (!mapContainerRef.current) return;
-    
-    mapContainerRef.current.innerHTML = '';
-    const errorDiv = document.createElement('div');
-    errorDiv.style.display = 'flex';
-    errorDiv.style.flexDirection = 'column';
-    errorDiv.style.alignItems = 'center';
-    errorDiv.style.justifyContent = 'center';
-    errorDiv.style.height = '100%';
-    errorDiv.style.padding = '20px';
-    errorDiv.innerHTML = `
-      <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
-        <path d="M32 56C45.2548 56 56 45.2548 56 32C56 18.7452 45.2548 8 32 8C18.7452 8 8 18.7452 8 32C8 45.2548 18.7452 56 32 56Z" stroke="#ff4d4f" stroke-width="2"/>
-        <path d="M32 48V48.01" stroke="#ff4d4f" stroke-width="4" stroke-linecap="round"/>
-        <path d="M32 40L32 24" stroke="#ff4d4f" stroke-width="4" stroke-linecap="round"/>
-      </svg>
-      <p style="margin-top: 16px; color: #ff4d4f; font-size: 16px;">Error loading map</p>
-      <p style="color: #8c8c8c; font-size: 14px;">${errorMessage || 'An error occurred while loading the map'}</p>
-    `;
-    mapContainerRef.current.appendChild(errorDiv);
+    console.log('Showing error map state:', errorMessage);
+    const mapContainer = document.getElementById('map');
+    if (mapContainer) {
+      mapContainer.innerHTML = '';
+      
+      const errorState = document.createElement('div');
+      errorState.className = 'map-error-state';
+      errorState.style.height = '100%';
+      errorState.style.display = 'flex';
+      errorState.style.flexDirection = 'column';
+      errorState.style.alignItems = 'center';
+      errorState.style.justifyContent = 'center';
+      errorState.style.backgroundColor = '#fff2f0';
+      errorState.style.borderRadius = '8px';
+      errorState.style.padding = '24px';
+      
+      const icon = document.createElement('div');
+      icon.style.fontSize = '48px';
+      icon.style.color = '#ff4d4f';
+      icon.style.marginBottom = '16px';
+      icon.innerHTML = '<svg viewBox="64 64 896 896" fill="currentColor" width="1em" height="1em" aria-hidden="true"><path d="M685.4 354.8c0-4.4-3.6-8-8-8l-66 .3L512 465.6l-99.3-118.4-66.1-.3c-4.4 0-8 3.5-8 8 0 1.9.7 3.7 1.9 5.2l130.1 155L340.5 670a8.32 8.32 0 00-1.9 5.2c0 4.4 3.6 8 8 8l66.1-.3L512 564.4l99.3 118.4 66 .3c4.4 0 8-3.5 8-8 0-1.9-.7-3.7-1.9-5.2L553.5 515l130.1-155c1.2-1.4 1.8-3.3 1.8-5.2z"></path><path d="M512 65C264.6 65 64 265.6 64 513s200.6 448 448 448 448-200.6 448-448S759.4 65 512 65zm0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z"></path></svg>';
+      
+      const title = document.createElement('div');
+      title.style.fontSize = '18px';
+      title.style.fontWeight = 'bold';
+      title.style.color = '#444';
+      title.style.marginBottom = '8px';
+      title.textContent = 'Error Loading Map';
+      
+      const message = document.createElement('div');
+      message.style.fontSize = '14px';
+      message.style.color = '#666';
+      message.style.textAlign = 'center';
+      message.textContent = errorMessage || 'Unable to load map data. Please try again later.';
+      
+      errorState.appendChild(icon);
+      errorState.appendChild(title);
+      errorState.appendChild(message);
+      mapContainer.appendChild(errorState);
+    }
   }, []);
   
   // Query with filters
@@ -306,254 +389,318 @@ const CoachList = () => {
 
   // Modify Google Maps loading handler
   useEffect(() => {
-    // Debug info: check Google Maps API status
-    console.log('Google Maps API status:', {
-      isMapModalVisible,
-      isMapLoaded,
-      locationInfo
-    });
+    // 只在地图模态框可见时执行
+    if (!isMapModalVisible) return;
     
-    // Check if Google Maps API is already loaded
-    const checkGoogleMapsLoaded = () => {
-      // Print status again
-      console.log('Checking Google Maps API:', {
-        window: typeof window !== 'undefined',
-        google: window.google,
-        maps: window.google?.maps
-      });
-      
-      if (window.google && window.google.maps) {
-        console.log('Google Maps API already loaded');
-        setIsMapLoaded(true);
-        return true;
-      }
-      
-      // Check if script tag exists
-      const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
-      
-      if (!existingScript) {
-        // If Google Maps API script doesn't exist, add it
-        console.log('Adding Google Maps API script');
-        const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&libraries=places&callback=initMap`;
-        script.async = true;
-        script.defer = true;
-        document.head.appendChild(script);
-        
-        window.initMap = () => {
-          console.log('Google Maps API initialization complete');
-          setIsMapLoaded(true);
-        };
-        
-        // Use Google Maps Web Components
-        setTimeout(() => {
-          if (!window.google || !window.google.maps) {
-            loadFallbackMap();
-          }
-        }, 5000); // 5 second timeout for Google Maps
-      }
-      
-      return false;
+    console.log('Map modal visible, checking Google Maps status');
+    
+    // 如果Google Maps API已加载，设置状态
+    if (window.google && window.google.maps) {
+      console.log('Google Maps API already loaded');
+      setIsMapLoaded(true);
+      return;
+    }
+    
+    // 检查脚本标签是否存在
+    const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
+    
+    if (existingScript) {
+      console.log('Google Maps script tag exists, waiting for it to load');
+      // 脚本标签已存在，等待加载完成
+      return;
+    }
+    
+    // 创建全局初始化回调
+    window.initMap = () => {
+      console.log('Google Maps API initialization complete');
+      window.googleMapsLoaded = true;
+      setIsMapLoaded(true);
     };
     
-    checkGoogleMapsLoaded();
-  }, [isMapModalVisible, locationInfo, showEmptyMapState, showErrorMapState]);
+    // 添加新的脚本标签
+    console.log('Adding Google Maps API script');
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&v=beta&libraries=maps&callback=initMap`;
+    script.async = true;
+    script.defer = true;
+    document.head.appendChild(script);
+    
+    // 清理函数
+    return () => {
+      // 不要移除脚本标签，但可以清理回调
+      if (!window.googleMapsLoaded) {
+        window.initMap = () => {
+          window.googleMapsLoaded = true;
+        };
+      }
+    };
+  }, [isMapModalVisible]);
 
+  // 先定义renderMap函数，放在useEffect之前
   // Modify map rendering function
   const renderMap = useCallback(() => {
-    try {
-      // Clear previous content
-      if (mapContainerRef.current) {
-        mapContainerRef.current.innerHTML = '';
-      }
-      
-      // If no location data or data is invalid, show empty state
-      if (!locationInfo || !Array.isArray(locationInfo) || locationInfo.length === 0) {
-        console.log('No location data or data format incorrect, showing empty state');
-        showEmptyMapState();
-        return;
-      }
-      
-      // Check if location data includes necessary fields
-      const validLocations = locationInfo.filter(loc => 
-        loc && typeof loc === 'object' && 
-        typeof loc.latitude === 'number' && 
-        typeof loc.longitude === 'number' &&
-        typeof loc.locationName === 'string'
-      );
-      
-      if (validLocations.length === 0) {
-        throw new Error('No valid location data found');
-      }
+    if (!isMapModalVisible || !isMapLoaded) {
+      console.log('Map cannot be rendered - modal not visible or maps not loaded');
+      return;
+    }
 
-      // Create map element
-      console.log('Creating Google Maps element, valid locations count:', validLocations.length);
-      
-      // Use Web Components API (consistent with coach interface)
-      console.log('Using Google Maps Web Components API');
-      const mapElement = document.createElement('gmp-map');
-      mapElement.style.height = '500px';
-      mapElement.style.width = '100%';
-      mapElement.style.borderRadius = '8px';
-      mapElement.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
-      mapElement.setAttribute('center', `${validLocations[0].latitude},${validLocations[0].longitude}`);
-      mapElement.setAttribute('zoom', '12');
-      mapElement.setAttribute('map-id', '8f348c95237d5e1a');
-      
-      // Add markers for each location
-      validLocations.forEach(location => {
-        const marker = document.createElement('gmp-advanced-marker');
-        marker.setAttribute('position', `${location.latitude},${location.longitude}`);
-        marker.setAttribute('title', location.locationName);
+    console.log('Rendering map with location info:', locationInfo);
+    
+    // Add a small delay to ensure DOM is ready
+    setTimeout(() => {
+      try {
+        // 获取地图容器
+        const mapContainer = document.getElementById('map');
+        if (!mapContainer) {
+          console.error('Map container not found - will retry in 500ms');
+          // Retry after a delay
+          setTimeout(() => renderMap(), 500);
+          return;
+        }
+
+        // 如果没有位置信息或发生错误，显示相应状态
+        if (mapError) {
+          showErrorMapState(mapError);
+          return;
+        }
         
-        // Create info window content
-        const content = document.createElement('div');
-        content.innerHTML = `
-          <div style="padding: 8px; font-family: Arial, sans-serif;">
-            <h3 style="margin: 0 0 8px 0;">${location.locationName}</h3>
-            <p style="margin: 0;">Postcode: ${location.postcode || 'Not available'}</p>
-          </div>
-        `;
-        
-        // Try to add click listener to show info window
-        marker.addEventListener('click', () => {
-          try {
-            if (window.google && window.google.maps) {
-              const infoWindow = new window.google.maps.InfoWindow({
-                content: content,
-                ariaLabel: `Information about ${location.locationName}`
-              });
-              infoWindow.open(mapElement, marker);
-            }
-          } catch (err) {
-            console.error('Unable to open info window:', err);
-          }
+        if (!locationInfo || (Array.isArray(locationInfo) && locationInfo.length === 0)) {
+          showEmptyMapState();
+          return;
+        }
+
+        // Clear container first
+        mapContainer.innerHTML = '';
+
+        // 创建地图实例
+        const map = new window.google.maps.Map(mapContainer, {
+          zoom: 15,
+          center: { lat: 0, lng: 0 },
+          mapTypeControl: true,
+          mapTypeControlOptions: {
+            style: window.google.maps.MapTypeControlStyle.DROPDOWN_MENU,
+          },
+          fullscreenControl: true
         });
 
-        mapElement.appendChild(marker);
-      });
-      
-      // Add map to container
-      mapContainerRef.current.appendChild(mapElement);
-    } catch (error) {
-      console.error('Error rendering map:', error);
-      showErrorMapState(error.message);
-    }
-  }, [locationInfo, showEmptyMapState, showErrorMapState]);
+        // 根据位置信息类型处理 (可能是数组或单个对象)
+        const locations = Array.isArray(locationInfo) ? locationInfo : [locationInfo];
+        
+        if (locations.length === 0) {
+          showEmptyMapState();
+          return;
+        }
 
-  // Clear container content
+        // 创建边界对象来计算合适的缩放级别
+        const bounds = new window.google.maps.LatLngBounds();
+        
+        // 添加所有位置的标记
+        locations.forEach((location, index) => {
+          if (!location || !location.latitude || !location.longitude) {
+            console.warn('Invalid location data:', location);
+            return;
+          }
+          
+          const position = {
+            lat: parseFloat(location.latitude),
+            lng: parseFloat(location.longitude)
+          };
+          
+          // 添加标记
+          const marker = new window.google.maps.Marker({
+            position,
+            map,
+            title: location.title || mapTitle || `Location ${index + 1}`
+          });
+          
+          // 扩展边界以包含此标记
+          bounds.extend(position);
+          
+          // 添加点击信息窗口
+          const infoContent = `<div class="info-window">
+            <h3>${location.title || location.locationName || mapTitle || 'Location'}</h3>
+            <p>${location.address || location.postcode || ''}</p>
+          </div>`;
+          
+          const infoWindow = new window.google.maps.InfoWindow({
+            content: infoContent
+          });
+          
+          marker.addListener('click', () => {
+            infoWindow.open(map, marker);
+          });
+        });
+        
+        // 调整地图视图以包含所有标记
+        if (locations.length > 0) {
+          map.fitBounds(bounds);
+          
+          // 如果只有一个位置，设置适当的缩放级别
+          if (locations.length === 1) {
+            map.setZoom(15);
+          }
+        }
+        
+        console.log('Map rendered successfully with', locations.length, 'locations');
+      } catch (error) {
+        console.error('Error rendering map:', error);
+        showErrorMapState(error.message);
+      }
+    }, 100); // Small delay to ensure DOM is ready
+  }, [isMapModalVisible, isMapLoaded, locationInfo, mapTitle, mapError, showEmptyMapState, showErrorMapState]);
+
+  // 新增useEffect，处理地图渲染
+  useEffect(() => {
+    if (!isMapModalVisible || !isMapLoaded || !locationInfo) return;
+    
+    console.log('Maps API loaded and modal visible - rendering map');
+    renderMap();
+  }, [isMapModalVisible, isMapLoaded, locationInfo, renderMap]);
+
+  // 清理loadFallbackMap函数
   const loadFallbackMap = useCallback(() => {
-    // If no location data, show empty state
+    // 如果没有位置信息，显示空状态
     if (!locationInfo || !Array.isArray(locationInfo) || locationInfo.length === 0) {
       console.log('Fallback: No location data');
       showEmptyMapState();
       return;
     }
     
-    // Create a simple map alternative
-    if (mapContainerRef.current) {
-      mapContainerRef.current.innerHTML = '';
-      
-      // Create a title
-      const title = document.createElement('h3');
-      title.innerText = 'Training Locations';
-      title.style.margin = '0 0 16px 0';
-      title.style.fontWeight = '600';
-      title.style.fontSize = '18px';
-      title.style.color = '#1890ff';
-      
-      // Create location list
-      const locationsList = document.createElement('div');
-      locationsList.style.display = 'grid';
-      locationsList.style.gridTemplateColumns = 'repeat(auto-fill, minmax(280px, 1fr))';
-      locationsList.style.gap = '16px';
-      
-      // Add each location card
-      locationInfo.forEach((loc, index) => {
-        const card = document.createElement('div');
-        card.style.background = 'white';
-        card.style.borderRadius = '8px';
-        card.style.padding = '16px';
-        card.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.08)';
-        card.style.transition = 'all 0.3s ease';
-        card.style.cursor = 'pointer';
-        
-        // Hover effect
-        card.onmouseover = () => {
-          card.style.transform = 'translateY(-4px)';
-          card.style.boxShadow = '0 6px 16px rgba(0, 0, 0, 0.12)';
-        };
-        
-        card.onmouseout = () => {
-          card.style.transform = 'translateY(0)';
-          card.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.08)';
-        };
-        
-        card.innerHTML = `
-          <div style="display:flex; align-items:center; margin-bottom:12px;">
-            <div style="width:40px; height:40px; display:flex; align-items:center; justify-content:center; 
-                        background:#e6f7ff; border-radius:50%; margin-right:12px;">
-              <svg viewBox="0 0 24 24" width="20" height="20" stroke="#1890ff" stroke-width="2" fill="none">
-                <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
-                <circle cx="12" cy="10" r="3"/>
-              </svg>
-            </div>
-            <h4 style="margin:0; font-size:16px;">${loc.locationName}</h4>
-          </div>
-          <div style="margin-left:52px; color:#666; font-size:14px;">
-            <p style="margin:4px 0;">Postcode: ${loc.postcode || 'Not available'}</p>
-          </div>
-        `;
-        
-        locationsList.appendChild(card);
-      });
-      
-      // Add a note
-      const note = document.createElement('div');
-      note.style.marginTop = '20px';
-      note.style.textAlign = 'center';
-      note.style.fontSize = '13px';
-      note.style.color = '#999';
-      note.innerHTML = 'Map display function temporarily unavailable, please check above location list';
-      
-      // Add all elements to container
-      const mapFallback = document.createElement('div');
-      mapFallback.style.width = '100%';
-      mapFallback.style.height = '500px';
-      mapFallback.style.border = 'none';
-      mapFallback.style.borderRadius = '8px';
-      mapFallback.style.overflow = 'hidden';
-      mapFallback.style.position = 'relative';
-      mapFallback.style.backgroundColor = '#f0f2f5';
-      mapFallback.style.padding = '24px';
-      mapFallback.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
-      
-      mapFallback.appendChild(title);
-      mapFallback.appendChild(locationsList);
-      mapFallback.appendChild(note);
-      
-      if (mapContainerRef.current) {
-        mapContainerRef.current.appendChild(mapFallback);
-      }
-      
-      // Set map loaded state
-      setIsMapLoaded(true);
+    // 获取地图容器
+    const mapContainer = document.getElementById('map');
+    if (!mapContainer) {
+      console.error('Map container not found for fallback');
+      return;
     }
-  }, [locationInfo, showEmptyMapState, showErrorMapState]);
+    
+    // 清空现有内容
+    mapContainer.innerHTML = '';
+    
+    // 创建简单的地图替代界面
+    // 创建标题
+    const title = document.createElement('h3');
+    title.innerText = 'Training Locations';
+    title.style.margin = '0 0 16px 0';
+    title.style.fontWeight = '600';
+    title.style.fontSize = '18px';
+    title.style.color = '#1890ff';
+    
+    // 创建位置列表
+    const locationsList = document.createElement('div');
+    locationsList.style.display = 'grid';
+    locationsList.style.gridTemplateColumns = 'repeat(auto-fill, minmax(280px, 1fr))';
+    locationsList.style.gap = '16px';
+    
+    // 添加每个位置卡片
+    locationInfo.forEach((loc, index) => {
+      const card = document.createElement('div');
+      card.style.background = 'white';
+      card.style.borderRadius = '8px';
+      card.style.padding = '16px';
+      card.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.08)';
+      card.style.transition = 'all 0.3s ease';
+      card.style.cursor = 'pointer';
+      
+      // 悬停效果
+      card.onmouseover = () => {
+        card.style.transform = 'translateY(-4px)';
+        card.style.boxShadow = '0 6px 16px rgba(0, 0, 0, 0.12)';
+      };
+      
+      card.onmouseout = () => {
+        card.style.transform = 'translateY(0)';
+        card.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.08)';
+      };
+      
+      const locationName = loc.locationName || loc.title || `Location ${index + 1}`;
+      const postcode = loc.postcode || 'Not available';
+      
+      card.innerHTML = `
+        <div style="display:flex; align-items:center; margin-bottom:12px;">
+          <div style="width:40px; height:40px; display:flex; align-items:center; justify-content:center; 
+                      background:#e6f7ff; border-radius:50%; margin-right:12px;">
+            <svg viewBox="0 0 24 24" width="20" height="20" stroke="#1890ff" stroke-width="2" fill="none">
+              <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
+              <circle cx="12" cy="10" r="3"/>
+            </svg>
+          </div>
+          <h4 style="margin:0; font-size:16px;">${locationName}</h4>
+        </div>
+        <div style="margin-left:52px; color:#666; font-size:14px;">
+          <p style="margin:4px 0;">Location info: ${loc.address || postcode || 'Not available'}</p>
+        </div>
+      `;
+      
+      locationsList.appendChild(card);
+    });
+    
+    // 添加注释
+    const note = document.createElement('div');
+    note.style.marginTop = '20px';
+    note.style.textAlign = 'center';
+    note.style.fontSize = '13px';
+    note.style.color = '#999';
+    note.innerHTML = 'Map display function temporarily unavailable, please check location list above';
+    
+    // 添加所有元素到容器
+    const mapFallback = document.createElement('div');
+    mapFallback.style.width = '100%';
+    mapFallback.style.height = '500px';
+    mapFallback.style.border = 'none';
+    mapFallback.style.borderRadius = '8px';
+    mapFallback.style.overflow = 'hidden';
+    mapFallback.style.position = 'relative';
+    mapFallback.style.backgroundColor = '#f0f2f5';
+    mapFallback.style.padding = '24px';
+    mapFallback.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
+    
+    mapFallback.appendChild(title);
+    mapFallback.appendChild(locationsList);
+    mapFallback.appendChild(note);
+    
+    // 添加到地图容器
+    mapContainer.appendChild(mapFallback);
+    
+    // 设置地图加载状态
+    setIsMapLoaded(true);
+  }, [locationInfo, showEmptyMapState]);
 
-  // Add fallback map loading handler
+  // 修改地图加载时的中文提示为英文
   useEffect(() => {
-    // If Google Maps load times out (5 seconds), try using OSM map as fallback
+    // 如果地图加载超时（5秒），尝试使用替代方案
     let timeoutId;
     
     if (isMapModalVisible && !isMapLoaded) {
-      // ... existing code ...
+      console.log('Map loading timeout monitoring started');
+      
+      // 设置超时
+      timeoutId = setTimeout(() => {
+        console.log('Map loading timed out, switching to fallback display');
+        if (!isMapLoaded) {
+          loadFallbackMap();
+        }
+      }, 5000);
     }
     
+    // 清理超时
     return () => {
-      // ... existing code ...
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
     };
   }, [isMapModalVisible, isMapLoaded, loadFallbackMap]);
+
+  // 添加额外的调试代码来检查RTK Query返回的数据结构
+  useEffect(() => {
+    if (locationInfo) {
+      console.log('Location information from RTK Query:', locationInfo);
+      if (Array.isArray(locationInfo)) {
+        locationInfo.forEach((loc, index) => {
+          console.log(`Location ${index} details:`, loc);
+        });
+      }
+    }
+  }, [locationInfo]);
 
   // Update current selected coach status to Pending
   const updateLocalCoachStatus = useCallback((coachId) => {
@@ -577,45 +724,96 @@ const CoachList = () => {
   }, [coachListData, refetch]);
   
   // Modify function to show map modal
-  const showMapModal = () => {
-    console.log('Clicked show map button');
-    setIsMapModalVisible(true);
+  const showMapModal = (coach, index) => {
+    console.log('Coach data for map:', coach);
     
-    // Force refresh location data
-    setTimeout(() => {
-      console.log('Actively triggering location data request');
-      
-      // Ensure using async approach
-      const fetchLocationData = async () => {
-        try {
-          const result = await refetchLocationInfo();
+    // 设置地图标题
+    const coachName = coach?.userName || `${coach?.lastName || ''} ${coach?.firstName || ''}`;
+    setMapTitle(coachName.trim() || 'Coach Location');
+    setMapError(''); // 清除之前的错误
+    
+    // 检查是否已有该教练的位置信息
+    if (coach.location) {
+      console.log('Using existing location data:', coach.location);
+      setLocationInfo(coach.location);
+      setIsMapModalVisible(true);
+      return;
+    }
+    
+    // 显示地图模态框，但先标记为加载中
+    setIsMapModalVisible(true);
+    setIsMapLoading(true);
+    
+    // Don't use refetch directly, as it might not be initialized yet
+    // Instead, use the existing locationInfo if available
+    if (locationInfo && Array.isArray(locationInfo) && locationInfo.length > 0) {
+      console.log('Using existing location data from RTK Query:', locationInfo);
+      setIsMapLoading(false);
+      // The useEffect will handle rendering once isMapModalVisible is true
+    } else {
+      // If not available, try to extract from coach object
+      try {
+        console.log('No RTK Query data, extracting from coach object:', coach);
+        
+        // 尝试从coach对象的不同属性提取位置数据
+        let locationData = [];
+        
+        // 方法1: 检查是否有locations数组
+        if (coach.locations && Array.isArray(coach.locations) && coach.locations.length > 0) {
+          locationData = coach.locations.map((loc, idx) => ({
+            title: coach.locationNames?.[idx] || `Location ${idx + 1}`,
+            locationName: coach.locationNames?.[idx] || `Location ${idx + 1}`,
+            latitude: parseFloat(loc.latitude) || 0,
+            longitude: parseFloat(loc.longitude) || 0,
+            address: loc.address || ''
+          }));
+          console.log('Extracted location data from coach.locations:', locationData);
+        } 
+        // 方法2: 检查是否有locationNames数组和locationIds数组
+        else if (coach.locationNames && Array.isArray(coach.locationNames) && 
+                coach.locationIds && Array.isArray(coach.locationIds) &&
+                coach.locationNames.length > 0) {
           
-          // Check data validity
-          console.log('Successfully refreshed location data:', result?.data);
-          
-          if (result?.data && (Array.isArray(result.data) || typeof result.data === 'object')) {
-            setMapTitle('Coach Locations');
-          } else {
-            showEmptyMapState();
-          }
-        } catch (err) {
-          console.error('Failed to get location data:', err);
-          showErrorMapState(err.message);
+          locationData = coach.locationNames.map((name, idx) => ({
+            id: coach.locationIds[idx],
+            title: name,
+            locationName: name,
+            latitude: coach.locationLatitudes?.[idx] || 0,
+            longitude: coach.locationLongitudes?.[idx] || 0,
+            address: coach.locationAddresses?.[idx] || ''
+          }));
+          console.log('Extracted location data from coach arrays:', locationData);
         }
-      };
-      
-      fetchLocationData().catch(error => {
-        console.error('Error requesting location data:', error);
-        showErrorMapState(error.message);
-      });
-    }, 100);
+        
+        if (locationData.length > 0) {
+          // 过滤无效数据
+          const validLocationData = locationData.filter(loc => 
+            loc && 
+            ((typeof loc.latitude === 'number' && !isNaN(loc.latitude) && 
+            typeof loc.longitude === 'number' && !isNaN(loc.longitude)) ||
+            (loc.id)) // 保留有ID的位置，因为可能后面会通过ID查询详情
+          );
+          
+          if (validLocationData.length > 0) {
+            console.log('Final valid location data from coach:', validLocationData);
+            setLocationInfo(validLocationData);
+          } else {
+            console.error('No valid coordinates in extracted location data');
+            setMapError('No valid location coordinates available');
+          }
+        } else {
+          console.error('Could not extract location data from coach');
+          setMapError('No location data available for this coach');
+        }
+      } catch (error) {
+        console.error('Error processing coach location data:', error);
+        setMapError('Unable to process location data');
+      } finally {
+        setIsMapLoading(false);
+      }
+    }
   };
   
-  // Add function to hide map modal
-  const hideMapModal = () => {
-    setIsMapModalVisible(false);
-  };
-
   const handleCardClick = (coach) => {
     setSelectedCoach(coach);
     setIsModalVisible(true);
@@ -940,7 +1138,7 @@ const CoachList = () => {
                       icon={<EnvironmentOutlined />}
                       onClick={(e) => {
                         e.stopPropagation(); // Prevent event bubbling
-                        showMapModal();
+                        showMapModal(selectedCoach, coachListData.records.indexOf(selectedCoach));
                       }}
                     >
                       View Map
@@ -989,106 +1187,25 @@ const CoachList = () => {
 
       {/* Modify location map modal style */}
       <Modal
-        title={
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <EnvironmentOutlined style={{ fontSize: '18px', color: '#1890ff' }} />
-              <span style={{ fontWeight: '600' }}>{mapTitle}</span>
-            </div>
-          </div>
-        }
+        title={mapTitle || "Map"}
         open={isMapModalVisible}
-        onCancel={hideMapModal}
+        onCancel={() => setIsMapModalVisible(false)}
         footer={null}
         width={800}
-        centered
-        bodyStyle={{ padding: '12px' }}
-        className="map-modal"
       >
-        {!isMapLoaded ? (
-          <div style={{ 
-            height: '500px', 
-            width: '100%', 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            flexDirection: 'column',
-            background: 'rgba(240, 242, 245, 0.4)',
-            borderRadius: '8px'
-          }}>
-            <Spin size="large" />
-            <div style={{ marginTop: '16px', color: '#1890ff', fontWeight: '500' }}>Loading Map...</div>
-          </div>
-        ) : isLoadingLocations ? (
-          <div style={{ 
-            height: '500px', 
-            width: '100%', 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            flexDirection: 'column',
-            background: 'rgba(240, 242, 245, 0.4)',
-            borderRadius: '8px'
-          }}>
-            <Spin size="large" />
-            <div style={{ marginTop: '16px', color: '#1890ff', fontWeight: '500' }}>Loading location data...</div>
-          </div>
-        ) : locationError ? (
-          <div style={{ 
-            height: '500px', 
-            width: '100%', 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            flexDirection: 'column',
-            padding: '0 24px',
-            background: 'rgba(240, 242, 245, 0.4)',
-            borderRadius: '8px'
-          }}>
-            <Alert 
-              type="error" 
-              message="Error loading location data" 
-              description={locationError?.message || 'Failed to load location data. Please try again.'}
-              showIcon
-              style={{ maxWidth: '400px', width: '100%' }}
-            />
-            <Button 
-              onClick={refetchLocationInfo} 
-              type="primary" 
-              style={{ marginTop: '16px' }}
-            >
-              Retry
-            </Button>
-          </div>
-        ) : (!locationInfo || locationInfo.length === 0) ? (
-          <div style={{ 
-            height: '500px', 
-            width: '100%', 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            flexDirection: 'column',
-            background: 'rgba(240, 242, 245, 0.4)',
-            borderRadius: '8px'
-          }}>
-            <Empty 
-              description="No location data available" 
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-            />
-          </div>
-        ) : (
-          <div 
-            ref={mapContainerRef}
-            style={{ 
-              height: '500px', 
-              width: '100%',
-              borderRadius: '8px',
-              overflow: 'hidden',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
-            }}
-          />
-        )}
+        <div className="map-container">
+          {isMapLoading ? (
+            <div className="map-loading">
+              <Spin size="large" />
+              <p>Loading map...</p>
+            </div>
+          ) : (
+            <div id="map" style={{ height: '500px', width: '100%', border: '1px solid #eee' }}></div>
+          )}
+        </div>
       </Modal>
+
+      <style>{MapModalStyles}</style>
     </PageWrapper>
   );
 };

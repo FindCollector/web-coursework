@@ -45,6 +45,9 @@ public class SecurityConfig{
             "/auth/google-login",
             "/auth/google-login/complete-profile",
             "/auth/google-login/link",
+            "/auth/retrieve/password",
+            "/auth/retrieve/password/resend/code",
+            "/auth/retrieve/password/verify/code",
 
 //            "/coach/photo"
             //todo how to verify token for these images

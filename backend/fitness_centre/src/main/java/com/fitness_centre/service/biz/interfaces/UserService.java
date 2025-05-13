@@ -26,7 +26,7 @@ public interface UserService extends IService<User> {
 
     GeneralResponseResult basicInfoStore(UserRegisterRequest requestDTO);
 
-    GeneralResponseResult sendCode(String email);
+    GeneralResponseResult sendCode(String email,String type);
 
     GeneralResponseResult verifyRegister(String email,String verifyCode,String role);
 
@@ -43,5 +43,9 @@ public interface UserService extends IService<User> {
     GeneralResponseResult googleAccountBoundBasicInformation(UserRegisterRequest requestDTO);
 
     GeneralResponseResult emailLinkGoogleAccount(String email);
+
+    GeneralResponseResult retrievePassword(String email);
+
+    GeneralResponseResult verifyRetrieve(String email,String verifyCode,String password);
 
 }

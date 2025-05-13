@@ -1,0 +1,44 @@
+/* 添加响应式媒体查询 */
+@media (max-width: 1024px) {
+  .register-title {
+    font-size: 2rem !important;
+  }
+  
+  .register-subtitle {
+    font-size: 0.9rem !important;
+  }
+  
+  .register-benefits-list {
+    font-size: 0.9rem !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .register-left-panel {
+    display: none !important;
+  }
+  
+  .register-right-panel {
+    width: 100% !important;
+    min-width: 100% !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .register-form-container {
+    padding: 20px !important;
+  }
+  
+  .register-button {
+    height: 45px !important;
+    font-size: 14px !important;
+  }
+  
+  .register-footer-text {
+    font-size: 14px !important;
+  }
+  
+  .register-login-link {
+    font-size: 14px !important;
+  }
+} 
