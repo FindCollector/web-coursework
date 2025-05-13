@@ -7,12 +7,20 @@ import './App.css'
 import { logout } from './store/authSlice';
 import { message } from 'antd';
 
+// 添加全局配置，防止重复显示消息
+message.config({
+  maxCount: 1, // 最多显示1条消息
+  duration: 3, // 显示3秒
+});
+
 const LandingPage = lazy(() => import('./pages/LandingPage'));
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const VerifyCode = lazy(() => import('./pages/VerifyCode'));
 const CompleteProfile = lazy(() => import('./pages/CompleteProfile'));
 const LinkGoogleAccount = lazy(() => import('./pages/LinkGoogleAccount'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 
 const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
 const CoachDashboard = lazy(() => import('./pages/coach/Dashboard'));
@@ -144,6 +152,16 @@ function App() {
         <Route path="/register" element={
           <Suspense fallback={<LoadingComponent />}>
             <Register />
+          </Suspense>
+        } />
+        <Route path="/forgot-password" element={
+          <Suspense fallback={<LoadingComponent />}>
+            <ForgotPassword />
+          </Suspense>
+        } />
+        <Route path="/reset-password" element={
+          <Suspense fallback={<LoadingComponent />}>
+            <ResetPassword />
           </Suspense>
         } />
         <Route path="/complete-profile" element={

@@ -12,7 +12,7 @@ export const getRedirectPath = (userType) => {
     case 'member':
       return '/member/dashboard';
     case 'coach':
-      return '/coach/dashboard';
+      return '/coach/details';
     default:
       return '/';
   }

@@ -41,7 +41,7 @@ public class UserServiceSendCodeTest {
 
         UserServiceImpl svc = buildService(redis, mail);
 
-        Assertions.assertThrows(BusinessException.class, () -> svc.sendCode(email));
+        Assertions.assertThrows(BusinessException.class, () -> svc.sendCode(email,"verifyCode"));
     }
 
     @Test
@@ -57,7 +57,7 @@ public class UserServiceSendCodeTest {
 
         UserServiceImpl svc = buildService(redis, mail);
 
-        svc.sendCode(email);
+        svc.sendCode(email,"verifyCode");
 
         // Verify frequency key stored
         Mockito.verify(redis).setCacheObject(Mockito.eq("emailSendFreq:" + email), Mockito.any(LocalDateTime.class), Mockito.eq(1), Mockito.eq(TimeUnit.MINUTES));
