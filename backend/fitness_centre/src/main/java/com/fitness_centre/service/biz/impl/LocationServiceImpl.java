@@ -3,10 +3,14 @@ package com.fitness_centre.service.biz.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.fitness_centre.domain.CoachLocation;
 import com.fitness_centre.domain.Location;
 import com.fitness_centre.dto.GeneralResponseResult;
+import com.fitness_centre.dto.member.LocationLite;
+import com.fitness_centre.mapper.CoachLocationMapper;
 import com.fitness_centre.mapper.LocationMapper;
 import com.fitness_centre.service.biz.interfaces.LocationService;
+import org.checkerframework.checker.units.qual.A;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -30,6 +34,9 @@ public class LocationServiceImpl extends ServiceImpl<LocationMapper, Location> i
     @Autowired
     private LocationMapper locationMapper;
 
+    @Autowired
+    private CoachLocationMapper coachLocationMapper;
+
     @PostConstruct
     private void initBaseMapper() {
         // 在测试场景下显式为 ServiceImpl 中的 baseMapper 赋值，避免其他继承方法因空指针异常而失败
@@ -47,6 +54,13 @@ public class LocationServiceImpl extends ServiceImpl<LocationMapper, Location> i
         }
         return map;
     }
+
+    @Override
+    public List<Location> getCoachLocations(Long coachId) {
+        List<Location> list = locationMapper.selectByCoachId(coachId);
+        return list;
+    }
+
 
     @Override
     public List<Location> mapLocation() {

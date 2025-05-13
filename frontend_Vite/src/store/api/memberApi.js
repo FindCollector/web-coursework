@@ -41,8 +41,24 @@ export const memberApi = baseApi.injectEndpoints({
         params: { _t: Date.now() }
       }),
       transformResponse: (response) => {
-        if (response.code === 0 && response.data) {
-          return response.data.count || 0;
+        // Add debugging to see actual response structure
+        console.log('Unread subscription requests response:', response);
+        
+        // 修复数据结构解析，处理可能的数据格式差异
+        if (response.code === 0) {
+          // 直接处理各种可能的数据结构
+          if (typeof response.data === 'number') {
+            return response.data;
+          } else if (response.data && typeof response.data.count === 'number') {
+            return response.data.count;
+          } else if (response.data && typeof response.data === 'object') {
+            // 尝试查找对象中的数值属性
+            for (const key in response.data) {
+              if (typeof response.data[key] === 'number') {
+                return response.data[key];
+              }
+            }
+          }
         }
         return 0;
       },
@@ -60,8 +76,24 @@ export const memberApi = baseApi.injectEndpoints({
         params: { _t: Date.now() }
       }),
       transformResponse: (response) => {
-        if (response.code === 0 && response.data) {
-          return response.data.count || 0;
+        // Add debugging to see actual response structure
+        console.log('Unread session requests response:', response);
+        
+        // 修复数据结构解析，处理可能的数据格式差异
+        if (response.code === 0) {
+          // 直接处理各种可能的数据结构
+          if (typeof response.data === 'number') {
+            return response.data;
+          } else if (response.data && typeof response.data.count === 'number') {
+            return response.data.count;
+          } else if (response.data && typeof response.data === 'object') {
+            // 尝试查找对象中的数值属性
+            for (const key in response.data) {
+              if (typeof response.data[key] === 'number') {
+                return response.data[key];
+              }
+            }
+          }
         }
         return 0;
       },
@@ -76,7 +108,7 @@ export const memberApi = baseApi.injectEndpoints({
         url: `/member/subscription/${requestId}/read`,
         method: 'PATCH'
       }),
-      invalidatesTags: ['MemberUnreadCount', 'MemberSubscriptionRequests']
+      invalidatesTags: ['MemberUnreadCount', 'MemberSubscriptionRequests', 'MemberUnreadSessionCount', 'MemberSessionRequests']
     }),
 
     // Get member session requests list
@@ -114,7 +146,7 @@ export const memberApi = baseApi.injectEndpoints({
         url: `/member/session/request/${requestId}/read`,
         method: 'PATCH'
       }),
-      invalidatesTags: ['MemberUnreadCount', 'MemberSessionRequests', 'MemberUnreadSessionCount']
+      invalidatesTags: ['MemberUnreadCount', 'MemberSessionRequests', 'MemberUnreadSessionCount', 'MemberSubscriptionRequests']
     }),
 
     // Get member's subscribed coach list (for booking sessions)
@@ -250,7 +282,7 @@ export const memberApi = baseApi.injectEndpoints({
         url: `/member/training/history/${id}/read`,
         method: 'PATCH'
       }),
-      invalidatesTags: ['MemberTrainingHistory']
+      invalidatesTags: ['MemberTrainingHistory', 'MemberUnreadCount', 'MemberUnreadSessionCount']
     }),
 
     // Get member's unread training history count
@@ -305,6 +337,40 @@ export const memberApi = baseApi.injectEndpoints({
       // Add tags for easy refetching
       providesTags: ['LocationInfo']
     }),
+
+    // Get coach location information by coach ID
+    getCoachLocationInfoById: builder.query({
+      query: (coachId) => ({
+        url: `/member/location/info/${coachId}`,
+        method: 'GET',
+        // Add timestamp to ensure latest data
+        params: { _t: Date.now() }
+      }),
+      transformResponse: (response, meta, arg) => {
+        if (response.code === 0 && response.data) {
+          // Ensure data is in array format
+          if (Array.isArray(response.data)) {
+            return response.data;
+          } else {
+            // Try to adapt different data formats
+            if (typeof response.data === 'object') {
+              // May be in object format, try to convert to array
+              const locations = Object.values(response.data);
+              if (locations.length > 0) {
+                return locations;
+              }
+            }
+            // If unable to adapt, return empty array
+            return [];
+          }
+        }
+        return [];
+      },
+      // Add cache control, cache for 5 minutes
+      keepUnusedDataFor: 300,
+      // Add tags for easy refetching
+      providesTags: ['LocationInfo']
+    }),
   }),
 });
 
@@ -326,5 +392,6 @@ export const {
   useGetMemberTrainingHistoryQuery,
   useMarkTrainingHistoryAsReadMutation,
   useGetMemberUnreadTrainingHistoryCountQuery,
-  useGetCoachLocationInfoQuery
+  useGetCoachLocationInfoQuery,
+  useGetCoachLocationInfoByIdQuery
 } = memberApi; 

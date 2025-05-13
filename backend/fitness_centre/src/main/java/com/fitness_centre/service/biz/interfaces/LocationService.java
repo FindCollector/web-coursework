@@ -16,5 +16,7 @@ import java.util.Map;
 public interface LocationService extends IService<Location> {
     Map<Long, String> getAllLocations();
 
+    List<Location> getCoachLocations(Long coachId);
+
     List<Location> mapLocation();
 }

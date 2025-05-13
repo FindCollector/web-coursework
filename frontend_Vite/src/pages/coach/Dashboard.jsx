@@ -326,9 +326,6 @@ const CoachDashboard = ({ initialActiveMenu }) => {
               {activeMenu === 'settings' && 'Settings'}
             </div>
             <div style={{ display: 'flex', alignItems: 'center' }}>
-              <Avatar style={{ marginRight: 8, backgroundColor: token.colorPrimary }}>
-                <UserOutlined />
-              </Avatar>
               <span style={{ marginRight: 16 }}>{userName}</span>
               <Button 
                 icon={<LogoutOutlined />} 

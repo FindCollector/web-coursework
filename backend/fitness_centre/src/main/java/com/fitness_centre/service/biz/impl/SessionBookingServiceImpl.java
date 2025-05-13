@@ -411,8 +411,10 @@ public class SessionBookingServiceImpl extends ServiceImpl<SessionBookingMapper,
         queryWrapper.eq(SessionBooking::getMemberId,memberId)
                 .eq(SessionBooking::getId,bookingId);
         SessionBooking sessionBooking = this.baseMapper.selectOne(queryWrapper);
-        LocalDate yesterday = LocalDate.now().minusDays(1);
-        if(sessionBooking.getStartTime().toLocalDate().isAfter(yesterday)){
+        LocalDate startDate = sessionBooking.getStartTime().toLocalDate();
+        LocalDate deadLineDate = startDate.minusDays(1);
+        LocalDate today = LocalDate.now();
+        if(!today.isBefore(deadLineDate)){
             throw new BusinessException(ErrorCode.INVALID_PARAMETER.getCode(),"Free cancellation only 24 hours in advance");
         }
         LambdaUpdateWrapper<SessionBooking> updateWrapper = new LambdaUpdateWrapper<>();

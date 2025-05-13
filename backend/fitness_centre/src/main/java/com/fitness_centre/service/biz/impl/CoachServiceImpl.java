@@ -91,7 +91,6 @@ public class CoachServiceImpl extends ServiceImpl<CoachMapper, CoachInfo> implem
             }
         }
         return new GeneralResponseResult(ErrorCode.SUCCESS);
-
     }
 
     @Override

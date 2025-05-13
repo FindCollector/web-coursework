@@ -39,14 +39,46 @@ const MemberDashboard = ({ initialActiveMenu }) => {
   const [logout, { isLoading: isLoggingOut }] = useLogoutMutation();
   
   // Get unread counts
-  const { data: unreadSubscriptionData, refetch: refetchUnreadSubscriptionCount } = useGetMemberUnreadRequestsCountQuery();
-  const { data: unreadSessionData, refetch: refetchUnreadSessionCount } = useGetMemberUnreadSessionCountQuery();
-  const { data: unreadTrainingHistoryData, refetch: refetchUnreadTrainingHistoryCount } = useGetMemberUnreadTrainingHistoryCountQuery();
+  const { data: unreadSubscriptionData, refetch: refetchUnreadSubscriptionCount } = useGetMemberUnreadRequestsCountQuery(null, {
+    pollingInterval: 30000, // 每30秒自动轮询一次
+    refetchOnFocus: true,   // 窗口获得焦点时刷新
+    refetchOnReconnect: true // 网络重连时刷新
+  });
+  
+  const { data: unreadSessionData, refetch: refetchUnreadSessionCount } = useGetMemberUnreadSessionCountQuery(null, {
+    pollingInterval: 30000, // 每30秒自动轮询一次
+    refetchOnFocus: true,   // 窗口获得焦点时刷新
+    refetchOnReconnect: true // 网络重连时刷新
+  });
+  
+  const { data: unreadTrainingHistoryData, refetch: refetchUnreadTrainingHistoryCount } = useGetMemberUnreadTrainingHistoryCountQuery(null, {
+    pollingInterval: 30000, // 每30秒自动轮询一次
+    refetchOnFocus: true,   // 窗口获得焦点时刷新
+    refetchOnReconnect: true // 网络重连时刷新
+  });
 
-  // Calculate unread counts
-  const unreadSubscriptionCount = unreadSubscriptionData?.data || 0;
-  const unreadSessionCount = unreadSessionData?.data || 0;
+  // Calculate unread counts - 修复数据解析问题
+  const unreadSubscriptionCount = typeof unreadSubscriptionData === 'number' ? unreadSubscriptionData : 0;
+  const unreadSessionCount = typeof unreadSessionData === 'number' ? unreadSessionData : 0;
   const unreadTrainingHistoryCount = unreadTrainingHistoryData || 0;
+  
+  // 添加调试日志
+  useEffect(() => {
+    console.log('Member未读消息状态:', {
+      原始数据: {
+        subscription: unreadSubscriptionData,
+        session: unreadSessionData,
+        history: unreadTrainingHistoryData
+      },
+      解析后: {
+        subscription: unreadSubscriptionCount,
+        session: unreadSessionCount,
+        history: unreadTrainingHistoryCount,
+        total: unreadSubscriptionCount + unreadSessionCount
+      }
+    });
+  }, [unreadSubscriptionData, unreadSessionData, unreadTrainingHistoryData]);
+  
   // Total unread messages related to requests (excluding training history)
   const requestsUnreadCount = unreadSubscriptionCount + unreadSessionCount;
   // Total of all unread messages

@@ -218,10 +218,12 @@ public class MemberController {
     }
 
     @PreAuthorize("hasRole(T(com.fitness_centre.constant.UserRole).MEMBER.getRole())")
-    @GetMapping("/location/info")
-    public GeneralResponseResult getAllLocations(Authentication authentication){
+    @GetMapping("/location/info/{id}")
+    public GeneralResponseResult getAllLocations(Authentication authentication,
+                                                 @PathVariable("id") Long coachId){
         LoginUser loginUser = (LoginUser) authentication.getPrincipal();
         Long userId = loginUser.getId();
-        return new GeneralResponseResult(ErrorCode.SUCCESS,locationService.mapLocation());
+        System.out.println(locationService.getCoachLocations(coachId));
+        return new GeneralResponseResult(ErrorCode.SUCCESS,locationService.getCoachLocations(coachId));
     }
 }
