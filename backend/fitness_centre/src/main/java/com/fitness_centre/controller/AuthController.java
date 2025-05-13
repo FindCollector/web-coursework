@@ -46,7 +46,7 @@ public class AuthController {
     @RequireRecaptcha
     public GeneralResponseResult resendCode(@RequestBody Map<String,String> request){
         String email = request.get("email");
-        return userService.sendCode(email);
+        return userService.sendCode(email,"verifyCode:");
     }
 
     @PostMapping("/auth/verifyCode")
@@ -74,4 +74,27 @@ public class AuthController {
         String email = request.get("email");
         return userService.emailLinkGoogleAccount(email);
     }
+
+    @PostMapping("/auth/retrieve/password")
+    public GeneralResponseResult retrievePassword(@RequestBody Map<String,String> request){
+        String email = request.get("email");
+        return userService.retrievePassword(email);
+    }
+
+    @PostMapping("/auth/retrieve/password/verify/code")
+    @RequireRecaptcha
+    public GeneralResponseResult retrieveVerify(@RequestBody Map<String,String> request){
+        String email = request.get("email");
+        String code = request.get("code");
+        String password = request.get("password");
+        return userService.verifyRetrieve(email,code,password);
+    }
+
+    @PostMapping("/auth/retrieve/password/resend/code")
+    @RequireRecaptcha
+    public GeneralResponseResult retrieveResend(@RequestBody Map<String,String> request){
+        String email = request.get("email");
+        return userService.sendCode(email,"verifyRetrieve:");
+    }
+
 }

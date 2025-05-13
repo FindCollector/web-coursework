@@ -35,6 +35,7 @@ import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import jakarta.jws.soap.SOAPBinding;
 import jakarta.mail.MessagingException;
+import org.ietf.jgss.GSSName;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -178,7 +179,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
 
         //发邮件
-        sendCode(request.getEmail());
+        sendCode(request.getEmail(),"verifyCode:");
 
         //先对密码加密
         request.setPassword(passwordEncoder.encode(request.getPassword()));
@@ -189,7 +190,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     @Override
-    public GeneralResponseResult sendCode(String email) {
+    public GeneralResponseResult sendCode(String email,String type) {
 
         //控制发送的频率,一分钟发一次
         String sendFreq = "emailSendFreq:" + email;
@@ -209,7 +210,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
 
         //验证码存入redis
-        redisCache.setCacheObject("verifyCode:" + email,code,emailExpireTime,TimeUnit.MINUTES);
+        redisCache.setCacheObject(type + email,code,emailExpireTime,TimeUnit.MINUTES);
         return new GeneralResponseResult(ErrorCode.SUCCESS);
     }
 
@@ -269,6 +270,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         Page<User> page = new Page<>(pageNow,pageSize);
         //查询对应的角色
         LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.ne(User::getRole,UserRole.ADMIN.getRole());
         if(role != null && !role.isEmpty()){
             //role不是列名，不会造成SQL注入
             queryWrapper.eq(User::getRole,role);
@@ -335,12 +337,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new BusinessException(ErrorCode.DB_OPERATION_ERROR);
         }
 
-        if(status.equals(UserStatus.BLOCKED)){
+        if(status.equals(UserStatus.BLOCKED.getStatus())){
             //封禁后马上下线
             User user = this.baseMapper.selectById(id);
-            String loginUser = redisCache.getCacheObject("login:" + user.getEmail());
+            LoginUser loginUser = redisCache.getCacheObject("login:" + user.getEmail());
             if(!Objects.isNull(loginUser)){
-                redisCache.deleteObject(user.getEmail());
+                redisCache.deleteObject("login:" + user.getEmail());
             }
         }
         return new GeneralResponseResult(ErrorCode.SUCCESS);
@@ -377,7 +379,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
 
         if (googleUser.getStatus() == UserStatus.BLOCKED.getStatus()) {
-            throw new AuthException(ErrorCode.FORBIDDEN);
+            throw new AuthException(ErrorCode.FORBIDDEN.getCode(),"Your account has been blocked");
         }
         return buildLoginSuccess(googleUser);
     }
@@ -425,7 +427,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if(rows == 0){
             throw new SystemException(ErrorCode.DB_OPERATION_ERROR);
         }
-
         return buildLoginSuccess(user);
     }
 
@@ -441,6 +442,36 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         queryWrapper.eq(User::getEmail,email);
         User user = this.baseMapper.selectOne(queryWrapper);
        return buildLoginSuccess(user);
+    }
+
+    @Override
+    public GeneralResponseResult retrievePassword(String email) {
+        LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(User::getEmail,email);
+        Long rows = this.baseMapper.selectCount(queryWrapper);
+        if(rows == 0L){
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+        }
+        return sendCode(email,"verifyRetrieve:");
+    }
+
+    @Override
+    public GeneralResponseResult verifyRetrieve(String email,String verifyCode,String password) {
+        String code = redisCache.getCacheObject("verifyRetrieve:" + email);
+        if(Objects.isNull(code) || code.isEmpty()){
+            throw new AuthException(ErrorCode.USER_INFO_EXPIRED);
+        }
+        if(!code.equals(verifyCode)){
+            throw new AuthException(ErrorCode.EMAIL_VERIFICATION_FAILED.getCode(),"Verification code error");
+        }
+        redisCache.deleteObject("verifyRetrieve" + email);
+        LambdaUpdateWrapper<User> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(User::getEmail,email).set(User::getPassword,passwordEncoder.encode(password));
+        int rows = this.baseMapper.update(updateWrapper);
+        if(rows == 0){
+            throw new SystemException(ErrorCode.DB_OPERATION_ERROR);
+        }
+        return new GeneralResponseResult(ErrorCode.SUCCESS);
     }
 
 

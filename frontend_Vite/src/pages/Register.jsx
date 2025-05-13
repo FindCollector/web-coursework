@@ -8,6 +8,7 @@ import * as yup from 'yup';
 import dayjs from 'dayjs'; // Import dayjs, date library used by Ant Design v5
 
 import PageTransition from '../components/PageTransition';
+import './Register.css'; // 导入CSS文件
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -47,7 +48,7 @@ const schema = yup.object({
     .required('Password is required')
     .min(6, 'Password must be at least 6 characters')
     .matches(
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$/,
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])[A-Za-z\d!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]{6,}$/,
       'Password must contain uppercase, lowercase, number and special character'
     ),
   confirmPassword: yup.string()
@@ -237,19 +238,21 @@ const Register = () => {
   return (
     <PageTransition isVisible={!isLoginPage}>
       <div style={styles.container}>
-        <div style={styles.leftPanel}>
-          <Title level={2} style={styles.title}>Join the Fitness Revolution</Title>
-          <Text style={styles.subtitle}>Create your free account and start your journey toward a healthier, stronger you!</Text>
-          <ul style={styles.benefitsList}>
+        <div style={styles.leftPanel} className="register-left-panel">
+          <Title level={2} style={styles.title} className="register-title">Join the Fitness Revolution</Title>
+          <Text style={styles.subtitle} className="register-subtitle">Create your free account and start your journey toward a healthier, stronger you!</Text>
+          <ul style={styles.benefitsList} className="register-benefits-list">
             <li>Track your workouts and progress</li>
             <li>Connect with personal coaches</li>
             <li>Earn badges and rewards</li>
             <li>Stay motivated every day</li>
           </ul>
         </div>
-        <div style={styles.rightPanel}>
-          <div style={styles.formContainer}>
+        <div style={styles.rightPanel} className="register-right-panel">
+          <div style={styles.formContainer} className="register-form-container">
             <Form layout="vertical" onFinish={handleSubmit(onSubmit)}>
+              <Title level={3} style={{ textAlign: 'center', marginBottom: '30px' }}>Sign Up</Title>
+
               <Form.Item
                 label="I want to register as"
                 validateStatus={errors.role ? 'error' : ''}
@@ -382,6 +385,7 @@ const Register = () => {
                   type="primary"
                   htmlType="submit"
                   style={styles.registerButton}
+                  className="register-button"
                   loading={isLoading || sendCodeResult.isPending}
                   disabled={isLoading || sendCodeResult.isPending}
                 >
@@ -390,12 +394,13 @@ const Register = () => {
               </Form.Item>
             </Form>
             
-            <div style={styles.footerText}>
+            <div style={styles.footerText} className="register-footer-text">
               Already have an account? 
               <Button 
                 type="link" 
                 onClick={() => navigate('/login')} 
                 style={styles.loginLink}
+                className="register-login-link"
                 disabled={isLoading || sendCodeResult.isPending}
               >
                 Login
@@ -424,17 +429,13 @@ const styles = {
   container: {
     background: '#E3F2FD',
     display: 'flex',
-    height: '100vh',
+    minHeight: '100vh',
     width: '100%',
     margin: 0,
     padding: 0,
     fontFamily: "'Inter', sans-serif",
-    overflow: 'hidden',
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    overflow: 'auto',
+    position: 'relative',
   },
   leftPanel: {
     width: '50%',

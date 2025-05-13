@@ -99,6 +99,11 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
     // Extract data from error
     const errorData = result.error.data;
     
+    // Skip token expiration check for logout endpoint
+    if (args.url === '/auth/logout') {
+      return result;
+    }
+    
     // Check if it's a token expiration error
     if (errorData) {
       const { code, msg, data } = errorData;
@@ -129,5 +134,7 @@ export const baseApi = createApi({
   // Common tag types
   tagTypes: ['User', 'Auth', 'Coach', 'MemberSubscriptionRequests', 'MemberUnreadCount'],
   // Endpoints will be defined in specific API slices
-  endpoints: () => ({}),
+  endpoints: (builder) => ({
+    // Empty endpoints object
+  }),
 }); 

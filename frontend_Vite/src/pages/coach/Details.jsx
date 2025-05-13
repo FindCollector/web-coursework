@@ -50,7 +50,8 @@ import {
   useUploadCoachPhotoMutation,
   useUpdateCoachTagsMutation,
   useUpdateCoachLocationsMutation,
-  useUpdateCoachDetailsMutation
+  useUpdateCoachDetailsMutation,
+  useCheckCoachDetailsQuery
 } from '../../store/api/coachApi';
 import { useLogoutMutation } from '../../store/api/authApi';
 import { logout as logoutAction } from '../../store/authSlice';
@@ -88,73 +89,186 @@ const scrollbarStyles = `
 // Add MapModal component before CoachDetails component
 const MapModal = ({ visible, onClose, locations }) => {
   const [isMapLoaded, setIsMapLoaded] = useState(false);
+  const [hasError, setHasError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const mapContainerRef = useRef(null);
+  const mapRef = useRef(null);
+  const markersRef = useRef([]);
 
+  // 在组件挂载或visible变化时加载Google Maps脚本
   useEffect(() => {
-    // Check if Google Maps API is loaded
-    const checkGoogleMapsLoaded = () => {
-      if (window.googleMapsLoaded && window.google) {
-        setIsMapLoaded(true);
-        return;
-      }
-      setTimeout(checkGoogleMapsLoaded, 100);
+    if (!visible) return;
+    
+    // 重置错误状态
+    setHasError(false);
+    setErrorMessage('');
+
+    // 如果已经加载了Google Maps，直接初始化地图
+    if (window.google && window.google.maps) {
+      setIsMapLoaded(true);
+      return;
+    }
+
+    // 检查是否已经有脚本标签
+    const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
+    if (existingScript) {
+      // 如果已存在脚本标签但尚未加载完成
+      console.log('Google Maps script tag already exists');
+      return;
+    }
+
+    // 创建初始化回调
+    window.initGoogleMap = () => {
+      console.log('Google Maps API loaded successfully');
+      setIsMapLoaded(true);
     };
 
-    if (visible) {
-      checkGoogleMapsLoaded();
-    }
+    // 创建错误回调
+    window.gm_authFailure = () => {
+      console.error('Google Maps authentication failed. Check your API key.');
+      setHasError(true);
+      setErrorMessage('Google Maps authentication failed. Please check your API key or network connection.');
+    };
+
+    // 加载脚本
+    console.log('Loading Google Maps script');
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&callback=initGoogleMap`;
+    script.async = true;
+    script.defer = true;
+    script.onerror = () => {
+      console.error('Failed to load Google Maps script');
+      setHasError(true);
+      setErrorMessage('Failed to load Google Maps. Please check your network connection.');
+    };
+    document.head.appendChild(script);
+
+    // 清理函数
+    return () => {
+      window.initGoogleMap = undefined;
+    };
   }, [visible]);
 
+  // 在Google Maps API加载完成后初始化地图
   useEffect(() => {
-    if (visible && isMapLoaded && locations.length > 0 && mapContainerRef.current) {
-      // Clear previous content
-      mapContainerRef.current.innerHTML = '';
+    if (!visible || !isMapLoaded || !mapContainerRef.current) return;
+    
+    // 检查是否有地点数据
+    if (!locations || !Array.isArray(locations) || locations.length === 0) {
+      console.log('No location data available for map display');
+      setHasError(true);
+      setErrorMessage('请先选择至少一个训练地点，然后再查看地图。如果没有可用的地点，请联系管理员添加地点数据。');
+      return;
+    }
 
-      // Create map element
-      const mapElement = document.createElement('gmp-map');
-      mapElement.style.height = '500px';
-      mapElement.style.width = '100%';
-      mapElement.style.borderRadius = '8px';
-      mapElement.setAttribute('center', `${locations[0].latitude},${locations[0].longitude}`);
-      mapElement.setAttribute('zoom', '12');
-      mapElement.setAttribute('map-id', '8f348c95237d5e1a');
+    console.log('Initializing map with locations:', locations);
+    
+    try {
+      // 先清理任何现有的标记
+      if (markersRef.current.length > 0) {
+        markersRef.current.forEach(marker => marker.setMap(null));
+        markersRef.current = [];
+      }
 
-      // Add markers for each location
-      locations.forEach(location => {
-        const marker = document.createElement('gmp-advanced-marker');
-        marker.setAttribute('position', `${location.latitude},${location.longitude}`);
-        marker.setAttribute('title', location.locationName);
+      // 如果地图尚未创建，创建一个新的地图
+      if (!mapRef.current) {
+        // 获取第一个位置作为中心点
+        const center = { 
+          lat: parseFloat(locations[0].latitude), 
+          lng: parseFloat(locations[0].longitude) 
+        };
         
-        // Create info content
-        const content = document.createElement('div');
-        content.innerHTML = `
-          <div style="padding: 8px;">
-            <h3 style="margin: 0 0 8px 0;">${location.locationName}</h3>
-            <p style="margin: 0;">Postcode: ${location.postcode || 'Not available'}</p>
-          </div>
-        `;
-        
-        // Add click event listener for info window
-        marker.addEventListener('click', () => {
-          const infoWindow = new google.maps.InfoWindow({
-            content: content
-          });
-          infoWindow.open(mapElement, marker);
+        // 创建地图
+        mapRef.current = new window.google.maps.Map(mapContainerRef.current, {
+          center: center,
+          zoom: 12,
+          mapId: '8f348c95237d5e1a',
+          fullscreenControl: true,
+          streetViewControl: true,
+          mapTypeControl: true,
+          zoomControl: true
         });
+      }
 
-        mapElement.appendChild(marker);
+      // 创建边界以便自动缩放
+      const bounds = new window.google.maps.LatLngBounds();
+      
+      // 为每个位置添加标记
+      locations.forEach(location => {
+        if (!location.latitude || !location.longitude) {
+          console.warn('Location missing coordinates:', location);
+          return;
+        }
+        
+        const position = { 
+          lat: parseFloat(location.latitude), 
+          lng: parseFloat(location.longitude) 
+        };
+        
+        // 添加到边界
+        bounds.extend(position);
+        
+        // 创建标记
+        const marker = new window.google.maps.Marker({
+          position: position,
+          map: mapRef.current,
+          title: location.locationName || 'Location',
+          animation: window.google.maps.Animation.DROP
+        });
+        
+        // 添加信息窗口
+        const infowindow = new window.google.maps.InfoWindow({
+          content: `
+            <div style="padding: 10px;">
+              <h3 style="margin-top: 0; margin-bottom: 8px; color: #1890ff;">${location.locationName || 'Location'}</h3>
+              <p style="margin: 0; color: #666;">Postcode: ${location.postcode || 'Not available'}</p>
+            </div>
+          `
+        });
+        
+        // 添加点击事件
+        marker.addListener('click', () => {
+          infowindow.open(mapRef.current, marker);
+        });
+        
+        // 保存标记引用
+        markersRef.current.push(marker);
       });
-
-      // Add map to container
-      mapContainerRef.current.appendChild(mapElement);
+      
+      // 调整地图以显示所有标记
+      if (markersRef.current.length > 0) {
+        mapRef.current.fitBounds(bounds);
+        
+        // 如果只有一个标记，设置一个适当的缩放级别
+        if (markersRef.current.length === 1) {
+          mapRef.current.setZoom(14);
+        }
+      }
+    } catch (error) {
+      console.error('Error initializing Google Maps:', error);
+      setHasError(true);
+      setErrorMessage(`Error initializing map: ${error.message}`);
     }
   }, [visible, isMapLoaded, locations]);
+
+  // 处理模态框关闭，清理资源
+  const handleModalClose = () => {
+    // 清理地图资源
+    if (markersRef.current.length > 0) {
+      markersRef.current.forEach(marker => marker.setMap(null));
+      markersRef.current = [];
+    }
+    mapRef.current = null;
+    
+    // 调用传入的关闭函数
+    onClose();
+  };
 
   return (
     <Modal
       title="Training Locations Map"
       open={visible}
-      onCancel={onClose}
+      onCancel={handleModalClose}
       footer={null}
       width={800}
     >
@@ -164,9 +278,47 @@ const MapModal = ({ visible, onClose, locations }) => {
           width: '100%', 
           display: 'flex', 
           alignItems: 'center', 
-          justifyContent: 'center' 
+          justifyContent: 'center',
+          background: '#f0f2f5',
+          borderRadius: '8px'
         }}>
-          <Spin size="large" tip="Loading Google Maps..." />
+          <Spin size="large">
+            <div style={{ height: '100px', width: '100px', textAlign: 'center', marginTop: '30px' }}>
+              <div style={{ marginTop: '15px', color: '#1890ff' }}>Loading Google Maps...</div>
+            </div>
+          </Spin>
+        </div>
+      ) : hasError ? (
+        <div style={{ 
+          height: '500px', 
+          width: '100%', 
+          display: 'flex', 
+          flexDirection: 'column',
+          alignItems: 'center', 
+          justifyContent: 'center',
+          background: '#f0f2f5',
+          borderRadius: '8px',
+          padding: '20px'
+        }}>
+          <div style={{ fontSize: '24px', color: '#ff4d4f', marginBottom: '16px' }}>
+            <span role="img" aria-label="warning">⚠️</span> Map Error
+          </div>
+          <p style={{ textAlign: 'center', maxWidth: '400px', color: '#666' }}>
+            {errorMessage || 'An error occurred while loading the map. Please try again later.'}
+          </p>
+          <Button 
+            type="primary" 
+            onClick={() => {
+              setHasError(false);
+              setIsMapLoaded(false);
+              setTimeout(() => {
+                window.initGoogleMap && window.initGoogleMap();
+              }, 500);
+            }}
+            style={{ marginTop: '16px' }}
+          >
+            Retry
+          </Button>
         </div>
       ) : (
         <div 
@@ -174,8 +326,7 @@ const MapModal = ({ visible, onClose, locations }) => {
           style={{ 
             height: '500px', 
             width: '100%',
-            borderRadius: '8px',
-            marginTop: '16px'
+            borderRadius: '8px'
           }}
         />
       )}
@@ -200,6 +351,10 @@ const CoachDetails = () => {
   // Add state for map modal
   const [isMapModalVisible, setIsMapModalVisible] = useState(false);
   
+  // Add state for profile completeness check
+  const [showProfileAlert, setShowProfileAlert] = useState(false);
+  const [missingFields, setMissingFields] = useState([]);
+  
   // Get coach details data
   const { 
     data: coachData, 
@@ -208,6 +363,27 @@ const CoachDetails = () => {
     error,
     refetch: refetchDetails 
   } = useGetCoachDetailQuery();
+  
+  // Get coach profile completeness check
+  const {
+    data: checkData,
+    isLoading: isCheckingProfile
+  } = useCheckCoachDetailsQuery();
+  
+  // Check profile completeness
+  useEffect(() => {
+    if (checkData && checkData.code === 0) {
+      const { isComplete, missingFields } = checkData.data;
+      
+      if (!isComplete && missingFields && missingFields.length > 0) {
+        setShowProfileAlert(true);
+        setMissingFields(missingFields);
+      } else {
+        setShowProfileAlert(false);
+        setMissingFields([]);
+      }
+    }
+  }, [checkData]);
   
   // API mutations
   const [updateIntro, { isLoading: isUpdatingIntro }] = useUpdateCoachIntroMutation();
@@ -328,8 +504,8 @@ const CoachDetails = () => {
     try {
       // Check if file is valid
       if (!file) {
-        message.error('Please select a file');
-        onError(new Error('No file selected'));
+        message.error('请选择文件');
+        onError(new Error('未选择文件'));
         return;
       }
 
@@ -342,6 +518,7 @@ const CoachDetails = () => {
       if (response.code === 0) {
         setTempPhotoUrl(response.photoUrl); // Save temporary photo URL
         const imageUrlWithToken = createImageUrlWithToken(response.photoUrl);
+        setPhotoUrl(response.photoUrl); // 更新头像状态
         setFileList([
           {
             uid: '-1',
@@ -350,17 +527,20 @@ const CoachDetails = () => {
             url: imageUrlWithToken,
           },
         ]);
-        message.success('Photo uploaded successfully');
+        
+        message.success('头像上传成功，正在保存所有更改...');
         onSuccess(response, file);
         
-        // Refresh the entire page after successful upload
-        window.location.reload();
+        // 自动保存所有更改
+        setTimeout(() => {
+          handleSaveAll();
+        }, 300);
       } else {
-        message.error(response.msg || 'Failed to upload photo');
-        onError(new Error('Upload failed'));
+        message.error(response.msg || '头像上传失败');
+        onError(new Error('上传失败'));
       }
     } catch (error) {
-      message.error(error.data?.msg || 'Failed to upload photo');
+      message.error(error.data?.msg || '头像上传失败');
       onError(error);
     }
   };
@@ -562,7 +742,14 @@ const CoachDetails = () => {
   };
   
   // Add map modal visibility handlers
-  const showMapModal = () => setIsMapModalVisible(true);
+  const showMapModal = () => {
+    console.log('Opening map modal with locations:', {
+      coachLocations: coachLocations,
+      otherLocations: otherLocations,
+      totalLocations: [...coachLocations, ...otherLocations]
+    });
+    setIsMapModalVisible(true);
+  };
   const hideMapModal = () => setIsMapModalVisible(false);
 
   // Add sidebarCollapsed state in class or function component
@@ -622,6 +809,39 @@ const CoachDetails = () => {
   return (
     <PageTransition isVisible={true} noAnimation={true}>
       <style>{scrollbarStyles}</style>
+      
+      {/* Profile Completeness Alert */}
+      {showProfileAlert && (
+        <Modal
+          title="Complete Your Profile"
+          open={showProfileAlert}
+          onCancel={() => setShowProfileAlert(false)}
+          footer={[
+            <Button key="ok" type="primary" onClick={() => setShowProfileAlert(false)}>
+              I understand
+            </Button>
+          ]}
+        >
+          <Alert
+            message="Your profile is incomplete"
+            description={
+              <div>
+                <p>Please add the following information to complete your profile:</p>
+                <ul>
+                  {missingFields.map((field, index) => (
+                    <li key={index}>{field}</li>
+                  ))}
+                </ul>
+                <p>A complete profile helps attract more clients and increases your visibility.</p>
+              </div>
+            }
+            type="warning"
+            showIcon
+            style={{ marginBottom: 0 }}
+          />
+        </Modal>
+      )}
+      
       <DndProvider backend={HTML5Backend}>
         <Layout style={{ minHeight: '100vh' }}>
           <CoachSidebar 
@@ -1023,7 +1243,7 @@ const CoachDetails = () => {
               <MapModal 
                 visible={isMapModalVisible} 
                 onClose={hideMapModal} 
-                locations={coachLocations}
+                locations={coachLocations.length > 0 ? coachLocations : [...coachLocations, ...otherLocations]}
               />
             </Content>
           </Layout>

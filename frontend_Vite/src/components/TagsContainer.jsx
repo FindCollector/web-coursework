@@ -59,13 +59,23 @@ const TagsContainer = ({ title, tags, type, onMove, onRemove, style }) => {
     marginBottom: '16px',
     boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
     transition: 'all 0.3s ease',
-    border: isActive ? '2px dashed #1890ff' : '1px solid #f0f0f0',
     background: isActive 
       ? (type === 'coach' ? 'rgba(217, 247, 190, 0.3)' : 'rgba(255, 231, 186, 0.3)') 
       : defaultStyle.background,
     borderLeft: defaultStyle.borderLeft,
     ...style // Allow overriding default styles
   };
+  
+  // 自定义border样式，避免冲突
+  if (isActive) {
+    containerStyle.borderTop = '2px dashed #1890ff';
+    containerStyle.borderRight = '2px dashed #1890ff';
+    containerStyle.borderBottom = '2px dashed #1890ff';
+  } else {
+    containerStyle.borderTop = '1px solid #f0f0f0';
+    containerStyle.borderRight = '1px solid #f0f0f0';
+    containerStyle.borderBottom = '1px solid #f0f0f0';
+  }
   
   // Use useMemo to optimize tag rendering performance
   const renderedTags = useMemo(() => {
@@ -134,7 +144,7 @@ const TagsContainer = ({ title, tags, type, onMove, onRemove, style }) => {
       }
       style={containerStyle}
       className="shadow-sm transition-all duration-300 hover:shadow-md"
-      bodyStyle={{ padding: '16px', background: 'white' }}
+      styles={{ body: { padding: '16px', background: 'white' } }}
     >
       <div 
         ref={drop}

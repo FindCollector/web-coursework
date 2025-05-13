@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLoginMutation } from '../store/api/authApi';
@@ -26,6 +26,12 @@ const Login = () => {
   const location = useLocation();
   const isRegisterPage = location.pathname === '/register';
   
+  // 使用ref追踪消息是否已显示
+  const messageDisplayed = useRef(false);
+  
+  // 使用ref追踪已显示过的消息ID
+  const displayedMessageIds = useRef(new Set());
+  
   // Use custom hooks
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -34,14 +40,43 @@ const Login = () => {
   // State management
   const [expiredError, setExpiredError] = useState(false);
   
+  // 配置message组件，防止重复消息
+  useEffect(() => {
+    // 配置message组件，限制同一时间只能显示一个消息
+    message.config({
+      maxCount: 1,
+    });
+  }, []);
+  
   // Check if there's a profile completion message
   useEffect(() => {
-    if (location.state?.message) {
-      message.success(location.state.message);
-      // Clear message to avoid showing again on refresh
-      navigate(location.pathname, { replace: true, state: {} });
+    // 检查state中是否有消息和messageId
+    if (location.state?.message && 
+        typeof location.state.message === 'string' &&
+        location.state?.messageId) {
+      
+      // 检查这个messageId是否已经显示过
+      if (!displayedMessageIds.current.has(location.state.messageId)) {
+        // 添加到已显示集合中
+        displayedMessageIds.current.add(location.state.messageId);
+        
+        // 显示消息
+        message.success(location.state.message);
+        
+        // 清除state中的消息
+        window.history.replaceState(
+          {},
+          document.title,
+          window.location.pathname
+        );
+        
+        // 防止集合无限增长，设置一个上限
+        if (displayedMessageIds.current.size > 10) {
+          displayedMessageIds.current = new Set([...displayedMessageIds.current].slice(-5));
+        }
+      }
     }
-  }, [location.state, navigate]);
+  }, [location.state]);
   
   // Use RTK Query hook
   const [login, loginResult] = useLoginMutation();
@@ -120,11 +155,19 @@ const Login = () => {
         // Navigate directly
         navigate(redirectPath, { replace: true });
       } else if (data.code === 3004) {
-        message.info('Please complete your profile to continue');
-        navigate('/complete-profile', { 
-          state: { email: data.data.email },
-          replace: true 
-        });
+        // 仅对谷歌登录用户显示需要完成个人信息的提示
+        // 注册用户不应该到这里，因为他们在注册过程中已经填写了个人信息
+        const isGoogleLogin = data.data?.isGoogleLogin === true;
+        if (isGoogleLogin) {
+          message.info('Please complete your profile to continue');
+          navigate('/complete-profile', { 
+            state: { email: data.data.email },
+            replace: true 
+          });
+        } else {
+          // 普通用户登录出现此错误，应该是后端配置问题
+          message.error('Your account information is incomplete. Please contact support.');
+        }
         return;
       } else {
         // Ensure we use the error message from backend
@@ -233,9 +276,13 @@ const Login = () => {
         // Navigate directly
         navigate(redirectPath, { replace: true });
       } else if (data.code === 3004) {
+        // Google登录需要完成个人资料，这是正常流程
         message.info('Please complete your profile to continue');
         navigate('/complete-profile', { 
-          state: { email: data.data.email },
+          state: { 
+            email: data.data.email,
+            isGoogleLogin: true 
+          },
           replace: true 
         });
         return;
@@ -325,6 +372,17 @@ const Login = () => {
                 render={({ field }) => <Input.Password {...field} placeholder="Enter your password" />}
               />
             </Form.Item>
+            
+            <div style={{ textAlign: 'right', marginTop: '-15px', marginBottom: '15px' }}>
+              <Button 
+                type="link" 
+                onClick={() => navigate('/forgot-password')} 
+                style={{ fontSize: '14px', padding: '0' }}
+                disabled={isLoading || loginResult.isLoading}
+              >
+                Forgot Password?
+              </Button>
+            </div>
             
             <Form.Item style={{ textAlign: 'center' }}>
               <Button

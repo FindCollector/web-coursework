@@ -144,6 +144,45 @@ export const authApi = baseApi.injectEndpoints({
           // Error handling is automatic
         }
       }
+    }),
+
+    // Retrieve password (send reset code)
+    retrievePassword: builder.mutation({
+      query: (data) => {
+        const { headers, ...requestData } = data;
+        return {
+          url: '/auth/retrieve/password',
+          method: 'POST',
+          body: requestData,
+          headers
+        };
+      }
+    }),
+
+    // Resend password reset code
+    resendPasswordResetCode: builder.mutation({
+      query: (data) => {
+        const { headers, ...requestData } = data;
+        return {
+          url: '/auth/retrieve/password/resend/code',
+          method: 'POST',
+          body: requestData,
+          headers
+        };
+      }
+    }),
+
+    // Reset password with verification code
+    resetPassword: builder.mutation({
+      query: (data) => {
+        const { headers, ...requestData } = data;
+        return {
+          url: '/auth/retrieve/password/verify/code',
+          method: 'POST',
+          body: requestData,
+          headers
+        };
+      }
     })
   })
 });
@@ -157,5 +196,8 @@ export const {
   useSendVerificationCodeMutation,
   useVerifyCodeMutation,
   useResendVerificationCodeMutation,
-  useCompleteProfileMutation
+  useCompleteProfileMutation,
+  useRetrievePasswordMutation,
+  useResendPasswordResetCodeMutation,
+  useResetPasswordMutation
 } = authApi; 
